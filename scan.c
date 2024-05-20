@@ -2,7 +2,6 @@
 // Created by tika on 24-5-19.
 //
 
-#include "defs.h"
 #include "data.h"
 #include "decl.h"
 
@@ -16,21 +15,21 @@ static int chrpos(char *s, int c) {
 static int next(void) {
     int c;
 
-    if (Putback) {
-        c = Putback;
-        Putback = 0;
+    if (PUT_BACK) {
+        c = PUT_BACK;
+        PUT_BACK = 0;
         return c;
     }
 
-    c = fgetc(Infile);
+    c = fgetc(IN_FILE);
     if (c == '\n')
-        Line++;
+        LINE++;
 
     return c;
 }
 
 static void putback(int c) {
-    Putback = c;
+    PUT_BACK = c;
 }
 
 static int skip(void) {
@@ -58,6 +57,7 @@ int scan(Token *t) {
 
     switch (c) {
         case EOF:
+            t->token = T_EOF;
             return 0;
         case '+':
             t->token = T_PLUS;
@@ -77,7 +77,7 @@ int scan(Token *t) {
                 t->token = T_INTLIT;
                 break;
             }
-            printf("Unrecognized character: %c on line %d\n", c, Line);
+            printf("Unrecognized character: %c on line %d\n", c, LINE);
             exit(1);
     }
     return 1;
