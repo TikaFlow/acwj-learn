@@ -5,21 +5,21 @@
 #include "data.h"
 #include "decl.h"
 
-static ASTnode *primary(void) {
-    struct ASTnode *n;
+static ASTnode *primary() {
+    ASTnode *node;
 
     switch (TOKEN.token) {
         case T_INTLIT:
-            n = mkastleaf(A_INTLIT, TOKEN.intvalue);
+            node = mkastleaf(A_INTLIT, TOKEN.intvalue);
             scan(&TOKEN);
-            return (n);
+            return (node);
         default:
-            fprintf(stderr, "syntax error on line %d\n", LINE);
+            fprintf(stderr, "syntax error on line %d, token: %d\n", LINE, TOKEN.token);
             exit(1);
     }
 }
 
-int arithop(int tk) {
+static int arithop(int tk) {
     switch (tk) {
         case T_PLUS:
             return A_ADD;
@@ -30,22 +30,45 @@ int arithop(int tk) {
         case T_SLASH:
             return A_DIVIDE;
         default:
-            fprintf(stderr, "unknown token in arithop() on line %d\n", LINE);
+            fprintf(stderr, "unknown token in arithop() on line %d, token: %d\n", LINE, TOKEN.token);
             exit(1);
     }
 }
 
-ASTnode *binexpr(void) {
-    ASTnode *node, *left, *right;
-    int nodetype;
+// TOKEN: EOF + - * / LITERAL
+static int op_prec[] = {0, 10, 10, 20, 20, 0};
 
-    left = primary();
-    if (TOKEN.token == T_EOF) {
+static int op_precedence(int tokentype) {
+    int prec = op_prec[tokentype];
+    if (prec == 0) {
+        fprintf(stderr, "syntax error on line %d, token %d\n", LINE, tokentype);
+        exit(1);
+    }
+    return prec;
+}
+
+/*
+ * @param ptp: previous token precedence
+ */
+ASTnode *binexpr(int ptp) {
+    ASTnode *right, *left = primary();
+    int tokentype = TOKEN.token;
+
+    if (tokentype == T_EOF) {
         return left;
     }
-    nodetype = arithop(TOKEN.token);
-    scan(&TOKEN);
-    right = binexpr();
-    node = mkastnode(nodetype, left, right, 0);
-    return node;
+
+    while (op_precedence(tokentype) > ptp) {
+        scan(&TOKEN);
+
+        right = binexpr(op_prec[tokentype]);
+
+        left = mkastnode(arithop(tokentype), left, right, 0);
+
+        tokentype = TOKEN.token;
+        if (tokentype == T_EOF)
+            return (left);
+    }
+
+    return left;
 }

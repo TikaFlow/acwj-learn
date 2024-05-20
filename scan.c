@@ -12,7 +12,7 @@ static int chrpos(char *s, int c) {
     return p ? p - s : -1;
 }
 
-static int next(void) {
+static int next() {
     int c;
 
     if (PUT_BACK) {
@@ -32,7 +32,7 @@ static void putback(int c) {
     PUT_BACK = c;
 }
 
-static int skip(void) {
+static int skip() {
     int c;
 
     while ((c = next()) == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f');
