@@ -8,21 +8,32 @@
 
 #include "defs.h"
 
+// scan.c
 int scan(Token *t);
 
+// tree.c
 ASTnode *mkastnode(int op, ASTnode *left, ASTnode *right, int intvalue);
 
 ASTnode *mkastleaf(int op, int intvalue);
 
 ASTnode *mkastunary(int op, ASTnode *left, int intvalue);
 
+// expr.c
 ASTnode *binexpr(int ptp);
 
-int interpretAST(ASTnode *n);
+// gen.c
+int genAST(ASTnode *node);
 
-void generatecode(ASTnode *n);
+void genpreamble();
 
-void freeall_registers(void);
+void genpostamble();
+
+void genfreeregs();
+
+void genprintint(int reg);
+
+// cg.c
+void cgfreeregs(void);
 
 void cgpreamble();
 
@@ -38,6 +49,14 @@ int cgmul(int r1, int r2);
 
 int cgdiv(int r1, int r2);
 
-void cgprintint(int r);
+void cgprintint(int reg);
+
+// stmt.c
+void statements();
+
+// misc.c
+void match(int tokentype, char *what);
+
+void semi();
 
 #endif //ACWJ_LEARN_DEL_H

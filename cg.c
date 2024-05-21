@@ -9,7 +9,7 @@
 static int freereg[4];
 static char *reglist[] = {"%r8", "%r9", "%r10", "%r11"};
 
-void freeall_registers() {
+void cgfreeregs() {
     for (int i = 0; i < 4; i++) {
         freereg[i] = 1;
     }
@@ -35,7 +35,7 @@ static void free_register(int reg) {
 }
 
 void cgpreamble() {
-    freeall_registers();
+    cgfreeregs();
     fputs("\t.text\n"
           ".LC0:\n"
           "\t.string\t\"%d\\n\"\n"

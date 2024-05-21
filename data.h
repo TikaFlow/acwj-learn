@@ -12,10 +12,16 @@
 #define extern_ extern
 #endif
 
+// current line
 extern_ int LINE;
+// put back char
 extern_ int PUT_BACK;
+// input and output file
 extern_ FILE *IN_FILE;
 extern_ FILE *OUT_FILE;
+// last token
 extern_ Token TOKEN;
+// last symbol
+extern_ char TEXT[TEXT_LEN + 1];
 
 #endif //ACWJ_LEARN_DATA_H

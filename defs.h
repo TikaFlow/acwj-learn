@@ -11,6 +11,9 @@
 #include <string.h>
 #include <ctype.h>
 
+// symbol length
+#define TEXT_LEN 512
+
 // tokens
 enum {
     T_EOF,
@@ -18,7 +21,9 @@ enum {
     T_MINUS,
     T_STAR,
     T_SLASH,
-    T_INTLIT
+    T_INTLIT,
+    T_SEMI,
+    T_PRINT
 };
 
 // token struct

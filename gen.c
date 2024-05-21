@@ -5,7 +5,7 @@
 #include "data.h"
 #include "decl.h"
 
-static int genAST(ASTnode *node) {
+int genAST(ASTnode *node) {
     int leftreg, rightreg;
 
     if (node->left) {
@@ -33,11 +33,15 @@ static int genAST(ASTnode *node) {
     }
 }
 
-void generatecode(ASTnode *node) {
-    int reg;
-
+void genpreamble() {
     cgpreamble();
-    reg = genAST(node);
-    cgprintint(reg);
+}
+void genpostamble() {
     cgpostamble();
+}
+void genfreeregs() {
+    cgfreeregs();
+}
+void genprintint(int reg) {
+    cgprintint(reg);
 }

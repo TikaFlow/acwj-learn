@@ -39,9 +39,9 @@ int main(int argc, char *argv[]) {
     }
 
     scan(&TOKEN);
-    ASTnode *node = binexpr(0);
-    printf("%d\n", interpretAST(node));
-    generatecode(node);
+    genpreamble();
+    statements();
+    genpostamble();
 
     fclose(OUT_FILE);
     exit(0);
