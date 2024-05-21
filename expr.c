@@ -12,7 +12,7 @@ static ASTnode *primary() {
         case T_INTLIT:
             node = mkastleaf(A_INTLIT, TOKEN.intvalue);
             scan(&TOKEN);
-            return (node);
+            return node;
         default:
             fprintf(stderr, "syntax error on line %d, token: %d\n", LINE, TOKEN.token);
             exit(1);
@@ -67,7 +67,7 @@ ASTnode *binexpr(int ptp) {
 
         tokentype = TOKEN.token;
         if (tokentype == T_EOF)
-            return (left);
+            return left;
     }
 
     return left;

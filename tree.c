@@ -22,9 +22,9 @@ ASTnode *mkastnode(int op, ASTnode *left, ASTnode *right, int intvalue) {
 }
 
 ASTnode *mkastleaf(int op, int intvalue) {
-    return (mkastnode(op, NULL, NULL, intvalue));
+    return mkastnode(op, NULL, NULL, intvalue);
 }
 
 ASTnode *mkastunary(int op, ASTnode *left, int intvalue) {
-    return (mkastnode(op, left, NULL, intvalue));
+    return mkastnode(op, left, NULL, intvalue);
 }

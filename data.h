@@ -15,6 +15,7 @@
 extern_ int LINE;
 extern_ int PUT_BACK;
 extern_ FILE *IN_FILE;
+extern_ FILE *OUT_FILE;
 extern_ Token TOKEN;
 
 #endif //ACWJ_LEARN_DATA_H

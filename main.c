@@ -33,8 +33,16 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    if ((OUT_FILE = fopen("out.s", "w")) == NULL) {
+        fprintf(stderr, "Unable to create out.s: %s\n", strerror(errno));
+        exit(1);
+    }
+
     scan(&TOKEN);
     ASTnode *node = binexpr(0);
     printf("%d\n", interpretAST(node));
+    generatecode(node);
+
+    fclose(OUT_FILE);
     exit(0);
 }
