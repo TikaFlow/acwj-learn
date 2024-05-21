@@ -7,16 +7,24 @@
 
 static ASTnode *primary() {
     ASTnode *node;
+    int id;
 
     switch (TOKEN.token) {
         case T_INTLIT:
             node = mkastleaf(A_INTLIT, TOKEN.intvalue);
-            scan(&TOKEN);
-            return node;
+            break;
+        case T_IDENT:
+            if ((id = findglob(TEXT)) < 0) {
+                fatals("Unknown variable", TEXT);
+            }
+            node = mkastleaf(A_IDENT, id);
+            break;
         default:
-            fprintf(stderr, "syntax error on line %d, token: %d\n", LINE, TOKEN.token);
-            exit(1);
+            fatald("syntax error, token", TOKEN.token);
     }
+
+    scan(&TOKEN);
+    return node;
 }
 
 static int arithop(int tk) {
@@ -30,9 +38,9 @@ static int arithop(int tk) {
         case T_SLASH:
             return A_DIVIDE;
         default:
-            fprintf(stderr, "unknown token in arithop() on line %d, token: %d\n", LINE, TOKEN.token);
-            exit(1);
+            fatald("Unknown token", TOKEN.token);
     }
+    return 0;
 }
 
 // TOKEN: EOF + - * / LITERAL
@@ -41,8 +49,7 @@ static int op_prec[] = {0, 10, 10, 20, 20, 0};
 static int op_precedence(int tokentype) {
     int prec = op_prec[tokentype];
     if (prec == 0) {
-        fprintf(stderr, "syntax error on line %d, token %d\n", LINE, tokentype);
-        exit(1);
+        fatald("Syntax error, token type", tokentype);
     }
     return prec;
 }

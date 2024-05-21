@@ -5,14 +5,14 @@
 #include "data.h"
 #include "decl.h"
 
-int genAST(ASTnode *node) {
+int genAST(ASTnode *node, int reg) {
     int leftreg, rightreg;
 
     if (node->left) {
-        leftreg = genAST(node->left);
+        leftreg = genAST(node->left, -1);
     }
     if (node->right) {
-        rightreg = genAST(node->right);
+        rightreg = genAST(node->right, leftreg);
     }
 
     switch (node->op) {
@@ -25,23 +25,35 @@ int genAST(ASTnode *node) {
         case A_DIVIDE:
             return cgdiv(leftreg, rightreg);
         case A_INTLIT:
-            return cgload(node->intvalue);
-
+            return cgloadint(node->value.intvalue);
+        case A_IDENT:
+            return cgloadglob(SYM_TAB[node->value.id].name);
+        case A_LVIDENT:
+            return cgstorglob(reg, SYM_TAB[node->value.id].name);
+        case A_ASSIGN:
+            return rightreg;
         default:
-            fprintf(stderr, "Unknown AST operator: %d\n", node->op);
-            exit(1);
+            fatald("Unknown AST operator", node->op);
     }
+    return -1;
 }
 
 void genpreamble() {
     cgpreamble();
 }
+
 void genpostamble() {
     cgpostamble();
 }
+
 void genfreeregs() {
     cgfreeregs();
 }
+
 void genprintint(int reg) {
     cgprintint(reg);
+}
+
+void genglobsym(char *s) {
+    cgglobsym(s);
 }

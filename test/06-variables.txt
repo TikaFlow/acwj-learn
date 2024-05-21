@@ -1,0 +1,7 @@
+int fred;
+int jim;
+int tika;
+fred= 5;
+jim= 12;
+tika= fred + jim;
+print tika + jim;

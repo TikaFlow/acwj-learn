@@ -18,11 +18,8 @@ ASTnode *mkastleaf(int op, int intvalue);
 
 ASTnode *mkastunary(int op, ASTnode *left, int intvalue);
 
-// expr.c
-ASTnode *binexpr(int ptp);
-
 // gen.c
-int genAST(ASTnode *node);
+int genAST(ASTnode *node, int reg);
 
 void genpreamble();
 
@@ -32,6 +29,8 @@ void genfreeregs();
 
 void genprintint(int reg);
 
+void genglobsym(char *s);
+
 // cg.c
 void cgfreeregs(void);
 
@@ -39,7 +38,9 @@ void cgpreamble();
 
 void cgpostamble();
 
-int cgload(int value);
+int cgloadint(int value);
+
+int cgloadglob(char *identifier);
 
 int cgadd(int r1, int r2);
 
@@ -51,6 +52,13 @@ int cgdiv(int r1, int r2);
 
 void cgprintint(int reg);
 
+int cgstorglob(int r, char *identifier);
+
+void cgglobsym(char *sym);
+
+// expr.c
+ASTnode *binexpr(int ptp);
+
 // stmt.c
 void statements();
 
@@ -58,5 +66,23 @@ void statements();
 void match(int tokentype, char *what);
 
 void semi();
+
+void ident(void);
+
+void fatal(char *s);
+
+void fatals(char *s1, char *s2);
+
+void fatald(char *s, int d);
+
+void fatalc(char *s, int c);
+
+// sym.c
+int findglob(char *s);
+
+int addglob(char *name);
+
+// decl.c
+void declarevar(void);
 
 #endif //ACWJ_LEARN_DEL_H

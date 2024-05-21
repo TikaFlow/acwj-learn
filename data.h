@@ -23,5 +23,7 @@ extern_ FILE *OUT_FILE;
 extern_ Token TOKEN;
 // last symbol
 extern_ char TEXT[TEXT_LEN + 1];
+// symbol table
+extern_ Symbol SYM_TAB[SYM_TAB_LEN];
 
 #endif //ACWJ_LEARN_DATA_H

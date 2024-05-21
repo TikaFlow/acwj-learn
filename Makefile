@@ -1,10 +1,13 @@
+SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c
+TEST=test/06-variables.txt
+
 all: test
 
-comp: main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c
-	cc -o comp -g main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c
+comp: $(SRCS)
+	cc -o comp -g $^
 
-test: comp
-	./comp test/05-statements.txt
+test: $(TEST) comp
+	./comp $<
 	cc -o out out.s
 	./out
 

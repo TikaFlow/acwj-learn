@@ -13,8 +13,9 @@
 
 // symbol length
 #define TEXT_LEN 512
+#define SYM_TAB_LEN 1024
 
-// tokens
+// token type
 enum {
     T_EOF,
     T_PLUS,
@@ -23,7 +24,10 @@ enum {
     T_SLASH,
     T_INTLIT,
     T_SEMI,
-    T_PRINT
+    T_EQUALS,
+    T_IDENT,
+    T_PRINT,
+    T_INT
 };
 
 // token struct
@@ -38,7 +42,10 @@ enum {
     A_SUBTRACT,
     A_MULTIPLY,
     A_DIVIDE,
-    A_INTLIT
+    A_INTLIT,
+    A_IDENT,
+    A_LVIDENT,
+    A_ASSIGN
 };
 
 // AST node struct
@@ -46,7 +53,15 @@ typedef struct ASTnode {
     int op;
     struct ASTnode *left;
     struct ASTnode *right;
-    int intvalue;
+    union value {
+        int intvalue; //intlit
+        int id; // symbol solt id
+    } value;
 } ASTnode;
+
+// symbol table struct
+typedef struct Symbol {
+    char *name;
+} Symbol;
 
 #endif //ACWJ_LEARN_DEFS_H
