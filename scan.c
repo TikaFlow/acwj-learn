@@ -106,7 +106,36 @@ int scan(Token *t) {
             t->token = T_SEMI;
             break;
         case '=':
-            t->token = T_EQUALS;
+            if ((c = next()) == '=') {
+                t->token = T_EQ;
+                break;
+            }
+            putback(c);
+            t->token = T_ASSIGN;
+            break;
+        case '!':
+            if ((c = next()) == '=') {
+                t->token = T_NE;
+                break;
+            }
+            putback(c);
+            fatalc("Unrecognized character", c);
+            break;
+        case '<':
+            if ((c = next()) == '=') {
+                t->token = T_LE;
+                break;
+            }
+            putback(c);
+            t->token = T_LT;
+            break;
+        case '>':
+            if ((c = next()) == '=') {
+                t->token = T_GE;
+                break;
+            }
+            putback(c);
+            t->token = T_GT;
             break;
         default:
             if (isdigit(c)) {

@@ -28,7 +28,7 @@ void stmtassign() {
     }
     right = mkastleaf(A_LVIDENT, id);
 
-    match(T_EQUALS, "=");
+    match(T_ASSIGN, "=");
     left = binexpr(0);
 
     tree = mkastnode(A_ASSIGN, left, right, 0);

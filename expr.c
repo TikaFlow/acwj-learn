@@ -28,23 +28,19 @@ static ASTnode *primary() {
 }
 
 static int arithop(int tk) {
-    switch (tk) {
-        case T_PLUS:
-            return A_ADD;
-        case T_MINUS:
-            return A_SUBTRACT;
-        case T_STAR:
-            return A_MULTIPLY;
-        case T_SLASH:
-            return A_DIVIDE;
-        default:
-            fatald("Unknown token", TOKEN.token);
+    if (tk > T_EOF && tk < T_INTLIT) {
+        return tk;
     }
+    fatald("Unknown token", TOKEN.token);
     return 0;
 }
 
-// TOKEN: EOF + - * / LITERAL
-static int op_prec[] = {0, 10, 10, 20, 20, 0};
+static int op_prec[] = {
+        0, 10, 10, // EOF + -
+        20, 20, // * /
+        30, 30, // == !=
+        40, 40, 40, 40 // < <= > >=
+};
 
 static int op_precedence(int tokentype) {
     int prec = op_prec[tokentype];

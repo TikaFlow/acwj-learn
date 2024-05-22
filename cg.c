@@ -7,7 +7,8 @@
 #include "decl.h"
 
 static int freereg[4];
-static char *reglist[] = {"%r8", "%r9", "%r10", "%r11"};
+static char *reglist[4] = {"%r8", "%r9", "%r10", "%r11"};
+static char *breglist[4] = {"%r8b", "%r9b", "%r10b", "%r11b"};
 
 void cgfreeregs() {
     for (int i = 0; i < 4; i++) {
@@ -121,4 +122,36 @@ int cgstorglob(int reg, char *identifier) {
 
 void cgglobsym(char *sym) {
     fprintf(OUT_FILE, "\t.comm\t%s, 8, 8\n", sym);
+}
+
+static int cgcompare(int r1, int r2, char *how) {
+    fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+    fprintf(OUT_FILE, "\t%s\t%s\n", how, breglist[r2]);
+    fprintf(OUT_FILE, "\tandq\t$255, %s\n", reglist[r2]);
+    free_register(r1);
+    return r2;
+}
+
+int cgequal(int r1, int r2) {
+    return cgcompare(r1, r2, "sete");
+}
+
+int cgnotequal(int r1, int r2) {
+    return cgcompare(r1, r2, "setne");
+}
+
+int cglessthan(int r1, int r2) {
+    return cgcompare(r1, r2, "setl");
+}
+
+int cggreaterthan(int r1, int r2) {
+    return cgcompare(r1, r2, "setg");
+}
+
+int cglessequal(int r1, int r2) {
+    return cgcompare(r1, r2, "setle");
+}
+
+int cggreaterequal(int r1, int r2) {
+    return cgcompare(r1, r2, "setge");
 }
