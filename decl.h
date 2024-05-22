@@ -32,7 +32,7 @@ void genprintint(int reg);
 void genglobsym(char *s);
 
 // cg.c
-void cgfreeregs(void);
+void cgfreeregs();
 
 void cgpreamble();
 

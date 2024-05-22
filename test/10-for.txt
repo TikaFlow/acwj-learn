@@ -1,0 +1,19 @@
+{
+    int i;
+    int j;
+    int count;
+    i = 6;
+    j = 5;
+    count = 0;
+
+    if(i<j){
+        count = i + 1;
+    }else{
+        count = j + 1;
+    }
+
+    int k;
+    for(k = 0; count>k; k = k + 1){
+        print k;
+    }
+}
