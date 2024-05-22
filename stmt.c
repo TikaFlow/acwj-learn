@@ -53,6 +53,23 @@ static ASTnode *stmtif() {
     return mkastnode(A_IF, condnode, truenode, falsenode, 0);
 }
 
+static ASTnode *stmtwhile() {
+    ASTnode *condnode, *whilenode;
+
+    match(T_WHILE, "while");
+    match(T_LPAREN, "(");
+
+    condnode = binexpr(0);
+    if (condnode->op < A_EQ || condnode->op > A_GE) {
+        fatal("Bad comparison operator");
+    }
+    match(T_RPAREN, ")");
+
+    whilenode = compoundstmt();
+
+    return mkastnode(A_WHILE, condnode, NULL, whilenode, 0);
+}
+
 ASTnode *compoundstmt() {
     ASTnode *tree, *left = NULL;
     match(T_LBRACE, "{");
@@ -72,11 +89,14 @@ ASTnode *compoundstmt() {
             case T_IF:
                 tree = stmtif();
                 break;
+            case T_WHILE:
+                tree = stmtwhile();
+                break;
             case T_RBRACE:
                 match(T_RBRACE, "}");
                 return left;
             default:
-                fatald("syntax error, unexpected token:", TOKEN.token);
+                fatald("syntax error, unexpected token", TOKEN.token);
         }
 
         if (tree) {

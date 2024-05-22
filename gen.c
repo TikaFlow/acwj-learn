@@ -33,12 +33,30 @@ static int genifAST(ASTnode *node) {
     return NO_REG;
 }
 
+static int genwhileAST(ASTnode *node) {
+    int lbegin = label(), lend = label();
+    cglabel(lbegin);
+
+    genAST(node->left, lend, node->op);
+    genfreeregs();
+
+    genAST(node->right, NO_REG, node->op);
+    genfreeregs();
+
+    cgjump(lbegin);
+    cglabel(lend);
+
+    return NO_REG;
+}
+
 int genAST(ASTnode *node, int reg, int parentASTop) {
     int leftreg, rightreg;
 
     switch (node->op) {
         case A_IF:
             return genifAST(node);
+        case A_WHILE:
+            return genwhileAST(node);
         case A_GLUE:
             genAST(node->left, NO_REG, node->op);
             genfreeregs();
@@ -69,7 +87,7 @@ int genAST(ASTnode *node, int reg, int parentASTop) {
         case A_GT:
         case A_LE:
         case A_GE:
-            if (parentASTop == A_IF) {
+            if (parentASTop == A_IF || parentASTop == A_WHILE) {
                 return cgcompare_and_jump(node->op, leftreg, rightreg, reg);
             } else {
                 return cgcompare_and_set(node->op, leftreg, rightreg);

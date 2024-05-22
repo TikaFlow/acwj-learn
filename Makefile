@@ -1,5 +1,5 @@
 SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c
-TEST=test/08-if.txt
+TEST=test/09-while.txt
 
 all: test
 
