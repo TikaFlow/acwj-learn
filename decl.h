@@ -12,14 +12,14 @@
 int scan(Token *t);
 
 // tree.c
-ASTnode *mkastnode(int op, ASTnode *left, ASTnode *right, int intvalue);
+ASTnode *mkastnode(int op, ASTnode *left,ASTnode *mid, ASTnode *right, int intvalue);
 
 ASTnode *mkastleaf(int op, int intvalue);
 
 ASTnode *mkastunary(int op, ASTnode *left, int intvalue);
 
 // gen.c
-int genAST(ASTnode *node, int reg);
+int genAST(ASTnode *node, int reg, int parentASTop);
 
 void genpreamble();
 
@@ -56,30 +56,22 @@ int cgstorglob(int r, char *identifier);
 
 void cgglobsym(char *sym);
 
-int cgequal(int r1, int r2);
+int cgcompare_and_set(int ASTop, int r1, int r2);
 
-int cgnotequal(int r1, int r2);
+int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
 
-int cglessthan(int r1, int r2);
+void cglabel(int l);
 
-int cggreaterthan(int r1, int r2);
-
-int cglessequal(int r1, int r2);
-
-int cggreaterequal(int r1, int r2);
+void cgjump(int l);
 
 // expr.c
 ASTnode *binexpr(int ptp);
 
 // stmt.c
-void statements();
+ASTnode *compoundstmt();
 
 // misc.c
 void match(int tokentype, char *what);
-
-void semi();
-
-void ident(void);
 
 void fatal(char *s);
 

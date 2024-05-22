@@ -13,7 +13,10 @@
 
 // symbol length
 #define TEXT_LEN 512
+// symbol table length
 #define SYM_TAB_LEN 1024
+// when no register is available
+#define NO_REG (-1)
 
 // token type
 enum {
@@ -32,9 +35,15 @@ enum {
     T_SEMI,
     T_ASSIGN,
     T_IDENT,
+    T_LBRACE,
+    T_RBRACE,
+    T_LPAREN,
+    T_RPAREN,
     // keywords
     T_PRINT,
-    T_INT
+    T_INT,
+    T_IF,
+    T_ELSE
 };
 
 // token struct
@@ -58,16 +67,20 @@ enum {
     A_INTLIT,
     A_IDENT,
     A_LVIDENT,
-    A_ASSIGN
+    A_ASSIGN,
+    A_PRINT,
+    A_GLUE,
+    A_IF
 };
 
 // AST node struct
 typedef struct ASTnode {
     int op;
     struct ASTnode *left;
+    struct ASTnode *mid;
     struct ASTnode *right;
     union value {
-        int intvalue; //intlit
+        int intvalue; // intlit
         int id; // symbol solt id
     } value;
 } ASTnode;

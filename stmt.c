@@ -5,24 +5,20 @@
 #include "data.h"
 #include "decl.h"
 
-void stmtprint() {
-    ASTnode *tree;
-    int reg;
-
+static ASTnode *stmtprint() {
     match(T_PRINT, "print");
-    tree = binexpr(0);
-    reg = genAST(tree, -1);
-    genprintint(reg);
-    genfreeregs();
+    ASTnode *tree = binexpr(0);
+    tree = mkastunary(A_PRINT, tree, 0);
 
-    semi();
+    match(T_SEMI, ";");
+    return tree;
 }
 
-void stmtassign() {
+static ASTnode *stmtassign() {
     ASTnode *left, *right, *tree;
     int id;
 
-    ident();
+    match(T_IDENT, "identifier");
     if ((id = findglob(TEXT)) < 0) {
         fatals("undeclared variable:", TEXT);
     }
@@ -31,29 +27,64 @@ void stmtassign() {
     match(T_ASSIGN, "=");
     left = binexpr(0);
 
-    tree = mkastnode(A_ASSIGN, left, right, 0);
-    genAST(tree, -1);
+    tree = mkastnode(A_ASSIGN, left, NULL, right, 0);
     genfreeregs();
 
-    semi();
+    match(T_SEMI, ";");
+    return tree;
 }
 
-void statements() {
+static ASTnode *stmtif() {
+    ASTnode *condnode, *truenode, *falsenode = NULL;
+
+    match(T_IF, "if");
+    match(T_LPAREN, "(");
+    condnode = binexpr(0);
+    if (condnode->op < A_EQ || condnode->op > A_GE) {
+        fatal("Bad comparison operator");
+    }
+    match(T_RPAREN, ")");
+    truenode = compoundstmt();
+    if (TOKEN.token == T_ELSE) {
+        match(T_ELSE, "else");
+        falsenode = compoundstmt();
+    }
+
+    return mkastnode(A_IF, condnode, truenode, falsenode, 0);
+}
+
+ASTnode *compoundstmt() {
+    ASTnode *tree, *left = NULL;
+    match(T_LBRACE, "{");
+
     while (1) {
         switch (TOKEN.token) {
             case T_PRINT:
-                stmtprint();
+                tree = stmtprint();
                 break;
             case T_INT:
                 declarevar();
+                tree = NULL;
                 break;
             case T_IDENT:
-                stmtassign();
+                tree = stmtassign();
                 break;
-            case T_EOF:
-                return;
+            case T_IF:
+                tree = stmtif();
+                break;
+            case T_RBRACE:
+                match(T_RBRACE, "}");
+                return left;
             default:
                 fatald("syntax error, unexpected token:", TOKEN.token);
+        }
+
+        if (tree) {
+            if (left) {
+                left = mkastnode(A_GLUE, left, NULL, tree, 0);
+            } else {
+                left = tree;
+            }
         }
     }
 }

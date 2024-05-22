@@ -5,14 +5,53 @@
 #include "data.h"
 #include "decl.h"
 
-int genAST(ASTnode *node, int reg) {
+static int label() {
+    static int id = 0;
+    return id++;
+}
+
+static int genifAST(ASTnode *node) {
+    int lend, lfalse = label();
+    if (node->right) {
+        lend = label();
+    }
+
+    genAST(node->left, lfalse, node->op);
+    genfreeregs();
+    genAST(node->mid, NO_REG, node->op);
+    genfreeregs();
+
+    if (node->right) {
+        cgjump(lend);
+    }
+    cglabel(lfalse);
+    if (node->right) {
+        genAST(node->right, NO_REG, node->op);
+        genfreeregs();
+        cglabel(lend);
+    }
+    return NO_REG;
+}
+
+int genAST(ASTnode *node, int reg, int parentASTop) {
     int leftreg, rightreg;
 
+    switch (node->op) {
+        case A_IF:
+            return genifAST(node);
+        case A_GLUE:
+            genAST(node->left, NO_REG, node->op);
+            genfreeregs();
+            genAST(node->right, NO_REG, node->op);
+            genfreeregs();
+            return NO_REG;
+    }
+
     if (node->left) {
-        leftreg = genAST(node->left, -1);
+        leftreg = genAST(node->left, NO_REG, node->op);
     }
     if (node->right) {
-        rightreg = genAST(node->right, leftreg);
+        rightreg = genAST(node->right, leftreg, node->op);
     }
 
     switch (node->op) {
@@ -25,17 +64,16 @@ int genAST(ASTnode *node, int reg) {
         case A_DIVIDE:
             return cgdiv(leftreg, rightreg);
         case A_EQ:
-            return cgequal(leftreg, rightreg);
         case A_NE:
-            return cgnotequal(leftreg, rightreg);
         case A_LT:
-            return cglessthan(leftreg, rightreg);
         case A_GT:
-            return cggreaterthan(leftreg, rightreg);
         case A_LE:
-            return cglessequal(leftreg, rightreg);
         case A_GE:
-            return cggreaterequal(leftreg, rightreg);
+            if (parentASTop == A_IF) {
+                return cgcompare_and_jump(node->op, leftreg, rightreg, reg);
+            } else {
+                return cgcompare_and_set(node->op, leftreg, rightreg);
+            }
         case A_INTLIT:
             return cgloadint(node->value.intvalue);
         case A_IDENT:
@@ -44,10 +82,14 @@ int genAST(ASTnode *node, int reg) {
             return cgstorglob(reg, SYM_TAB[node->value.id].name);
         case A_ASSIGN:
             return rightreg;
+        case A_PRINT:
+            genprintint(leftreg);
+            genfreeregs();
+            return NO_REG;
         default:
             fatald("Unknown AST operator", node->op);
     }
-    return -1;
+    return NO_REG;
 }
 
 void genpreamble() {

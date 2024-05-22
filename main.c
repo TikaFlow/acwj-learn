@@ -40,9 +40,10 @@ int main(int argc, char *argv[]) {
 
     scan(&TOKEN);
     genpreamble();
-    statements();
+    genAST(compoundstmt(), NO_REG, 0);
     genpostamble();
 
     fclose(OUT_FILE);
+    fclose(IN_FILE);
     exit(0);
 }

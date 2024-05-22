@@ -20,6 +20,7 @@ static ASTnode *primary() {
             node = mkastleaf(A_IDENT, id);
             break;
         default:
+            node = NULL;
             fatald("syntax error, token", TOKEN.token);
     }
 
@@ -56,8 +57,7 @@ static int op_precedence(int tokentype) {
 ASTnode *binexpr(int ptp) {
     ASTnode *right, *left = primary();
     int tokentype = TOKEN.token;
-
-    if (tokentype == T_SEMI) {
+    if (tokentype == T_SEMI || tokentype == T_RPAREN) {
         return left;
     }
 
@@ -66,11 +66,12 @@ ASTnode *binexpr(int ptp) {
 
         right = binexpr(op_prec[tokentype]);
 
-        left = mkastnode(arithop(tokentype), left, right, 0);
+        left = mkastnode(arithop(tokentype), left, NULL, right, 0);
 
         tokentype = TOKEN.token;
-        if (tokentype == T_SEMI)
+        if (tokentype == T_SEMI || tokentype == T_RPAREN) {
             return left;
+        }
     }
 
     return left;

@@ -7,8 +7,10 @@
 #include "decl.h"
 
 static int freereg[4];
-static char *reglist[4] = {"%r8", "%r9", "%r10", "%r11"};
-static char *breglist[4] = {"%r8b", "%r9b", "%r10b", "%r11b"};
+static char *reglist[] = {"%r8", "%r9", "%r10", "%r11"};
+static char *breglist[] = {"%r8b", "%r9b", "%r10b", "%r11b"};
+static char *cmplist[] = {"sete", "setne", "setl", "setg", "setle", "setge"};
+static char *invcmplist[] = {"jne", "je", "jge", "jle", "jg", "jl"};
 
 void cgfreeregs() {
     for (int i = 0; i < 4; i++) {
@@ -124,34 +126,35 @@ void cgglobsym(char *sym) {
     fprintf(OUT_FILE, "\t.comm\t%s, 8, 8\n", sym);
 }
 
-static int cgcompare(int r1, int r2, char *how) {
+void cglabel(int l) {
+    fprintf(OUT_FILE, "L%d:\n", l);
+}
+
+void cgjump(int l) {
+    fprintf(OUT_FILE, "\tjmp\tL%d\n", l);
+}
+
+int cgcompare_and_set(int ASTop, int r1, int r2) {
+    if (ASTop < A_EQ || ASTop > A_GE) {
+        fatal("Bad ASTop in cgcompare_and_set()");
+    }
+
     fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
-    fprintf(OUT_FILE, "\t%s\t%s\n", how, breglist[r2]);
-    fprintf(OUT_FILE, "\tandq\t$255, %s\n", reglist[r2]);
+    fprintf(OUT_FILE, "\t%s\t%s\n", cmplist[ASTop - A_EQ], reglist[r2]);
+    fprintf(OUT_FILE, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
     free_register(r1);
+
     return r2;
 }
 
-int cgequal(int r1, int r2) {
-    return cgcompare(r1, r2, "sete");
-}
+int cgcompare_and_jump(int ASTop, int r1, int r2, int l) {
+    if (ASTop < A_EQ || ASTop > A_GE) {
+        fatal("Bad ASTop in cgcompare_and_jump()");
+    }
 
-int cgnotequal(int r1, int r2) {
-    return cgcompare(r1, r2, "setne");
-}
+    fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+    fprintf(OUT_FILE, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], l);
+    cgfreeregs();
 
-int cglessthan(int r1, int r2) {
-    return cgcompare(r1, r2, "setl");
-}
-
-int cggreaterthan(int r1, int r2) {
-    return cgcompare(r1, r2, "setg");
-}
-
-int cglessequal(int r1, int r2) {
-    return cgcompare(r1, r2, "setle");
-}
-
-int cggreaterequal(int r1, int r2) {
-    return cgcompare(r1, r2, "setge");
+    return NO_REG;
 }

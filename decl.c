@@ -7,8 +7,8 @@
 
 void declarevar() {
     match(T_INT, "int");
-    ident();
+    match(T_IDENT, "identifier");
     addglob(TEXT);
     genglobsym(TEXT);
-    semi();
+    match(T_SEMI, ";");
 }

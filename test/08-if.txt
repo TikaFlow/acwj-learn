@@ -1,0 +1,12 @@
+{
+    int i;
+    int j;
+    i = 11;
+    j = 52;
+
+    if(i<j){
+        print i;
+    }else{
+        print j;
+    }
+}

@@ -22,9 +22,9 @@ static int next() {
     }
 
     c = fgetc(IN_FILE);
-    if (c == '\n')
+    if (c == '\n') {
         LINE++;
-
+    }
     return c;
 }
 
@@ -52,12 +52,11 @@ static int scanint(int c) {
     return val;
 }
 
-static int scanident(int c, char *buf, int lim) {
+static int scanident(int c, char *buf) {
     int len = 0;
     while (isalpha(c) || isdigit(c) || c == '_') {
-        if (len >= lim - 1) {
-            printf("Identifier too long on line %d\n", LINE);
-            exit(1);
+        if (len >= TEXT_LEN - 1) {
+            fatal("Identifier too long");
         }
         buf[len++] = c;
         c = next();
@@ -69,14 +68,22 @@ static int scanident(int c, char *buf, int lim) {
 
 static int keyword(char *s) {
     switch (*s) {
-        case 'p':
-            if (!strcmp(s, "print")) {
-                return T_PRINT;
+        case 'e':
+            if (!strcmp(s, "else")) {
+                return T_ELSE;
             }
             break;
         case 'i':
+            if (!strcmp(s, "if")) {
+                return T_IF;
+            }
             if (!strcmp(s, "int")) {
                 return T_INT;
+            }
+            break;
+        case 'p':
+            if (!strcmp(s, "print")) {
+                return T_PRINT;
             }
             break;
     }
@@ -84,7 +91,7 @@ static int keyword(char *s) {
 }
 
 int scan(Token *t) {
-    int c = skip(), tokentype = 0;
+    int c = skip(), tokentype;
 
     switch (c) {
         case EOF:
@@ -104,6 +111,18 @@ int scan(Token *t) {
             break;
         case ';':
             t->token = T_SEMI;
+            break;
+        case '{':
+            t->token = T_LBRACE;
+            break;
+        case '}':
+            t->token = T_RBRACE;
+            break;
+        case '(':
+            t->token = T_LPAREN;
+            break;
+        case ')':
+            t->token = T_RPAREN;
             break;
         case '=':
             if ((c = next()) == '=') {
@@ -144,7 +163,7 @@ int scan(Token *t) {
                 break;
             }
             if (isalpha(c) || c == '_') {
-                scanident(c, TEXT, TEXT_LEN);
+                scanident(c, TEXT);
 
                 if ((tokentype = keyword(TEXT))) {
                     t->token = tokentype;
@@ -154,8 +173,7 @@ int scan(Token *t) {
                 t->token = T_IDENT;
                 break;
             }
-            printf("Unrecognized character: %c on line %d\n", c, LINE);
-            exit(1);
+            fatalc("Unrecognized character", c);
     }
     return 1;
 }

@@ -10,16 +10,7 @@ void match(int tokentype, char *what) {
         scan(&TOKEN);
         return;
     }
-    printf("'%s' expected on line %d\n", what, LINE);
-    exit(1);
-}
-
-void semi() {
-    match(T_SEMI, ";");
-}
-
-void ident() {
-    match(T_IDENT, "identifier");
+    fatals("expected", what);
 }
 
 // Print out fatal messages
