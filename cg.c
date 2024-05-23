@@ -45,30 +45,33 @@ void cgpreamble() {
           "printint:\n"
           "\tpushq\t%rbp\n"
           "\tmovq\t%rsp, %rbp\n"
-          "\tsubq\t$16, %rsp\n"
-          "\tmovl\t%edi, -4(%rbp)\n"
-          "\tmovl\t-4(%rbp), %eax\n"
-          "\tmovl\t%eax, %esi\n"
+          "\tmovl\t%edi, %esi\n"
           "\tleaq\t.LC0(%rip), %rdi\n"
           "\tmovl\t$0, %eax\n"
           "\tcall\tprintf@PLT\n"
           "\tnop\n"
           "\tleave\n"
           "\tret\n"
-          "\n"
-          "\t.globl\tmain\n"
-          "\t.type\tmain, @function\n"
-          "main:\n"
-          "\tpushq\t%rbp\n"
-          "\tmovq\t%rsp, %rbp\n",
+          "\n",
           OUT_FILE);
 }
 
-void cgpostamble() {
+void cgfuncpostamble() {
     fputs("\tmovl\t$0, %eax\n"
           "\tpopq\t%rbp\n"
           "\tret\n",
           OUT_FILE);
+}
+
+void cgfuncpreamble(char *name) {
+    fprintf(OUT_FILE,
+            "\t.text\n"
+            "\t.globl\t%s\n"
+            "\t.type\t%s, @function\n"
+            "%s:\n"
+            "\tpushq\t%%rbp\n"
+            "\tmovq\t%%rsp, %%rbp\n",
+            name, name, name);
 }
 
 int cgloadint(int value) {

@@ -12,7 +12,7 @@
 int scan(Token *t);
 
 // tree.c
-ASTnode *mkastnode(int op, ASTnode *left,ASTnode *mid, ASTnode *right, int intvalue);
+ASTnode *mkastnode(int op, ASTnode *left, ASTnode *mid, ASTnode *right, int intvalue);
 
 ASTnode *mkastleaf(int op, int intvalue);
 
@@ -22,8 +22,6 @@ ASTnode *mkastunary(int op, ASTnode *left, int intvalue);
 int genAST(ASTnode *node, int reg, int parentASTop);
 
 void genpreamble();
-
-void genpostamble();
 
 void genfreeregs();
 
@@ -36,7 +34,9 @@ void cgfreeregs();
 
 void cgpreamble();
 
-void cgpostamble();
+void cgfuncpreamble(char *name);
+
+void cgfuncpostamble();
 
 int cgloadint(int value);
 
@@ -87,6 +87,8 @@ int findglob(char *s);
 int addglob(char *name);
 
 // decl.c
-void declarevar(void);
+void declarevar();
+
+ASTnode *declarefunc();
 
 #endif //ACWJ_LEARN_DEL_H

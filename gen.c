@@ -63,6 +63,11 @@ int genAST(ASTnode *node, int reg, int parentASTop) {
             genAST(node->right, NO_REG, node->op);
             genfreeregs();
             return NO_REG;
+        case A_FUNCTION:
+            cgfuncpreamble(SYM_TAB[node->value.id].name);
+            genAST(node->left, NO_REG, node->op);
+            cgfuncpostamble();
+            return NO_REG;
     }
 
     if (node->left) {
@@ -112,10 +117,6 @@ int genAST(ASTnode *node, int reg, int parentASTop) {
 
 void genpreamble() {
     cgpreamble();
-}
-
-void genpostamble() {
-    cgpostamble();
 }
 
 void genfreeregs() {

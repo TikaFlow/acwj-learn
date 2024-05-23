@@ -45,7 +45,8 @@ enum {
     T_IF,
     T_ELSE,
     T_WHILE,
-    T_FOR
+    T_FOR,
+    T_VOID
 };
 
 // token struct
@@ -73,7 +74,8 @@ enum {
     A_PRINT,
     A_GLUE,
     A_IF,
-    A_WHILE
+    A_WHILE,
+    A_FUNCTION
 };
 
 // AST node struct

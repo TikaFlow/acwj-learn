@@ -38,10 +38,16 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    // start with scan the first token
     scan(&TOKEN);
+
     genpreamble();
-    genAST(compoundstmt(), NO_REG, 0);
-    genpostamble();
+    while (1) {
+        genAST(declarefunc(), NO_REG, 0);
+        if (TOKEN.token == T_EOF) {
+            break;
+        }
+    }
 
     fclose(OUT_FILE);
     fclose(IN_FILE);
