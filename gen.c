@@ -5,15 +5,15 @@
 #include "data.h"
 #include "decl.h"
 
-static int label() {
+int gen_label() {
     static int id = 0;
     return id++;
 }
 
 static int gen_if_ast(ASTnode *node) {
-    int lend, lfalse = label();
+    int lend, lfalse = gen_label();
     if (node->right) {
-        lend = label();
+        lend = gen_label();
     }
 
     gen_ast(node->left, lfalse, node->op);
@@ -34,7 +34,7 @@ static int gen_if_ast(ASTnode *node) {
 }
 
 static int gen_while_ast(ASTnode *node) {
-    int lbegin = label(), lend = label();
+    int lbegin = gen_label(), lend = gen_label();
     cg_label(lbegin);
 
     gen_ast(node->left, lend, node->op);
@@ -64,9 +64,9 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
             gen_free_regs();
             return NO_REG;
         case A_FUNCTION:
-            cg_func_pre_amble(SYM_TAB[node->value.id].name);
+            cg_func_pre_amble(node->value.id);
             gen_ast(node->left, NO_REG, node->op);
-            cg_func_post_amble();
+            cg_func_post_amble(node->value.id);
             return NO_REG;
     }
 
@@ -98,7 +98,7 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
                 return cg_compare_and_set(node->op, leftreg, rightreg);
             }
         case A_INTLIT:
-            return cg_load_int(node->value.intvalue);
+            return cg_load_int(node->value.int_value);
         case A_IDENT:
             return cg_load_sym(node->value.id);
         case A_LVIDENT:
@@ -111,6 +111,11 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
             return NO_REG;
         case A_WIDEN:
             return cg_widen(leftreg, node->left->type, node->type);
+        case A_RETURN:
+            cg_return(leftreg, FUNC_ID);
+            return NO_REG;
+        case A_FUNCCALL:
+            return cg_call(leftreg, node->value.id);
         default:
             fatald("Unknown AST operator", node->op);
     }
@@ -131,4 +136,8 @@ void gen_print_int(int reg) {
 
 void gen_new_sym(int id) {
     cg_new_sym(id);
+}
+
+int gen_type_size(int type) {
+    return cg_type_size(type);
 }

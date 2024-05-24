@@ -91,9 +91,19 @@ static int keyword(char *s) {
                 return T_INT;
             }
             break;
+        case 'l':
+            if (!strcmp(s, "long")) {
+                return T_LONG;
+            }
+            break;
         case 'p':
             if (!strcmp(s, "print")) {
                 return T_PRINT;
+            }
+            break;
+        case 'r':
+            if (!strcmp(s, "return")) {
+                return T_RETURN;
             }
             break;
         case 'v':
@@ -110,51 +120,65 @@ static int keyword(char *s) {
     return 0;
 }
 
-int scan(Token *t) {
-    int c = skip(), tokentype;
+Token *peek_token() {
+    if (!TOKEN_BACK.token_type) {
+        TOKEN_BACK = TOKEN;
+    }
+    return &TOKEN_BACK;
+}
+
+int scan() {
+    if (TOKEN_BACK.token_type) {
+        // TOKEN = TOKEN_BACK;
+        // reset token_back
+        TOKEN_BACK.token_type = T_EOF;
+        return TRUE;
+    }
+
+    int c = skip(), token_type;
 
     switch (c) {
         case EOF:
-            t->token = T_EOF;
+            TOKEN.token_type = T_EOF;
             return 0;
         case '+':
-            t->token = T_PLUS;
+            TOKEN.token_type = T_PLUS;
             break;
         case '-':
-            t->token = T_MINUS;
+            TOKEN.token_type = T_MINUS;
             break;
         case '*':
-            t->token = T_STAR;
+            TOKEN.token_type = T_STAR;
             break;
         case '/':
-            t->token = T_SLASH;
+            TOKEN.token_type = T_SLASH;
             break;
         case ';':
-            t->token = T_SEMI;
+            TOKEN.token_type = T_SEMI;
             break;
         case '{':
-            t->token = T_LBRACE;
+            TOKEN.token_type = T_LBRACE;
             break;
         case '}':
-            t->token = T_RBRACE;
+            TOKEN.token_type = T_RBRACE;
             break;
         case '(':
-            t->token = T_LPAREN;
+            TOKEN.token_type = T_LPAREN;
             break;
         case ')':
-            t->token = T_RPAREN;
+            TOKEN.token_type = T_RPAREN;
             break;
         case '=':
             if ((c = next()) == '=') {
-                t->token = T_EQ;
+                TOKEN.token_type = T_EQ;
                 break;
             }
             put_back(c);
-            t->token = T_ASSIGN;
+            TOKEN.token_type = T_ASSIGN;
             break;
         case '!':
             if ((c = next()) == '=') {
-                t->token = T_NE;
+                TOKEN.token_type = T_NE;
                 break;
             }
             put_back(c);
@@ -162,38 +186,38 @@ int scan(Token *t) {
             break;
         case '<':
             if ((c = next()) == '=') {
-                t->token = T_LE;
+                TOKEN.token_type = T_LE;
                 break;
             }
             put_back(c);
-            t->token = T_LT;
+            TOKEN.token_type = T_LT;
             break;
         case '>':
             if ((c = next()) == '=') {
-                t->token = T_GE;
+                TOKEN.token_type = T_GE;
                 break;
             }
             put_back(c);
-            t->token = T_GT;
+            TOKEN.token_type = T_GT;
             break;
         default:
             if (isdigit(c)) {
-                t->intvalue = scan_int(c);
-                t->token = T_INTLIT;
+                TOKEN.int_value = scan_int(c);
+                TOKEN.token_type = T_INTLIT;
                 break;
             }
             if (isalpha(c) || c == '_') {
                 scan_ident(c, TEXT);
 
-                if ((tokentype = keyword(TEXT))) {
-                    t->token = tokentype;
+                if ((token_type = keyword(TEXT))) {
+                    TOKEN.token_type = token_type;
                     break;
                 }
 
-                t->token = T_IDENT;
+                TOKEN.token_type = T_IDENT;
                 break;
             }
             fatalc("Unrecognized character", c);
     }
-    return 1;
+    return TRUE;
 }

@@ -9,16 +9,20 @@
 #include "defs.h"
 
 // scan.c
-int scan(Token *t);
+Token *peek_token();
+
+int scan();
 
 // tree.c
-ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, int intvalue);
+ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, int int_value);
 
-ASTnode *make_ast_leaf(int op, int type, int intvalue);
+ASTnode *make_ast_leaf(int op, int type, int int_value);
 
-ASTnode *make_ast_unary(int op, int type, ASTnode *left, int intvalue);
+ASTnode *make_ast_unary(int op, int type, ASTnode *left, int int_value);
 
 // gen.c
+int gen_label();
+
 int gen_ast(ASTnode *node, int reg, int parentASTop);
 
 void gen_pre_amble();
@@ -29,14 +33,16 @@ void gen_print_int(int reg);
 
 void gen_new_sym(int id);
 
+int gen_type_size(int type);
+
 // cg.c
 void cg_free_regs();
 
 void cg_pre_amble();
 
-void cg_func_pre_amble(char *name);
+void cg_func_pre_amble(int id);
 
-void cg_func_post_amble();
+void cg_func_post_amble(int id);
 
 int cg_load_int(int value);
 
@@ -52,6 +58,8 @@ int cg_div(int r1, int r2);
 
 void cg_print_int(int reg);
 
+int cg_call(int reg, int id);
+
 int cg_store_sym(int r, int id);
 
 void cg_new_sym(int id);
@@ -66,14 +74,20 @@ void cg_jump(int l);
 
 int cg_widen(int r, int old_type, int new_type);
 
+int cg_type_size(int type);
+
+void cg_return(int reg, int id);
+
 // expr.c
+ASTnode *func_call();
+
 ASTnode *bin_expr(int ptp);
 
 // stmt.c
 ASTnode *compound_stmt();
 
 // misc.c
-void match(int tokentype, char *what);
+void match(int token_type, char *what);
 
 void fatal(char *s);
 
@@ -86,7 +100,7 @@ void fatalc(char *s, int c);
 // sym.c
 int find_sym(char *s);
 
-int add_sym(char *name, int ptype, int stype);
+int add_sym(char *name, int ptype, int stype, int end_label);
 
 // decl.c
 void declare_var();

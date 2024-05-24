@@ -5,9 +5,9 @@
 #include "data.h"
 #include "decl.h"
 
-void match(int tokentype, char *what) {
-    if (TOKEN.token == tokentype) {
-        scan(&TOKEN);
+void match(int token_type, char *what) {
+    if (TOKEN.token_type == token_type) {
+        scan();
         return;
     }
     fatals("expected", what);

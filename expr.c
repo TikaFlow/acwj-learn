@@ -5,19 +5,38 @@
 #include "data.h"
 #include "decl.h"
 
+ASTnode *func_call() {
+    int id;
+
+    if ((id = find_sym(TEXT)) < 0) {
+        fatals("Undeclared function", TEXT);
+    }
+    match(T_LPAREN, "(");
+    ASTnode *node = bin_expr(0);
+    node = make_ast_unary(A_FUNCCALL, SYM_TAB[id].ptype, node, id);
+    match(T_RPAREN, ")");
+    return node;
+}
+
 static ASTnode *primary() {
     ASTnode *node;
     int id;
 
-    switch (TOKEN.token) {
+    switch (TOKEN.token_type) {
         case T_INTLIT:
-            if (TOKEN.intvalue >= 0 && TOKEN.intvalue <= 255) {
-                node = make_ast_leaf(A_INTLIT, P_CHAR, TOKEN.intvalue);
+            if (TOKEN.int_value >= 0 && TOKEN.int_value <= 255) {
+                node = make_ast_leaf(A_INTLIT, P_CHAR, TOKEN.int_value);
             } else {
-                node = make_ast_leaf(A_INTLIT, P_INT, TOKEN.intvalue);
+                node = make_ast_leaf(A_INTLIT, P_INT, TOKEN.int_value);
             }
             break;
         case T_IDENT:
+            scan();
+            if (TOKEN.token_type == T_LPAREN) {
+                return func_call();
+            }
+            peek_token();
+
             if ((id = find_sym(TEXT)) < 0) {
                 fatals("Unknown variable", TEXT);
             }
@@ -25,10 +44,10 @@ static ASTnode *primary() {
             break;
         default:
             node = NULL;
-            fatald("syntax error, token", TOKEN.token);
+            fatald("syntax error, token", TOKEN.token_type);
     }
 
-    scan(&TOKEN);
+    scan();
     return node;
 }
 
@@ -36,7 +55,7 @@ static int token_to_op(int tk) {
     if (tk > T_EOF && tk < T_INTLIT) {
         return tk;
     }
-    fatald("Unknown token", TOKEN.token);
+    fatald("Unknown token", TOKEN.token_type);
     return 0;
 }
 
@@ -47,10 +66,10 @@ static int op_prec[] = {
         40, 40, 40, 40 // < <= > >=
 };
 
-static int op_precedence(int tokentype) {
-    int prec = op_prec[tokentype];
+static int op_precedence(int token_type) {
+    int prec = op_prec[token_type];
     if (prec == 0) {
-        fatald("Syntax error, token type", tokentype);
+        fatald("Syntax error, token type", token_type);
     }
     return prec;
 }
@@ -61,16 +80,16 @@ static int op_precedence(int tokentype) {
 ASTnode *bin_expr(int ptp) {
     ASTnode *right, *left = primary();
     int left_type, right_type;
-    int tokentype = TOKEN.token;
+    int token_type = TOKEN.token_type;
 
-    if (tokentype == T_SEMI || tokentype == T_RPAREN) {
+    if (token_type == T_SEMI || token_type == T_RPAREN) {
         return left;
     }
 
-    while (op_precedence(tokentype) > ptp) {
-        scan(&TOKEN);
+    while (op_precedence(token_type) > ptp) {
+        scan();
 
-        right = bin_expr(op_prec[tokentype]);
+        right = bin_expr(op_prec[token_type]);
 
         left_type = left->type;
         right_type = right->type;
@@ -84,10 +103,10 @@ ASTnode *bin_expr(int ptp) {
             right = make_ast_unary(right_type, left->type, right, 0);
         }
 
-        left = make_ast_node(token_to_op(tokentype), left->type, left, NULL, right, 0);
+        left = make_ast_node(token_to_op(token_type), left->type, left, NULL, right, 0);
 
-        tokentype = TOKEN.token;
-        if (tokentype == T_SEMI || tokentype == T_RPAREN) {
+        token_type = TOKEN.token_type;
+        if (token_type == T_SEMI || token_type == T_RPAREN) {
             return left;
         }
     }

@@ -20,29 +20,36 @@ static int parse_type(int t) {
         default:
             fatald("Illegal type, token", t);
     }
-    scan(&TOKEN);
+    scan();
     return type;
 }
 
 void declare_var() {
-    int type = parse_type(TOKEN.token);
+    int type = parse_type(TOKEN.token_type);
     match(T_IDENT, "identifier");
-    int id = add_sym(TEXT, type, S_VARIABLE);
+    int id = add_sym(TEXT, type, S_VARIABLE,0);
     gen_new_sym(id);
     match(T_SEMI, ";");
 }
 
 ASTnode *declare_func() {
-    ASTnode *tree;
-    int nameslot;
+    ASTnode *tree, *final_stmt;
+    int nameslot, end_label, type = parse_type(TOKEN.token_type);
 
-    match(T_VOID, "void");
     match(T_IDENT, "identifier");
-    nameslot = add_sym(TEXT, P_VOID, S_FUNCTION);
+    end_label = gen_label();
+    FUNC_ID = nameslot = add_sym(TEXT, type, S_FUNCTION,end_label);
     match(T_LPAREN, "(");
     match(T_RPAREN, ")");
 
     tree = compound_stmt();
+
+    if (type != P_VOID) {
+        final_stmt = tree->op == A_GLUE ? tree->right : tree;
+        if (final_stmt == NULL || final_stmt->op != A_RETURN) {
+            fatal("No return statement in function with non-void return type");
+        }
+    }
 
     return make_ast_unary(A_FUNCTION, P_VOID, tree, nameslot);
 }

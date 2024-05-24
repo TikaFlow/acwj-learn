@@ -15,6 +15,8 @@
 static void init() {
     LINE = 1;
     PUT_BACK = '\n';
+    TOKEN_BACK.token_type = T_EOF;
+    TOKEN_BACK.int_value = 0;
 }
 
 static void usage(char *prog) {
@@ -38,13 +40,16 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    // use C print_int
+    add_sym("print_int", P_CHAR, S_FUNCTION, 0);
+
     // start with scan the first token
-    scan(&TOKEN);
+    scan();
 
     gen_pre_amble();
     while (1) {
         gen_ast(declare_func(), NO_REG, 0);
-        if (TOKEN.token == T_EOF) {
+        if (TOKEN.token_type == T_EOF) {
             break;
         }
     }

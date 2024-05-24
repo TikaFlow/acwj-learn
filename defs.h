@@ -24,6 +24,7 @@
 // token type
 enum {
     T_EOF,
+    // operators
     T_PLUS,
     T_MINUS,
     T_STAR,
@@ -34,6 +35,12 @@ enum {
     T_GT,
     T_LE,
     T_GE,
+    // types
+    T_VOID,
+    T_CHAR,
+    T_INT,
+    T_LONG,
+    // structures
     T_INTLIT,
     T_SEMI,
     T_ASSIGN,
@@ -44,19 +51,17 @@ enum {
     T_RPAREN,
     // keywords
     T_PRINT,
-    T_INT,
     T_IF,
     T_ELSE,
     T_WHILE,
     T_FOR,
-    T_VOID,
-    T_CHAR
+    T_RETURN
 };
 
 // token struct
-typedef struct token {
-    int token;
-    int intvalue;
+typedef struct Token {
+    int token_type;
+    int int_value;
 } Token;
 
 // AST node types
@@ -81,7 +86,9 @@ enum {
     A_IF,
     A_WHILE,
     A_FUNCTION,
-    A_WIDEN
+    A_WIDEN,
+    A_RETURN,
+    A_FUNCCALL
 };
 
 // primitive type
@@ -89,7 +96,8 @@ enum {
     P_NONE,
     P_VOID,
     P_CHAR,
-    P_INT
+    P_INT,
+    P_LONG
 };
 
 // struct type
@@ -106,7 +114,7 @@ typedef struct ASTnode {
     struct ASTnode *mid;
     struct ASTnode *right;
     union value {
-        int intvalue; // intlit
+        int int_value; // intlit
         int id; // symbol solt id
     } value;
 } ASTnode;
@@ -116,6 +124,7 @@ typedef struct Symbol {
     char *name;
     int ptype;
     int stype;
+    int end_label;
 } Symbol;
 
 #endif //ACWJ_LEARN_DEFS_H

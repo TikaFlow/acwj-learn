@@ -25,7 +25,7 @@ static int new_glob() {
     return pos;
 }
 
-int add_sym(char *name, int ptype, int stype) {
+int add_sym(char *name, int ptype, int stype, int end_label) {
     int pos;
     if ((pos = find_sym(name)) >= 0) {
         return pos;
@@ -35,5 +35,6 @@ int add_sym(char *name, int ptype, int stype) {
     SYM_TAB[pos].name = strdup(name);
     SYM_TAB[pos].ptype = ptype;
     SYM_TAB[pos].stype = stype;
+    SYM_TAB[pos].end_label = end_label;
     return pos;
 }

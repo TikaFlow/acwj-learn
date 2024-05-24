@@ -21,9 +21,13 @@ extern_ FILE *IN_FILE;
 extern_ FILE *OUT_FILE;
 // last token
 extern_ Token TOKEN;
+// reject token
+extern_ Token TOKEN_BACK;
 // last symbol
 extern_ char TEXT[TEXT_LEN + 1];
 // symbol table
 extern_ Symbol SYM_TAB[SYM_TAB_LEN];
+// current function id
+extern_ int FUNC_ID;
 
 #endif //ACWJ_LEARN_DATA_H

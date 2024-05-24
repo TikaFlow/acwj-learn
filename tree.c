@@ -5,7 +5,7 @@
 #include "data.h"
 #include "decl.h"
 
-ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, int intvalue) {
+ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, int int_value) {
 
     ASTnode *node = (ASTnode *) malloc(sizeof(ASTnode));
 
@@ -19,14 +19,14 @@ ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *r
     node->left = left;
     node->mid = mid;
     node->right = right;
-    node->value.intvalue = intvalue;
+    node->value.int_value = int_value;
     return node;
 }
 
-ASTnode *make_ast_leaf(int op, int type, int intvalue) {
-    return make_ast_node(op, type, NULL, NULL, NULL, intvalue);
+ASTnode *make_ast_leaf(int op, int type, int int_value) {
+    return make_ast_node(op, type, NULL, NULL, NULL, int_value);
 }
 
-ASTnode *make_ast_unary(int op, int type, ASTnode *left, int intvalue) {
-    return make_ast_node(op, type, left, NULL, NULL, intvalue);
+ASTnode *make_ast_unary(int op, int type, ASTnode *left, int int_value) {
+    return make_ast_node(op, type, left, NULL, NULL, int_value);
 }

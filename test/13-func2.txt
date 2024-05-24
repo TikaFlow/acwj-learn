@@ -1,0 +1,12 @@
+int fred() {
+  return (20);
+}
+
+int main() {
+  int result;
+  print_int(10);
+  result = fred(15);
+  print_int(result);
+  print_int(fred(15)+10);
+  return 0;
+}
