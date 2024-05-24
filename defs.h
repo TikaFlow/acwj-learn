@@ -17,6 +17,9 @@
 #define SYM_TAB_LEN 1024
 // when no register is available
 #define NO_REG (-1)
+// true and false
+#define TRUE 1
+#define FALSE 0
 
 // token type
 enum {
@@ -46,7 +49,8 @@ enum {
     T_ELSE,
     T_WHILE,
     T_FOR,
-    T_VOID
+    T_VOID,
+    T_CHAR
 };
 
 // token struct
@@ -57,7 +61,8 @@ typedef struct token {
 
 // AST node types
 enum {
-    A_ADD = 1,
+    A_NONE,
+    A_ADD,
     A_SUBTRACT,
     A_MULTIPLY,
     A_DIVIDE,
@@ -75,12 +80,28 @@ enum {
     A_GLUE,
     A_IF,
     A_WHILE,
-    A_FUNCTION
+    A_FUNCTION,
+    A_WIDEN
+};
+
+// primitive type
+enum {
+    P_NONE,
+    P_VOID,
+    P_CHAR,
+    P_INT
+};
+
+// struct type
+enum {
+    S_VARIABLE,
+    S_FUNCTION
 };
 
 // AST node struct
 typedef struct ASTnode {
     int op;
+    int type;
     struct ASTnode *left;
     struct ASTnode *mid;
     struct ASTnode *right;
@@ -93,6 +114,8 @@ typedef struct ASTnode {
 // symbol table struct
 typedef struct Symbol {
     char *name;
+    int ptype;
+    int stype;
 } Symbol;
 
 #endif //ACWJ_LEARN_DEFS_H

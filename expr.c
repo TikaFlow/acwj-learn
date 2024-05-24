@@ -11,13 +11,17 @@ static ASTnode *primary() {
 
     switch (TOKEN.token) {
         case T_INTLIT:
-            node = mkastleaf(A_INTLIT, TOKEN.intvalue);
+            if (TOKEN.intvalue >= 0 && TOKEN.intvalue <= 255) {
+                node = make_ast_leaf(A_INTLIT, P_CHAR, TOKEN.intvalue);
+            } else {
+                node = make_ast_leaf(A_INTLIT, P_INT, TOKEN.intvalue);
+            }
             break;
         case T_IDENT:
-            if ((id = findglob(TEXT)) < 0) {
+            if ((id = find_sym(TEXT)) < 0) {
                 fatals("Unknown variable", TEXT);
             }
-            node = mkastleaf(A_IDENT, id);
+            node = make_ast_leaf(A_IDENT, SYM_TAB[id].ptype, id);
             break;
         default:
             node = NULL;
@@ -28,7 +32,7 @@ static ASTnode *primary() {
     return node;
 }
 
-static int arithop(int tk) {
+static int token_to_op(int tk) {
     if (tk > T_EOF && tk < T_INTLIT) {
         return tk;
     }
@@ -54,9 +58,11 @@ static int op_precedence(int tokentype) {
 /*
  * @param ptp: previous token precedence
  */
-ASTnode *binexpr(int ptp) {
+ASTnode *bin_expr(int ptp) {
     ASTnode *right, *left = primary();
+    int left_type, right_type;
     int tokentype = TOKEN.token;
+
     if (tokentype == T_SEMI || tokentype == T_RPAREN) {
         return left;
     }
@@ -64,9 +70,21 @@ ASTnode *binexpr(int ptp) {
     while (op_precedence(tokentype) > ptp) {
         scan(&TOKEN);
 
-        right = binexpr(op_prec[tokentype]);
+        right = bin_expr(op_prec[tokentype]);
 
-        left = mkastnode(arithop(tokentype), left, NULL, right, 0);
+        left_type = left->type;
+        right_type = right->type;
+        if (!type_compatible(&left_type, &right_type, FALSE)) {
+            fatal("Incompatible types in arithmetic expression");
+        }
+        if (left_type) {
+            left = make_ast_unary(left_type, right->type, left, 0);
+        }
+        if (right_type) {
+            right = make_ast_unary(right_type, left->type, right, 0);
+        }
+
+        left = make_ast_node(token_to_op(tokentype), left->type, left, NULL, right, 0);
 
         tokentype = TOKEN.token;
         if (tokentype == T_SEMI || tokentype == T_RPAREN) {

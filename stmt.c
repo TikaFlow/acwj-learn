@@ -5,124 +5,143 @@
 #include "data.h"
 #include "decl.h"
 
-static ASTnode *singlestmt();
+static ASTnode *single_stmt();
 
-static ASTnode *stmtprint() {
+static ASTnode *print_stmt() {
     match(T_PRINT, "print");
-    ASTnode *tree = binexpr(0);
-    tree = mkastunary(A_PRINT, tree, 0);
+
+    ASTnode *tree = bin_expr(0);
+
+    int left_type = P_INT, right_type = tree->type;
+    if (!type_compatible(&left_type, &right_type, FALSE)) {
+        fatal("Incompatible types in print statement");
+    }
+
+    if (right_type) {
+        tree = make_ast_unary(right_type, P_INT, tree, 0);
+    }
+
+    tree = make_ast_unary(A_PRINT, P_NONE, tree, 0);
 
     return tree;
 }
 
-static ASTnode *stmtassign() {
+static ASTnode *assign_stmt() {
     ASTnode *left, *right, *tree;
     int id;
 
     match(T_IDENT, "identifier");
-    if ((id = findglob(TEXT)) < 0) {
-        fatals("undeclared variable:", TEXT);
+    if ((id = find_sym(TEXT)) < 0) {
+        fatals("undeclared variable", TEXT);
     }
-    right = mkastleaf(A_LVIDENT, id);
+    right = make_ast_leaf(A_LVIDENT, SYM_TAB[id].ptype, id);
 
     match(T_ASSIGN, "=");
-    left = binexpr(0);
+    left = bin_expr(0);
 
-    tree = mkastnode(A_ASSIGN, left, NULL, right, 0);
-    genfreeregs();
+    int left_type = left->type, right_type = right->type;
+    if (!type_compatible(&left_type, &right_type, TRUE)) {
+        fatal("Incompatible types in assignment");
+    }
+    if (left_type) {
+        left = make_ast_unary(left_type, right->type, left, 0);
+    }
+
+    tree = make_ast_node(A_ASSIGN, P_INT, left, NULL, right, 0);
 
     return tree;
 }
 
-static ASTnode *stmtif() {
+static ASTnode *if_stmt() {
     ASTnode *condnode, *truenode, *falsenode = NULL;
 
     match(T_IF, "if");
     match(T_LPAREN, "(");
-    condnode = binexpr(0);
+    condnode = bin_expr(0);
     if (condnode->op < A_EQ || condnode->op > A_GE) {
         fatal("Bad comparison operator");
     }
     match(T_RPAREN, ")");
-    truenode = compoundstmt();
+    truenode = compound_stmt();
     if (TOKEN.token == T_ELSE) {
         match(T_ELSE, "else");
-        falsenode = compoundstmt();
+        falsenode = compound_stmt();
     }
 
-    return mkastnode(A_IF, condnode, truenode, falsenode, 0);
+    return make_ast_node(A_IF, P_NONE, condnode, truenode, falsenode, 0);
 }
 
-static ASTnode *stmtwhile() {
+static ASTnode *while_stmt() {
     ASTnode *condnode, *bodenode;
 
     match(T_WHILE, "while");
     match(T_LPAREN, "(");
 
-    condnode = binexpr(0);
+    condnode = bin_expr(0);
     if (condnode->op < A_EQ || condnode->op > A_GE) {
         fatal("Bad comparison operator");
     }
     match(T_RPAREN, ")");
 
-    bodenode = compoundstmt();
+    bodenode = compound_stmt();
 
-    return mkastnode(A_WHILE, condnode, NULL, bodenode, 0);
+    return make_ast_node(A_WHILE, P_NONE, condnode, NULL, bodenode, 0);
 }
 
-static ASTnode *stmtfor() {
+static ASTnode *for_stmt() {
     ASTnode *condnode, *bodenode, *preopnode, *postopnode, *tree;
 
     match(T_FOR, "for");
     match(T_LPAREN, "(");
 
-    preopnode = singlestmt();
+    preopnode = single_stmt();
     match(T_SEMI, ";");
 
-    condnode = binexpr(0);
+    condnode = bin_expr(0);
     if (condnode->op < A_EQ || condnode->op > A_GE) {
         fatal("Bad comparison operator");
     }
     match(T_SEMI, ";");
 
-    postopnode = singlestmt();
+    postopnode = single_stmt();
     match(T_RPAREN, ")");
 
-    bodenode = compoundstmt();
+    bodenode = compound_stmt();
 
-    tree = mkastnode(A_GLUE, bodenode, NULL, postopnode, 0);
-    tree = mkastnode(A_WHILE, condnode, NULL, tree, 0);
+    tree = make_ast_node(A_GLUE, P_NONE, bodenode, NULL, postopnode, 0);
+    tree = make_ast_node(A_WHILE, P_NONE, condnode, NULL, tree, 0);
 
-    return mkastnode(A_GLUE, preopnode, NULL, tree, 0);
+    return make_ast_node(A_GLUE, P_NONE, preopnode, NULL, tree, 0);
 }
 
-static ASTnode *singlestmt() {
+static ASTnode *single_stmt() {
     switch (TOKEN.token) {
         case T_PRINT:
-            return stmtprint();
+            return print_stmt();
+        case T_CHAR:
         case T_INT:
-            declarevar();
+            declare_var();
             return NULL;
         case T_IDENT:
-            return stmtassign();
+            return assign_stmt();
         case T_IF:
-            return stmtif();
+            return if_stmt();
         case T_WHILE:
-            return stmtwhile();
+            return while_stmt();
         case T_FOR:
-            return stmtfor();
+            return for_stmt();
         default:
             fatald("syntax error, unexpected token", TOKEN.token);
     }
     return NULL;
 }
 
-ASTnode *compoundstmt() {
+ASTnode *compound_stmt() {
     ASTnode *tree, *left = NULL;
     match(T_LBRACE, "{");
 
     while (1) {
-        tree = singlestmt();
+        tree = single_stmt();
 
         if (tree && (tree->op == A_PRINT || tree->op == A_ASSIGN)) {
             match(T_SEMI, ";");
@@ -130,7 +149,7 @@ ASTnode *compoundstmt() {
 
         if (tree) {
             if (left) {
-                left = mkastnode(A_GLUE, left, NULL, tree, 0);
+                left = make_ast_node(A_GLUE, P_NONE, left, NULL, tree, 0);
             } else {
                 left = tree;
             }

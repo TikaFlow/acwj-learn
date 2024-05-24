@@ -5,7 +5,7 @@
 #include "data.h"
 #include "decl.h"
 
-static int chrpos(char *s, int c) {
+static int char_pos(char *s, int c) {
     char *p;
 
     p = strchr(s, c);
@@ -28,7 +28,7 @@ static int next() {
     return c;
 }
 
-static void putback(int c) {
+static void put_back(int c) {
     PUT_BACK = c;
 }
 
@@ -40,19 +40,19 @@ static int skip() {
     return c;
 }
 
-static int scanint(int c) {
+static int scan_int(int c) {
     int k, val = 0;
 
-    while ((k = chrpos("0123456789", c)) >= 0) {
+    while ((k = char_pos("0123456789", c)) >= 0) {
         val = val * 10 + k;
         c = next();
     }
 
-    putback(c);
+    put_back(c);
     return val;
 }
 
-static int scanident(int c, char *buf) {
+static int scan_ident(int c, char *buf) {
     int len = 0;
     while (isalpha(c) || isdigit(c) || c == '_') {
         if (len >= TEXT_LEN - 1) {
@@ -61,13 +61,18 @@ static int scanident(int c, char *buf) {
         buf[len++] = c;
         c = next();
     }
-    putback(c);
+    put_back(c);
     buf[len] = '\0';
     return len;
 }
 
 static int keyword(char *s) {
     switch (*s) {
+        case 'c':
+            if (!strcmp(s, "char")) {
+                return T_CHAR;
+            }
+            break;
         case 'e':
             if (!strcmp(s, "else")) {
                 return T_ELSE;
@@ -144,7 +149,7 @@ int scan(Token *t) {
                 t->token = T_EQ;
                 break;
             }
-            putback(c);
+            put_back(c);
             t->token = T_ASSIGN;
             break;
         case '!':
@@ -152,7 +157,7 @@ int scan(Token *t) {
                 t->token = T_NE;
                 break;
             }
-            putback(c);
+            put_back(c);
             fatalc("Unrecognized character", c);
             break;
         case '<':
@@ -160,7 +165,7 @@ int scan(Token *t) {
                 t->token = T_LE;
                 break;
             }
-            putback(c);
+            put_back(c);
             t->token = T_LT;
             break;
         case '>':
@@ -168,17 +173,17 @@ int scan(Token *t) {
                 t->token = T_GE;
                 break;
             }
-            putback(c);
+            put_back(c);
             t->token = T_GT;
             break;
         default:
             if (isdigit(c)) {
-                t->intvalue = scanint(c);
+                t->intvalue = scan_int(c);
                 t->token = T_INTLIT;
                 break;
             }
             if (isalpha(c) || c == '_') {
-                scanident(c, TEXT);
+                scan_ident(c, TEXT);
 
                 if ((tokentype = keyword(TEXT))) {
                     t->token = tokentype;

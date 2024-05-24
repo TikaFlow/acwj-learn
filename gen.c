@@ -10,82 +10,82 @@ static int label() {
     return id++;
 }
 
-static int genifAST(ASTnode *node) {
+static int gen_if_ast(ASTnode *node) {
     int lend, lfalse = label();
     if (node->right) {
         lend = label();
     }
 
-    genAST(node->left, lfalse, node->op);
-    genfreeregs();
-    genAST(node->mid, NO_REG, node->op);
-    genfreeregs();
+    gen_ast(node->left, lfalse, node->op);
+    gen_free_regs();
+    gen_ast(node->mid, NO_REG, node->op);
+    gen_free_regs();
 
     if (node->right) {
-        cgjump(lend);
+        cg_jump(lend);
     }
-    cglabel(lfalse);
+    cg_label(lfalse);
     if (node->right) {
-        genAST(node->right, NO_REG, node->op);
-        genfreeregs();
-        cglabel(lend);
+        gen_ast(node->right, NO_REG, node->op);
+        gen_free_regs();
+        cg_label(lend);
     }
     return NO_REG;
 }
 
-static int genwhileAST(ASTnode *node) {
+static int gen_while_ast(ASTnode *node) {
     int lbegin = label(), lend = label();
-    cglabel(lbegin);
+    cg_label(lbegin);
 
-    genAST(node->left, lend, node->op);
-    genfreeregs();
+    gen_ast(node->left, lend, node->op);
+    gen_free_regs();
 
-    genAST(node->right, NO_REG, node->op);
-    genfreeregs();
+    gen_ast(node->right, NO_REG, node->op);
+    gen_free_regs();
 
-    cgjump(lbegin);
-    cglabel(lend);
+    cg_jump(lbegin);
+    cg_label(lend);
 
     return NO_REG;
 }
 
-int genAST(ASTnode *node, int reg, int parentASTop) {
+int gen_ast(ASTnode *node, int reg, int parentASTop) {
     int leftreg, rightreg;
 
     switch (node->op) {
         case A_IF:
-            return genifAST(node);
+            return gen_if_ast(node);
         case A_WHILE:
-            return genwhileAST(node);
+            return gen_while_ast(node);
         case A_GLUE:
-            genAST(node->left, NO_REG, node->op);
-            genfreeregs();
-            genAST(node->right, NO_REG, node->op);
-            genfreeregs();
+            gen_ast(node->left, NO_REG, node->op);
+            gen_free_regs();
+            gen_ast(node->right, NO_REG, node->op);
+            gen_free_regs();
             return NO_REG;
         case A_FUNCTION:
-            cgfuncpreamble(SYM_TAB[node->value.id].name);
-            genAST(node->left, NO_REG, node->op);
-            cgfuncpostamble();
+            cg_func_pre_amble(SYM_TAB[node->value.id].name);
+            gen_ast(node->left, NO_REG, node->op);
+            cg_func_post_amble();
             return NO_REG;
     }
 
     if (node->left) {
-        leftreg = genAST(node->left, NO_REG, node->op);
+        leftreg = gen_ast(node->left, NO_REG, node->op);
     }
     if (node->right) {
-        rightreg = genAST(node->right, leftreg, node->op);
+        rightreg = gen_ast(node->right, leftreg, node->op);
     }
 
     switch (node->op) {
         case A_ADD:
-            return cgadd(leftreg, rightreg);
+            return cg_add(leftreg, rightreg);
         case A_SUBTRACT:
-            return cgsub(leftreg, rightreg);
+            return cg_sub(leftreg, rightreg);
         case A_MULTIPLY:
-            return cgmul(leftreg, rightreg);
+            return cg_mul(leftreg, rightreg);
         case A_DIVIDE:
-            return cgdiv(leftreg, rightreg);
+            return cg_div(leftreg, rightreg);
         case A_EQ:
         case A_NE:
         case A_LT:
@@ -93,40 +93,42 @@ int genAST(ASTnode *node, int reg, int parentASTop) {
         case A_LE:
         case A_GE:
             if (parentASTop == A_IF || parentASTop == A_WHILE) {
-                return cgcompare_and_jump(node->op, leftreg, rightreg, reg);
+                return cg_compare_and_jump(node->op, leftreg, rightreg, reg);
             } else {
-                return cgcompare_and_set(node->op, leftreg, rightreg);
+                return cg_compare_and_set(node->op, leftreg, rightreg);
             }
         case A_INTLIT:
-            return cgloadint(node->value.intvalue);
+            return cg_load_int(node->value.intvalue);
         case A_IDENT:
-            return cgloadglob(SYM_TAB[node->value.id].name);
+            return cg_load_sym(node->value.id);
         case A_LVIDENT:
-            return cgstorglob(reg, SYM_TAB[node->value.id].name);
+            return cg_store_sym(reg, node->value.id);
         case A_ASSIGN:
             return rightreg;
         case A_PRINT:
-            genprintint(leftreg);
-            genfreeregs();
+            gen_print_int(leftreg);
+            gen_free_regs();
             return NO_REG;
+        case A_WIDEN:
+            return cg_widen(leftreg, node->left->type, node->type);
         default:
             fatald("Unknown AST operator", node->op);
     }
     return NO_REG;
 }
 
-void genpreamble() {
-    cgpreamble();
+void gen_pre_amble() {
+    cg_pre_amble();
 }
 
-void genfreeregs() {
-    cgfreeregs();
+void gen_free_regs() {
+    cg_free_regs();
 }
 
-void genprintint(int reg) {
-    cgprintint(reg);
+void gen_print_int(int reg) {
+    cg_print_int(reg);
 }
 
-void genglobsym(char *s) {
-    cgglobsym(s);
+void gen_new_sym(int id) {
+    cg_new_sym(id);
 }

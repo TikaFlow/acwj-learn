@@ -12,63 +12,65 @@
 int scan(Token *t);
 
 // tree.c
-ASTnode *mkastnode(int op, ASTnode *left, ASTnode *mid, ASTnode *right, int intvalue);
+ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, int intvalue);
 
-ASTnode *mkastleaf(int op, int intvalue);
+ASTnode *make_ast_leaf(int op, int type, int intvalue);
 
-ASTnode *mkastunary(int op, ASTnode *left, int intvalue);
+ASTnode *make_ast_unary(int op, int type, ASTnode *left, int intvalue);
 
 // gen.c
-int genAST(ASTnode *node, int reg, int parentASTop);
+int gen_ast(ASTnode *node, int reg, int parentASTop);
 
-void genpreamble();
+void gen_pre_amble();
 
-void genfreeregs();
+void gen_free_regs();
 
-void genprintint(int reg);
+void gen_print_int(int reg);
 
-void genglobsym(char *s);
+void gen_new_sym(int id);
 
 // cg.c
-void cgfreeregs();
+void cg_free_regs();
 
-void cgpreamble();
+void cg_pre_amble();
 
-void cgfuncpreamble(char *name);
+void cg_func_pre_amble(char *name);
 
-void cgfuncpostamble();
+void cg_func_post_amble();
 
-int cgloadint(int value);
+int cg_load_int(int value);
 
-int cgloadglob(char *identifier);
+int cg_load_sym(int id);
 
-int cgadd(int r1, int r2);
+int cg_add(int r1, int r2);
 
-int cgsub(int r1, int r2);
+int cg_sub(int r1, int r2);
 
-int cgmul(int r1, int r2);
+int cg_mul(int r1, int r2);
 
-int cgdiv(int r1, int r2);
+int cg_div(int r1, int r2);
 
-void cgprintint(int reg);
+void cg_print_int(int reg);
 
-int cgstorglob(int r, char *identifier);
+int cg_store_sym(int r, int id);
 
-void cgglobsym(char *sym);
+void cg_new_sym(int id);
 
-int cgcompare_and_set(int ASTop, int r1, int r2);
+int cg_compare_and_set(int ASTop, int r1, int r2);
 
-int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
+int cg_compare_and_jump(int ASTop, int r1, int r2, int label);
 
-void cglabel(int l);
+void cg_label(int l);
 
-void cgjump(int l);
+void cg_jump(int l);
+
+int cg_widen(int r, int old_type, int new_type);
 
 // expr.c
-ASTnode *binexpr(int ptp);
+ASTnode *bin_expr(int ptp);
 
 // stmt.c
-ASTnode *compoundstmt();
+ASTnode *compound_stmt();
 
 // misc.c
 void match(int tokentype, char *what);
@@ -82,13 +84,16 @@ void fatald(char *s, int d);
 void fatalc(char *s, int c);
 
 // sym.c
-int findglob(char *s);
+int find_sym(char *s);
 
-int addglob(char *name);
+int add_sym(char *name, int ptype, int stype);
 
 // decl.c
-void declarevar();
+void declare_var();
 
-ASTnode *declarefunc();
+ASTnode *declare_func();
+
+// types.c
+int type_compatible(int *left, int *right, int onlyright);
 
 #endif //ACWJ_LEARN_DEL_H

@@ -12,7 +12,7 @@ static char *breglist[] = {"%r8b", "%r9b", "%r10b", "%r11b"};
 static char *cmplist[] = {"sete", "setne", "setl", "setg", "setle", "setge"};
 static char *invcmplist[] = {"jne", "je", "jge", "jle", "jg", "jl"};
 
-void cgfreeregs() {
+void cg_free_regs() {
     for (int i = 0; i < 4; i++) {
         freereg[i] = 1;
     }
@@ -37,8 +37,8 @@ static void free_register(int reg) {
     freereg[reg] = 1;
 }
 
-void cgpreamble() {
-    cgfreeregs();
+void cg_pre_amble() {
+    cg_free_regs();
     fputs("\t.text\n"
           ".LC0:\n"
           "\t.string\t\"%d\\n\"\n"
@@ -56,14 +56,14 @@ void cgpreamble() {
           OUT_FILE);
 }
 
-void cgfuncpostamble() {
+void cg_func_post_amble() {
     fputs("\tmovl\t$0, %eax\n"
           "\tpopq\t%rbp\n"
           "\tret\n",
           OUT_FILE);
 }
 
-void cgfuncpreamble(char *name) {
+void cg_func_pre_amble(char *name) {
     fprintf(OUT_FILE,
             "\t.text\n"
             "\t.globl\t%s\n"
@@ -74,38 +74,45 @@ void cgfuncpreamble(char *name) {
             name, name, name);
 }
 
-int cgloadint(int value) {
+int cg_load_int(int value) {
     int reg = alloc_register();
 
     fprintf(OUT_FILE, "\tmovq\t$%d, %s\n", value, reglist[reg]);
     return reg;
 }
 
-int cgloadglob(char *identifier) {
+int cg_load_sym(int id) {
     int reg = alloc_register();
-    fprintf(OUT_FILE, "\tmovq\t%s(%%rip), %s\n", identifier, reglist[reg]);
+    switch (SYM_TAB[id].ptype) {
+        case P_INT:
+            fprintf(OUT_FILE, "\tmovq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+            break;
+        case P_CHAR:
+            fprintf(OUT_FILE, "\tmovzbq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+            break;
+    }
     return reg;
 }
 
-int cgadd(int r1, int r2) {
+int cg_add(int r1, int r2) {
     fprintf(OUT_FILE, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
     free_register(r2);
     return r1;
 }
 
-int cgsub(int r1, int r2) {
+int cg_sub(int r1, int r2) {
     fprintf(OUT_FILE, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
     free_register(r2);
     return r1;
 }
 
-int cgmul(int r1, int r2) {
+int cg_mul(int r1, int r2) {
     fprintf(OUT_FILE, "\timulq\t%s, %s\n", reglist[r2], reglist[r1]);
     free_register(r2);
     return r1;
 }
 
-int cgdiv(int r1, int r2) {
+int cg_div(int r1, int r2) {
     fprintf(OUT_FILE, "\tmovq\t%s,%%rax\n", reglist[r1]);
     fprintf(OUT_FILE, "\tcqto\n");
     fprintf(OUT_FILE, "\tidivq\t%s\n", reglist[r2]);
@@ -114,32 +121,48 @@ int cgdiv(int r1, int r2) {
     return r1;
 }
 
-void cgprintint(int reg) {
+void cg_print_int(int reg) {
     fprintf(OUT_FILE, "\tmovq\t%s,%%rdi\n", reglist[reg]);
     fprintf(OUT_FILE, "\tcall\tprintint\n");
     free_register(reg);
 }
 
-int cgstorglob(int reg, char *identifier) {
-    fprintf(OUT_FILE, "\tmovq\t%s, %s(%%rip)\n", reglist[reg], identifier);
+int cg_store_sym(int reg, int id) {
+    switch (SYM_TAB[id].ptype) {
+        case P_INT:
+            fprintf(OUT_FILE, "\tmovq\t%s, %s(%%rip)\n", reglist[reg], SYM_TAB[id].name);
+            break;
+        case P_CHAR:
+            fprintf(OUT_FILE, "\tmovb\t%s, %s(%%rip)\n", breglist[reg], SYM_TAB[id].name);
+            break;
+    }
     return reg;
 }
 
-void cgglobsym(char *sym) {
-    fprintf(OUT_FILE, "\t.comm\t%s, 8, 8\n", sym);
+void cg_new_sym(int id) {
+    switch (SYM_TAB[id].ptype) {
+        case P_INT:
+            fprintf(OUT_FILE, "\t.comm\t%s, 8, 8\n", SYM_TAB[id].name);
+            break;
+        case P_CHAR:
+            fprintf(OUT_FILE, "\t.comm\t%s, 1, 1\n", SYM_TAB[id].name);
+            break;
+        default:
+            fatal("Bad type in cg_new_sym()");
+    }
 }
 
-void cglabel(int l) {
+void cg_label(int l) {
     fprintf(OUT_FILE, "L%d:\n", l);
 }
 
-void cgjump(int l) {
+void cg_jump(int l) {
     fprintf(OUT_FILE, "\tjmp\tL%d\n", l);
 }
 
-int cgcompare_and_set(int ASTop, int r1, int r2) {
+int cg_compare_and_set(int ASTop, int r1, int r2) {
     if (ASTop < A_EQ || ASTop > A_GE) {
-        fatal("Bad ASTop in cgcompare_and_set()");
+        fatal("Bad ASTop in cg_compare_and_set()");
     }
 
     fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
@@ -150,14 +173,18 @@ int cgcompare_and_set(int ASTop, int r1, int r2) {
     return r2;
 }
 
-int cgcompare_and_jump(int ASTop, int r1, int r2, int l) {
+int cg_compare_and_jump(int ASTop, int r1, int r2, int l) {
     if (ASTop < A_EQ || ASTop > A_GE) {
-        fatal("Bad ASTop in cgcompare_and_jump()");
+        fatal("Bad ASTop in cg_compare_and_jump()");
     }
 
     fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
     fprintf(OUT_FILE, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], l);
-    cgfreeregs();
+    cg_free_regs();
 
     return NO_REG;
+}
+
+int cg_widen(int r, int old_type, int new_type) {
+    return r;
 }

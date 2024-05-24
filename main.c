@@ -41,9 +41,9 @@ int main(int argc, char *argv[]) {
     // start with scan the first token
     scan(&TOKEN);
 
-    genpreamble();
+    gen_pre_amble();
     while (1) {
-        genAST(declarefunc(), NO_REG, 0);
+        gen_ast(declare_func(), NO_REG, 0);
         if (TOKEN.token == T_EOF) {
             break;
         }
