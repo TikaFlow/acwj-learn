@@ -1,5 +1,9 @@
 int fred() {
-  return (20);
+  return 0-20;
+}
+
+char foo(){
+  return (100);
 }
 
 int main() {
@@ -7,6 +11,9 @@ int main() {
   print_int(10);
   result = fred(15);
   print_int(result);
-  print_int(fred(15)+10);
+  result = fred(15) + 10;
+  print_int(result);
+  print_int(foo(15)-500);
+  print_int(fred(15)-500);
   return 0;
 }

@@ -80,10 +80,10 @@ int cg_load_sym(int id) {
     int reg = alloc_register();
     switch (SYM_TAB[id].ptype) {
         case P_CHAR:
-            fprintf(OUT_FILE, "\tmovzbq\t%s(%%rip), %s\n", SYM_TAB[id].name, breglist[reg]);
+            fprintf(OUT_FILE, "\tmovsbq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
             break;
         case P_INT:
-            fprintf(OUT_FILE, "\tmovzbl\t%s(%%rip), %s\n", SYM_TAB[id].name, dreglist[reg]);
+            fprintf(OUT_FILE, "\tmovslq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
             break;
         case P_LONG:
             fprintf(OUT_FILE, "\tmovq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
@@ -207,10 +207,10 @@ int cg_widen(int r, int old_type, int new_type) {
 void cg_return(int reg, int id) {
     switch (SYM_TAB[id].ptype) {
         case P_CHAR:
-            fprintf(OUT_FILE, "\tmovb\t%s, %%al\n", breglist[reg]);
+            fprintf(OUT_FILE, "\tmovsbq\t%s, %%rax\n", breglist[reg]);
             break;
         case P_INT:
-            fprintf(OUT_FILE, "\tmovl\t%s, %%eax\n", dreglist[reg]);
+            fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[reg]);
             break;
         case P_LONG:
             fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
