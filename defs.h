@@ -49,6 +49,8 @@ enum {
     T_RBRACE,
     T_LPAREN,
     T_RPAREN,
+    T_AMPER,
+    T_LOGAND,
     // keywords
     T_PRINT,
     T_IF,
@@ -61,10 +63,10 @@ enum {
 // token struct
 typedef struct Token {
     int token_type;
-    int int_value;
+    long int_value;
 } Token;
 
-// AST node types
+// AST node type
 enum {
     A_NONE,
     A_ADD,
@@ -88,7 +90,9 @@ enum {
     A_FUNCTION,
     A_WIDEN,
     A_RETURN,
-    A_FUNCCALL
+    A_FUNCCALL,
+    A_DEREF,
+    A_ADDR
 };
 
 // primitive type
@@ -97,7 +101,11 @@ enum {
     P_VOID,
     P_CHAR,
     P_INT,
-    P_LONG
+    P_LONG,
+    P_VOIDPTR,
+    P_CHARPTR,
+    P_INTPTR,
+    P_LONGPTR
 };
 
 // struct type
@@ -114,7 +122,7 @@ typedef struct ASTnode {
     struct ASTnode *mid;
     struct ASTnode *right;
     union value {
-        int int_value; // intlit
+        long int_value; // intlit
         int id; // symbol solt id
     } value;
 } ASTnode;

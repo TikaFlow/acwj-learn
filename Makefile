@@ -1,5 +1,5 @@
-SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c types.c
-TEST=test/13-func2.txt
+SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
+TEST=test/15-pointer1.txt
 
 all: test
 

@@ -17,7 +17,11 @@ static int type_size[] = {
         0, // P_VOID
         1, // P_CHAR
         4, // P_INT
-        8 // P_LONG
+        8, // P_LONG
+        8, // P_VOIDPTR
+        8, // P_CHARPTR
+        8, // P_INTPTR
+        8 // P_LONGPTR
 };
 
 void cg_free_regs() {
@@ -29,7 +33,7 @@ void cg_free_regs() {
 static int alloc_register() {
     for (int i = 0; i < 4; i++) {
         if (freereg[i]) {
-            freereg[i] = 0;
+            freereg[i] = FALSE;
             return i;
         }
     }
@@ -42,12 +46,12 @@ static void free_register(int reg) {
         fprintf(stderr, "Error trying to free register %d\n", reg);
         exit(1);
     }
-    freereg[reg] = 1;
+    freereg[reg] = TRUE;
 }
 
 void cg_pre_amble() {
     cg_free_regs();
-    // fputs("\t.text\n", OUT_FILE);
+    fputs("\t.text\n", OUT_FILE);
 }
 
 void cg_func_pre_amble(int id) {
@@ -69,10 +73,10 @@ void cg_func_post_amble(int id) {
           OUT_FILE);
 }
 
-int cg_load_int(int value) {
+int cg_load_int(long value) {
     int reg = alloc_register();
 
-    fprintf(OUT_FILE, "\tmovq\t$%d, %s\n", value, reglist[reg]);
+    fprintf(OUT_FILE, "\tmovq\t$%ld, %s\n", value, reglist[reg]);
     return reg;
 }
 
@@ -80,12 +84,15 @@ int cg_load_sym(int id) {
     int reg = alloc_register();
     switch (SYM_TAB[id].ptype) {
         case P_CHAR:
-            fprintf(OUT_FILE, "\tmovsbq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+            fprintf(OUT_FILE, "\tmovzbq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
             break;
         case P_INT:
             fprintf(OUT_FILE, "\tmovslq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
             break;
         case P_LONG:
+        case P_CHARPTR:
+        case P_INTPTR:
+        case P_LONGPTR:
             fprintf(OUT_FILE, "\tmovq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
             break;
         default:
@@ -147,6 +154,9 @@ int cg_store_sym(int reg, int id) {
             fprintf(OUT_FILE, "\tmovl\t%s, %s(%%rip)\n", dreglist[reg], SYM_TAB[id].name);
             break;
         case P_LONG:
+        case P_CHARPTR:
+        case P_INTPTR:
+        case P_LONGPTR:
             fprintf(OUT_FILE, "\tmovq\t%s, %s(%%rip)\n", reglist[reg], SYM_TAB[id].name);
             break;
         default:
@@ -156,7 +166,7 @@ int cg_store_sym(int reg, int id) {
 }
 
 int cg_type_size(int type) {
-    if (type < P_NONE || type > P_LONG) {
+    if (type < P_NONE || type > P_LONGPTR) {
         fatal("Bad type in gen_type_size()");
     }
     return type_size[type];
@@ -207,7 +217,7 @@ int cg_widen(int r, int old_type, int new_type) {
 void cg_return(int reg, int id) {
     switch (SYM_TAB[id].ptype) {
         case P_CHAR:
-            fprintf(OUT_FILE, "\tmovsbq\t%s, %%rax\n", breglist[reg]);
+            fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
             break;
         case P_INT:
             fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[reg]);
@@ -219,4 +229,21 @@ void cg_return(int reg, int id) {
             fatald("Bad function type in cg_return()", SYM_TAB[id].ptype);
     }
     cg_jump(SYM_TAB[id].end_label);
+}
+
+int cg_address(int id) {
+    int reg = alloc_register();
+
+    fprintf(OUT_FILE,
+            "\tleaq\t%s(%%rip), %s\n",
+            SYM_TAB[id].name,
+            reglist[reg]);
+
+    return reg;
+}
+
+int cg_deref(int reg, int type) {
+    fprintf(OUT_FILE, "\tmovq\t(%s), %s\n", reglist[reg], reglist[reg]);
+
+    return reg;
 }

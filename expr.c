@@ -5,6 +5,13 @@
 #include "data.h"
 #include "decl.h"
 
+static int op_prec[] = {
+        0, 10, 10, // EOF + -
+        20, 20, // * /
+        30, 30, // == !=
+        40, 40, 40, 40 // < <= > >=
+};
+
 ASTnode *func_call() {
     int id;
 
@@ -35,7 +42,7 @@ static ASTnode *primary() {
             if (TOKEN.token_type == T_LPAREN) {
                 return func_call();
             }
-            peek_token();
+            reject_token();
 
             if ((id = find_sym(TEXT)) < 0) {
                 fatals("Unknown variable", TEXT);
@@ -59,13 +66,6 @@ static int token_to_op(int tk) {
     return 0;
 }
 
-static int op_prec[] = {
-        0, 10, 10, // EOF + -
-        20, 20, // * /
-        30, 30, // == !=
-        40, 40, 40, 40 // < <= > >=
-};
-
 static int op_precedence(int token_type) {
     int prec = op_prec[token_type];
     if (prec == 0) {
@@ -74,11 +74,43 @@ static int op_precedence(int token_type) {
     return prec;
 }
 
+static ASTnode *prefix() {
+    ASTnode *tree;
+
+    switch (TOKEN.token_type) {
+        case T_AMPER:
+            scan();
+            tree = prefix();
+
+            if (tree->op != A_IDENT) {
+                fatal("& operator must be followed by a variable");
+            }
+
+            tree->op = A_ADDR;
+            tree->type = pointer_to(tree->type);
+            break;
+        case T_STAR:
+            scan();
+            tree = prefix();
+
+            if (tree->op != A_IDENT && tree->op != A_DEREF) {
+                fatal("* operator must be followed by a variable or *");
+            }
+
+            tree = make_ast_unary(A_DEREF, value_at(tree->type), tree, 0);
+            break;
+        default:
+            tree = primary();
+    }
+
+    return tree;
+}
+
 /*
  * @param ptp: previous token precedence
  */
 ASTnode *bin_expr(int ptp) {
-    ASTnode *right, *left = primary();
+    ASTnode *right, *left = prefix();
     int left_type, right_type;
     int token_type = TOKEN.token_type;
 

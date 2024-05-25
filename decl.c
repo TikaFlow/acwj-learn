@@ -8,26 +8,37 @@
 static int parse_type(int t) {
     int type = 0;
     switch (t) {
+        case T_VOID:
+            type = P_VOID;
+            break;
         case T_CHAR:
             type = P_CHAR;
             break;
         case T_INT:
             type = P_INT;
             break;
-        case T_VOID:
-            type = P_VOID;
+        case T_LONG:
+            type = P_LONG;
             break;
         default:
             fatald("Illegal type, token", t);
     }
-    scan();
+
+    while (TRUE) {
+        scan();
+        if (TOKEN.token_type != T_STAR) {
+            break;
+        }
+        type = pointer_to(type);
+    }
+
     return type;
 }
 
 void declare_var() {
     int type = parse_type(TOKEN.token_type);
     match(T_IDENT, "identifier");
-    int id = add_sym(TEXT, type, S_VARIABLE,0);
+    int id = add_sym(TEXT, type, S_VARIABLE, 0);
     gen_new_sym(id);
     match(T_SEMI, ";");
 }
@@ -38,7 +49,7 @@ ASTnode *declare_func() {
 
     match(T_IDENT, "identifier");
     end_label = gen_label();
-    FUNC_ID = nameslot = add_sym(TEXT, type, S_FUNCTION,end_label);
+    FUNC_ID = nameslot = add_sym(TEXT, type, S_FUNCTION, end_label);
     match(T_LPAREN, "(");
     match(T_RPAREN, ")");
 

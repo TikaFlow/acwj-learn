@@ -116,6 +116,10 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
             return NO_REG;
         case A_FUNCCALL:
             return cg_call(leftreg, node->value.id);
+        case A_ADDR:
+            return cg_address(node->value.id);
+        case A_DEREF:
+            return cg_deref(leftreg, node->left->type);
         default:
             fatald("Unknown AST operator", node->op);
     }

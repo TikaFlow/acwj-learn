@@ -9,16 +9,16 @@
 #include "defs.h"
 
 // scan.c
-Token *peek_token();
+Token *reject_token();
 
 int scan();
 
 // tree.c
-ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, int int_value);
+ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, long int_value);
 
-ASTnode *make_ast_leaf(int op, int type, int int_value);
+ASTnode *make_ast_leaf(int op, int type, long int_value);
 
-ASTnode *make_ast_unary(int op, int type, ASTnode *left, int int_value);
+ASTnode *make_ast_unary(int op, int type, ASTnode *left, long int_value);
 
 // gen.c
 int gen_label();
@@ -44,7 +44,7 @@ void cg_func_pre_amble(int id);
 
 void cg_func_post_amble(int id);
 
-int cg_load_int(int value);
+int cg_load_int(long value);
 
 int cg_load_sym(int id);
 
@@ -78,6 +78,10 @@ int cg_type_size(int type);
 
 void cg_return(int reg, int id);
 
+int cg_address(int id);
+
+int cg_deref(int reg, int type);
+
 // expr.c
 ASTnode *func_call();
 
@@ -109,5 +113,9 @@ ASTnode *declare_func();
 
 // types.c
 int type_compatible(int *left, int *right, int onlyright);
+
+int pointer_to(int type);
+
+int value_at(int type);
 
 #endif //ACWJ_LEARN_DEL_H

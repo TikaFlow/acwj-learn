@@ -1,0 +1,16 @@
+int main() {
+  char  a; char *b; char  c;
+  int   d; int  *e; int   f;
+  long  g; long *h; long  i;
+
+  a= 255; print_int(a);
+  b= &a; c= *b; print_int(c);
+
+  d= 123457890; print_int(d);
+  e= &d; f= *e; print_int(f);
+
+  g= 1234567890123; print_int(g);
+  h= &g; i= *h;     print_int(i);
+
+  return(0);
+}

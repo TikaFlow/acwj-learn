@@ -40,8 +40,9 @@ static int skip() {
     return c;
 }
 
-static int scan_int(int c) {
-    int k, val = 0;
+static long scan_int(int c) {
+    int k;
+    long val = 0;
 
     while ((k = char_pos("0123456789", c)) >= 0) {
         val = val * 10 + k;
@@ -120,7 +121,7 @@ static int keyword(char *s) {
     return 0;
 }
 
-Token *peek_token() {
+Token *reject_token() {
     if (!TOKEN_BACK.token_type) {
         TOKEN_BACK = TOKEN;
     }
@@ -199,6 +200,14 @@ int scan() {
             }
             put_back(c);
             TOKEN.token_type = T_GT;
+            break;
+        case '&':
+            if ((c = next()) == '&') {
+                TOKEN.token_type = T_LOGAND;
+                break;
+            }
+            put_back(c);
+            TOKEN.token_type = T_AMPER;
             break;
         default:
             if (isdigit(c)) {
