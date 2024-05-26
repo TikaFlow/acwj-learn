@@ -1,0 +1,17 @@
+long d, f;
+long *e;
+
+int main() {
+    int a, b, c;
+    b = 3;
+    c = 5;
+    a = b + c * 10;
+    print_int(a);
+
+    d = 1234567890123;
+    print_int(d);
+    e = &d;
+    f = *e;
+    print_int(f);
+    return (0);
+}

@@ -121,11 +121,11 @@ static int keyword(char *s) {
     return 0;
 }
 
-Token *reject_token() {
-    if (!TOKEN_BACK.token_type) {
-        TOKEN_BACK = TOKEN;
+void reject_token() {
+    if (TOKEN_BACK.token_type) {
+        fatal("Can't reject token twice");
     }
-    return &TOKEN_BACK;
+    TOKEN_BACK = TOKEN;
 }
 
 int scan() {
@@ -168,6 +168,9 @@ int scan() {
             break;
         case ')':
             TOKEN.token_type = T_RPAREN;
+            break;
+        case ',':
+            TOKEN.token_type = T_COMMA;
             break;
         case '=':
             if ((c = next()) == '=') {

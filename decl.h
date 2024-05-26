@@ -9,7 +9,7 @@
 #include "defs.h"
 
 // scan.c
-Token *reject_token();
+void reject_token();
 
 int scan();
 
@@ -27,6 +27,8 @@ int gen_ast(ASTnode *node, int reg, int parentASTop);
 
 void gen_pre_amble();
 
+void gen_post_amble();
+
 void gen_free_regs();
 
 void gen_print_int(int reg);
@@ -39,6 +41,8 @@ int gen_type_size(int type);
 void cg_free_regs();
 
 void cg_pre_amble();
+
+void cg_post_amble();
 
 void cg_func_pre_amble(int id);
 
@@ -107,11 +111,15 @@ int find_sym(char *s);
 int add_sym(char *name, int ptype, int stype, int end_label);
 
 // decl.c
-void declare_var();
+int parse_type();
 
-ASTnode *declare_func();
+void declare_var(int type);
 
-// types.c
+ASTnode *declare_func(int type);
+
+void declare_global();
+
+// type.c
 int type_compatible(int *left, int *right, int onlyright);
 
 int pointer_to(int type);

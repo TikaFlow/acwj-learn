@@ -54,6 +54,10 @@ void cg_pre_amble() {
     fputs("\t.text\n", OUT_FILE);
 }
 
+// Nothing to do
+void cg_post_amble() {
+}
+
 void cg_func_pre_amble(int id) {
     char *name = SYM_TAB[id].name;
     fprintf(OUT_FILE,

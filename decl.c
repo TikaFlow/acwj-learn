@@ -5,9 +5,9 @@
 #include "data.h"
 #include "decl.h"
 
-static int parse_type(int t) {
+int parse_type() {
     int type = 0;
-    switch (t) {
+    switch (TOKEN.token_type) {
         case T_VOID:
             type = P_VOID;
             break;
@@ -21,7 +21,7 @@ static int parse_type(int t) {
             type = P_LONG;
             break;
         default:
-            fatald("Illegal type, token", t);
+            fatald("Illegal type, token", TOKEN.token_type);
     }
 
     while (TRUE) {
@@ -35,32 +35,64 @@ static int parse_type(int t) {
     return type;
 }
 
-void declare_var() {
-    int type = parse_type(TOKEN.token_type);
-    match(T_IDENT, "identifier");
-    int id = add_sym(TEXT, type, S_VARIABLE, 0);
-    gen_new_sym(id);
-    match(T_SEMI, ";");
+void declare_var(int type) {
+    int id;
+
+    while (TRUE) {
+        id = add_sym(TEXT, type, S_VARIABLE, 0);
+        gen_new_sym(id);
+
+        if (TOKEN.token_type == T_SEMI) {
+            match(T_SEMI, ";");
+            return;
+        }
+
+        match(T_COMMA, ",");
+        match(T_IDENT, "identifier");
+    }
 }
 
-ASTnode *declare_func() {
+ASTnode *declare_func(int type) {
     ASTnode *tree, *final_stmt;
-    int nameslot, end_label, type = parse_type(TOKEN.token_type);
-
-    match(T_IDENT, "identifier");
-    end_label = gen_label();
+    int nameslot, end_label = gen_label();
     FUNC_ID = nameslot = add_sym(TEXT, type, S_FUNCTION, end_label);
     match(T_LPAREN, "(");
+    // for now, no parameters
     match(T_RPAREN, ")");
 
     tree = compound_stmt();
 
     if (type != P_VOID) {
+        if (!tree) {
+            fatal("No statements in function with non-void type");
+        }
+
         final_stmt = tree->op == A_GLUE ? tree->right : tree;
-        if (final_stmt == NULL || final_stmt->op != A_RETURN) {
+        if (!final_stmt || final_stmt->op != A_RETURN) {
             fatal("No return statement in function with non-void return type");
         }
     }
 
-    return make_ast_unary(A_FUNCTION, P_VOID, tree, nameslot);
+    return make_ast_unary(A_FUNCTION, type, tree, nameslot);
+}
+
+void declare_global() {
+    ASTnode *tree;
+    int type;
+
+    while (TRUE) {
+        type = parse_type();
+        match(T_IDENT, "identifier");
+
+        if (TOKEN.token_type == T_LPAREN) {
+            tree = declare_func(type);
+            gen_ast(tree, NO_REG, 0);
+        } else {
+            declare_var(type);
+        }
+
+        if (TOKEN.token_type == T_EOF) {
+            break;
+        }
+    }
 }

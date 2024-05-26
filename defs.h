@@ -51,6 +51,7 @@ enum {
     T_RPAREN,
     T_AMPER,
     T_LOGAND,
+    T_COMMA,
     // keywords
     T_PRINT,
     T_IF,

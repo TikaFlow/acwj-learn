@@ -130,7 +130,7 @@ static ASTnode *return_stmt() {
 
     match(T_RETURN, "return");
 
-    if(TOKEN.token_type==T_LPAREN){
+    if (TOKEN.token_type == T_LPAREN) {
         match(T_LPAREN, "(");
         need_rparen = TRUE;
     }
@@ -146,20 +146,23 @@ static ASTnode *return_stmt() {
     }
 
     tree = make_ast_unary(A_RETURN, P_NONE, tree, 0);
-    if(need_rparen){
+    if (need_rparen) {
         match(T_RPAREN, ")");
     }
     return tree;
 }
 
 static ASTnode *single_stmt() {
+    int type;
     switch (TOKEN.token_type) {
         case T_PRINT:
             return print_stmt();
         case T_CHAR:
         case T_INT:
         case T_LONG:
-            declare_var();
+            type = parse_type();
+            match(T_IDENT, "identifier");
+            declare_var(type);
             return NULL;
         case T_IDENT:
             return assign_stmt();

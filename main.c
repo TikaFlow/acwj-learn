@@ -47,12 +47,8 @@ int main(int argc, char *argv[]) {
     scan();
 
     gen_pre_amble();
-    while (1) {
-        gen_ast(declare_func(), NO_REG, 0);
-        if (TOKEN.token_type == T_EOF) {
-            break;
-        }
-    }
+    declare_global();
+    gen_post_amble();
 
     fclose(OUT_FILE);
     fclose(IN_FILE);

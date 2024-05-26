@@ -130,6 +130,10 @@ void gen_pre_amble() {
     cg_pre_amble();
 }
 
+void gen_post_amble() {
+    cg_post_amble();
+}
+
 void gen_free_regs() {
     cg_free_regs();
 }
