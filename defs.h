@@ -93,7 +93,8 @@ enum {
     A_RETURN,
     A_FUNCCALL,
     A_DEREF,
-    A_ADDR
+    A_ADDR,
+    A_SCALE
 };
 
 // primitive type
@@ -124,7 +125,8 @@ typedef struct ASTnode {
     struct ASTnode *right;
     union value {
         long int_value; // intlit
-        int id; // symbol solt id
+        int id; // symbol slot id
+        int size; // scale
     } value;
 } ASTnode;
 

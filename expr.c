@@ -110,9 +110,8 @@ static ASTnode *prefix() {
  * @param ptp: previous token precedence
  */
 ASTnode *bin_expr(int ptp) {
-    ASTnode *right, *left = prefix();
-    int left_type, right_type;
-    int token_type = TOKEN.token_type;
+    ASTnode *ltemp, *rtemp, *right, *left = prefix();
+    int ast_op, token_type = TOKEN.token_type;
 
     if (token_type == T_SEMI || token_type == T_RPAREN) {
         return left;
@@ -123,16 +122,18 @@ ASTnode *bin_expr(int ptp) {
 
         right = bin_expr(op_prec[token_type]);
 
-        left_type = left->type;
-        right_type = right->type;
-        if (!type_compatible(&left_type, &right_type, FALSE)) {
+        ast_op = token_to_op(token_type);
+        ltemp = modify_type(left, right->type, ast_op);
+        rtemp = modify_type(right, left->type, ast_op);
+        if (!ltemp && !rtemp) {
             fatal("Incompatible types in arithmetic expression");
         }
-        if (left_type) {
-            left = make_ast_unary(left_type, right->type, left, 0);
+
+        if (ltemp) {
+            left = ltemp;
         }
-        if (right_type) {
-            right = make_ast_unary(right_type, left->type, right, 0);
+        if (rtemp) {
+            right = rtemp;
         }
 
         left = make_ast_node(token_to_op(token_type), left->type, left, NULL, right, 0);

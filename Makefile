@@ -1,5 +1,5 @@
 SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
-TEST=test/16-global-var.txt
+TEST=test/17-scale-offset.txt
 
 all: test
 

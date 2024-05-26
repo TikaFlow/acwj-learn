@@ -12,13 +12,9 @@ static ASTnode *print_stmt() {
 
     ASTnode *tree = bin_expr(0);
 
-    int left_type = P_INT, right_type = tree->type;
-    if (!type_compatible(&left_type, &right_type, FALSE)) {
+    tree = modify_type(tree, P_INT, 0);
+    if (!tree) {
         fatal("Incompatible types in print statement");
-    }
-
-    if (right_type) {
-        tree = make_ast_unary(right_type, P_INT, tree, 0);
     }
 
     tree = make_ast_unary(A_PRINT, P_NONE, tree, 0);
@@ -44,12 +40,9 @@ static ASTnode *assign_stmt() {
     match(T_ASSIGN, "=");
     left = bin_expr(0);
 
-    int left_type = left->type, right_type = right->type;
-    if (!type_compatible(&left_type, &right_type, TRUE)) {
+    left = modify_type(left, right->type, 0);
+    if (!left) {
         fatal("Incompatible types in assignment");
-    }
-    if (left_type) {
-        left = make_ast_unary(left_type, right->type, left, 0);
     }
 
     tree = make_ast_node(A_ASSIGN, P_INT, left, NULL, right, 0);
@@ -136,13 +129,9 @@ static ASTnode *return_stmt() {
     }
 
     tree = bin_expr(0);
-    return_type = tree->type;
-    func_type = SYM_TAB[FUNC_ID].ptype;
-    if (!type_compatible(&return_type, &func_type, TRUE)) {
+    tree = modify_type(tree, SYM_TAB[FUNC_ID].ptype, 0);
+    if (!tree) {
         fatal("Incompatible return type");
-    }
-    if (return_type) {
-        tree = make_ast_unary(return_type, func_type, tree, 0);
     }
 
     tree = make_ast_unary(A_RETURN, P_NONE, tree, 0);

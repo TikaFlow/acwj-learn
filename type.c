@@ -5,6 +5,20 @@
 #include "data.h"
 #include "decl.h"
 
+static int is_int(int type) {
+    if (type >= P_CHAR && type <= P_LONG) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static int is_ptr(int type) {
+    if (type >= P_VOIDPTR && type <= P_LONGPTR) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
 int type_compatible(int *left, int *right, int onlyright) {
 
     if (*left == *right) {
@@ -86,4 +100,42 @@ int value_at(int type) {
     }
 
     return new_type;
+}
+
+ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
+    int lsize, rsize, ltype = tree->type;
+
+    if (is_int(ltype) && is_int(rtype)) {
+        if (ltype == rtype) {
+            return tree;
+        }
+
+        lsize = gen_type_size(ltype);
+        rsize = gen_type_size(rtype);
+
+        if (lsize > rsize) {
+            return NULL;
+        }
+
+        if (lsize < rsize) {
+            return make_ast_unary(A_WIDEN, rtype, tree, 0);
+        }
+    }
+
+    if (is_ptr(ltype)) {
+        if (!op && ltype == rtype) {
+            return tree;
+        }
+    }
+
+    if (op == A_ADD || op == A_SUBTRACT) {
+        if (is_int(ltype) && is_ptr(rtype)) {
+            rsize = gen_type_size(value_at(rtype));
+            if (rsize > 1) {
+                return make_ast_unary(A_SCALE, rtype, tree, rsize);
+            }
+        }
+    }
+
+    return NULL;
 }

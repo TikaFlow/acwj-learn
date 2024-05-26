@@ -60,6 +60,8 @@ int cg_mul(int r1, int r2);
 
 int cg_div(int r1, int r2);
 
+int cg_shl_n(int reg, int n);
+
 void cg_print_int(int reg);
 
 int cg_call(int reg, int id);
@@ -120,10 +122,10 @@ ASTnode *declare_func(int type);
 void declare_global();
 
 // type.c
-int type_compatible(int *left, int *right, int onlyright);
-
 int pointer_to(int type);
 
 int value_at(int type);
+
+ASTnode *modify_type(ASTnode *tree, int rtype, int op);
 
 #endif //ACWJ_LEARN_DEL_H

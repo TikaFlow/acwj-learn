@@ -132,6 +132,15 @@ int cg_div(int r1, int r2) {
     return r1;
 }
 
+int cg_shl_n(int reg, int n) {
+    fprintf(OUT_FILE,
+            "\tsalq\t$%d, %s\n",
+            n,
+            reglist[reg]);
+
+    return reg;
+}
+
 void cg_print_int(int reg) {
     fprintf(OUT_FILE, "\tmovq\t%s,%%rdi\n", reglist[reg]);
     fprintf(OUT_FILE, "\tcall\tprint_int\n");
@@ -178,7 +187,34 @@ int cg_type_size(int type) {
 
 void cg_new_sym(int id) {
     int size = cg_type_size(SYM_TAB[id].ptype);
-    fprintf(OUT_FILE, "\t.comm\t%s, %d, %d\n", SYM_TAB[id].name, size, size);
+    fprintf(OUT_FILE,
+            "\t.data\n"
+            "\t.globl\t%s\n",
+            SYM_TAB[id].name);
+    switch (size) {
+        case 1:
+            fprintf(OUT_FILE,
+                    "%s:\t.byte\t0\n",
+                    SYM_TAB[id].name);
+            break;
+        case 2:
+            fprintf(OUT_FILE,
+                    "%s:\t.short\t0\n",
+                    SYM_TAB[id].name);
+            break;
+        case 4:
+            fprintf(OUT_FILE,
+                    "%s:\t.int\t0\n",
+                    SYM_TAB[id].name);
+            break;
+        case 8:
+            fprintf(OUT_FILE,
+                    "%s:\t.long\t0\n",
+                    SYM_TAB[id].name);
+            break;
+        default:
+            fatal("Bad type size in cg_new_sym()");
+    }
 }
 
 void cg_label(int l) {

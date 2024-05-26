@@ -120,6 +120,18 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
             return cg_address(node->value.id);
         case A_DEREF:
             return cg_deref(leftreg, node->left->type);
+        case A_SCALE:
+            switch (node->value.size) {
+                case 2:
+                    return cg_shl_n(leftreg, 1);
+                case 4:
+                    return cg_shl_n(leftreg, 2);
+                case 8:
+                    return cg_shl_n(leftreg, 3);
+                default:
+                    rightreg = cg_load_int(node->value.size);
+                    return cg_mul(leftreg, rightreg);
+            }
         default:
             fatald("Unknown AST operator", node->op);
     }
