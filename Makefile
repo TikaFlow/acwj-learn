@@ -1,15 +1,15 @@
 SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
-TEST=test/17-scale-offset.txt
+TEST=test/18-lvalue-rvalue.txt
 
 all: test
 
-comp: $(SRCS)
-	cc -o comp -g $^
+main: $(SRCS)
+	cc -o main -g $^
 
-test: $(TEST) comp lib/util.c
-	./comp $<
+test: $(TEST) main lib/util.c
+	./main $<
 	cc -o out out.s lib/util.c
 	./out
 
 clean:
-	rm -f comp out *.o *.s
+	rm -f main out *.o *.s

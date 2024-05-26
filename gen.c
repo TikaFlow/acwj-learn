@@ -18,7 +18,7 @@ static int gen_if_ast(ASTnode *node) {
 
     gen_ast(node->left, lfalse, node->op);
     gen_free_regs();
-    gen_ast(node->mid, NO_REG, node->op);
+    gen_ast(node->mid, NO_LABEL, node->op);
     gen_free_regs();
 
     if (node->right) {
@@ -26,7 +26,7 @@ static int gen_if_ast(ASTnode *node) {
     }
     cg_label(lfalse);
     if (node->right) {
-        gen_ast(node->right, NO_REG, node->op);
+        gen_ast(node->right, NO_LABEL, node->op);
         gen_free_regs();
         cg_label(lend);
     }
@@ -40,7 +40,7 @@ static int gen_while_ast(ASTnode *node) {
     gen_ast(node->left, lend, node->op);
     gen_free_regs();
 
-    gen_ast(node->right, NO_REG, node->op);
+    gen_ast(node->right, NO_LABEL, node->op);
     gen_free_regs();
 
     cg_jump(lbegin);
@@ -58,23 +58,23 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
         case A_WHILE:
             return gen_while_ast(node);
         case A_GLUE:
-            gen_ast(node->left, NO_REG, node->op);
+            gen_ast(node->left, NO_LABEL, node->op);
             gen_free_regs();
-            gen_ast(node->right, NO_REG, node->op);
+            gen_ast(node->right, NO_LABEL, node->op);
             gen_free_regs();
             return NO_REG;
         case A_FUNCTION:
             cg_func_pre_amble(node->value.id);
-            gen_ast(node->left, NO_REG, node->op);
+            gen_ast(node->left, NO_LABEL, node->op);
             cg_func_post_amble(node->value.id);
             return NO_REG;
     }
 
     if (node->left) {
-        leftreg = gen_ast(node->left, NO_REG, node->op);
+        leftreg = gen_ast(node->left, NO_LABEL, node->op);
     }
     if (node->right) {
-        rightreg = gen_ast(node->right, leftreg, node->op);
+        rightreg = gen_ast(node->right, NO_LABEL, node->op);
     }
 
     switch (node->op) {
@@ -94,21 +94,24 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
         case A_GE:
             if (parentASTop == A_IF || parentASTop == A_WHILE) {
                 return cg_compare_and_jump(node->op, leftreg, rightreg, reg);
-            } else {
-                return cg_compare_and_set(node->op, leftreg, rightreg);
             }
+            return cg_compare_and_set(node->op, leftreg, rightreg);
         case A_INTLIT:
             return cg_load_int(node->value.int_value);
         case A_IDENT:
-            return cg_load_sym(node->value.id);
-        case A_LVIDENT:
-            return cg_store_sym(reg, node->value.id);
-        case A_ASSIGN:
-            return rightreg;
-        case A_PRINT:
-            gen_print_int(leftreg);
-            gen_free_regs();
+            if (node->rvalue || parentASTop == A_DEREF) {
+                return cg_load_sym(node->value.id);
+            }
             return NO_REG;
+        case A_ASSIGN:
+            switch (node->right->op) {
+                case A_IDENT:
+                    return cg_store_sym(leftreg, node->right->value.id);
+                case A_DEREF:
+                    return cg_store_deref(leftreg, rightreg, node->right->type);
+                default:
+                    fatald("Can't A_ASSIGN in gen_ast, op", node->op);
+            }
         case A_WIDEN:
             return cg_widen(leftreg, node->left->type, node->type);
         case A_RETURN:
@@ -119,15 +122,18 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
         case A_ADDR:
             return cg_address(node->value.id);
         case A_DEREF:
-            return cg_deref(leftreg, node->left->type);
+            if (node->rvalue) {
+                return cg_deref(leftreg, node->left->type);
+            }
+            return leftreg;
         case A_SCALE:
             switch (node->value.size) {
                 case 2:
-                    return cg_shl_n(leftreg, 1);
+                    return cg_sal_n(leftreg, 1);
                 case 4:
-                    return cg_shl_n(leftreg, 2);
+                    return cg_sal_n(leftreg, 2);
                 case 8:
-                    return cg_shl_n(leftreg, 3);
+                    return cg_sal_n(leftreg, 3);
                 default:
                     rightreg = cg_load_int(node->value.size);
                     return cg_mul(leftreg, rightreg);
@@ -148,10 +154,6 @@ void gen_post_amble() {
 
 void gen_free_regs() {
     cg_free_regs();
-}
-
-void gen_print_int(int reg) {
-    cg_print_int(reg);
 }
 
 void gen_new_sym(int id) {

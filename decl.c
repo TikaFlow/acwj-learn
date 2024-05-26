@@ -86,7 +86,9 @@ void declare_global() {
 
         if (TOKEN.token_type == T_LPAREN) {
             tree = declare_func(type);
-            gen_ast(tree, NO_REG, 0);
+            show_ast(tree, NO_LABEL, 0); // SHOW_AST
+            fprintf(stdout, "\n\n");
+            gen_ast(tree, NO_LABEL, 0);
         } else {
             declare_var(type);
         }

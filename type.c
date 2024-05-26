@@ -123,7 +123,10 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
     }
 
     if (is_ptr(ltype)) {
-        if (!op && ltype == rtype) {
+        // I don't know why op must be zero,
+        // but it works when I remove it
+        // if (!op && ltype == rtype) {
+        if (ltype == rtype) {
             return tree;
         }
     }

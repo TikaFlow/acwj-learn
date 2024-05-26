@@ -17,6 +17,8 @@
 #define SYM_TAB_LEN 1024
 // when no register is available
 #define NO_REG (-1)
+// when no label is available
+#define NO_LABEL 0
 // true and false
 #define TRUE 1
 #define FALSE 0
@@ -25,6 +27,7 @@
 enum {
     T_EOF,
     // operators
+    T_ASSIGN,
     T_PLUS,
     T_MINUS,
     T_STAR,
@@ -43,7 +46,6 @@ enum {
     // structures
     T_INTLIT,
     T_SEMI,
-    T_ASSIGN,
     T_IDENT,
     T_LBRACE,
     T_RBRACE,
@@ -53,7 +55,6 @@ enum {
     T_LOGAND,
     T_COMMA,
     // keywords
-    T_PRINT,
     T_IF,
     T_ELSE,
     T_WHILE,
@@ -70,6 +71,7 @@ typedef struct Token {
 // AST node type
 enum {
     A_NONE,
+    A_ASSIGN,
     A_ADD,
     A_SUBTRACT,
     A_MULTIPLY,
@@ -82,9 +84,6 @@ enum {
     A_GE,
     A_INTLIT,
     A_IDENT,
-    A_LVIDENT,
-    A_ASSIGN,
-    A_PRINT,
     A_GLUE,
     A_IF,
     A_WHILE,
@@ -120,6 +119,7 @@ enum {
 typedef struct ASTnode {
     int op;
     int type;
+    int rvalue;
     struct ASTnode *left;
     struct ASTnode *mid;
     struct ASTnode *right;

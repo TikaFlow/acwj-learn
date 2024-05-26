@@ -20,6 +20,8 @@ ASTnode *make_ast_leaf(int op, int type, long int_value);
 
 ASTnode *make_ast_unary(int op, int type, ASTnode *left, long int_value);
 
+void show_ast(ASTnode *n, int label, int level);
+
 // gen.c
 int gen_label();
 
@@ -30,8 +32,6 @@ void gen_pre_amble();
 void gen_post_amble();
 
 void gen_free_regs();
-
-void gen_print_int(int reg);
 
 void gen_new_sym(int id);
 
@@ -60,9 +60,7 @@ int cg_mul(int r1, int r2);
 
 int cg_div(int r1, int r2);
 
-int cg_shl_n(int reg, int n);
-
-void cg_print_int(int reg);
+int cg_sal_n(int reg, int n);
 
 int cg_call(int reg, int id);
 
@@ -87,6 +85,8 @@ void cg_return(int reg, int id);
 int cg_address(int id);
 
 int cg_deref(int reg, int type);
+
+int cg_store_deref(int r1, int r2, int type);
 
 // expr.c
 ASTnode *func_call();

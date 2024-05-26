@@ -132,19 +132,13 @@ int cg_div(int r1, int r2) {
     return r1;
 }
 
-int cg_shl_n(int reg, int n) {
+int cg_sal_n(int reg, int n) {
     fprintf(OUT_FILE,
             "\tsalq\t$%d, %s\n",
             n,
             reglist[reg]);
 
     return reg;
-}
-
-void cg_print_int(int reg) {
-    fprintf(OUT_FILE, "\tmovq\t%s,%%rdi\n", reglist[reg]);
-    fprintf(OUT_FILE, "\tcall\tprint_int\n");
-    free_register(reg);
 }
 
 int cg_call(int reg, int id) {
@@ -286,4 +280,20 @@ int cg_deref(int reg, int type) {
     fprintf(OUT_FILE, "\tmovq\t(%s), %s\n", reglist[reg], reglist[reg]);
 
     return reg;
+}
+
+int cg_store_deref(int r1, int r2, int type) {
+    switch (type) {
+        case P_CHAR:
+            fprintf(OUT_FILE, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
+            break;
+        case P_INT:
+        case P_LONG:
+            fprintf(OUT_FILE, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+            break;
+        default:
+            fatald("Bad type in cg_store_deref()", type);
+    }
+
+    return r1;
 }

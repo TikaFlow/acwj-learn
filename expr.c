@@ -6,10 +6,11 @@
 #include "decl.h"
 
 static int op_prec[] = {
-        0, 10, 10, // EOF + -
-        20, 20, // * /
-        30, 30, // == !=
-        40, 40, 40, 40 // < <= > >=
+        0, 10, // EOF, =
+        20, 20, // +, -
+        30, 30, // *, /
+        40, 40, // ==, !=
+        50, 50, 50, 50 // <, <=, >, >=
 };
 
 ASTnode *func_call() {
@@ -66,6 +67,13 @@ static int token_to_op(int tk) {
     return 0;
 }
 
+static int stick_right(int token_type) {
+    if (token_type == T_ASSIGN) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
 static int op_precedence(int token_type) {
     int prec = op_prec[token_type];
     if (prec == 0) {
@@ -114,35 +122,55 @@ ASTnode *bin_expr(int ptp) {
     int ast_op, token_type = TOKEN.token_type;
 
     if (token_type == T_SEMI || token_type == T_RPAREN) {
+        left->rvalue = 1;
         return left;
     }
 
-    while (op_precedence(token_type) > ptp) {
+    while (op_precedence(token_type) > ptp
+           || stick_right(token_type) && op_precedence(token_type) == ptp) {
         scan();
 
         right = bin_expr(op_prec[token_type]);
 
         ast_op = token_to_op(token_type);
-        ltemp = modify_type(left, right->type, ast_op);
-        rtemp = modify_type(right, left->type, ast_op);
-        if (!ltemp && !rtemp) {
-            fatal("Incompatible types in arithmetic expression");
-        }
+        if (ast_op == A_ASSIGN) {
+            right->rvalue = 1;
 
-        if (ltemp) {
-            left = ltemp;
-        }
-        if (rtemp) {
-            right = rtemp;
+            right = modify_type(right, left->type, ast_op);
+            if (!right) {
+                fatal("===>Incompatible expression in assignment");
+            }
+            // swap left and right
+            ltemp = left;
+            left = right;
+            right = ltemp;
+        } else {
+            left->rvalue = 1;
+            right->rvalue = 1;
+
+            ltemp = modify_type(left, right->type, ast_op);
+            rtemp = modify_type(right, left->type, ast_op);
+            if (!ltemp && !rtemp) {
+                fatal("Incompatible types in arithmetic expression");
+            }
+
+            if (ltemp) {
+                left = ltemp;
+            }
+            if (rtemp) {
+                right = rtemp;
+            }
         }
 
         left = make_ast_node(token_to_op(token_type), left->type, left, NULL, right, 0);
 
         token_type = TOKEN.token_type;
         if (token_type == T_SEMI || token_type == T_RPAREN) {
+            left->rvalue = 1;
             return left;
         }
     }
 
+    left->rvalue = 1;
     return left;
 }

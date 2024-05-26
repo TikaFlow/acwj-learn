@@ -7,49 +7,6 @@
 
 static ASTnode *single_stmt();
 
-static ASTnode *print_stmt() {
-    match(T_PRINT, "print");
-
-    ASTnode *tree = bin_expr(0);
-
-    tree = modify_type(tree, P_INT, 0);
-    if (!tree) {
-        fatal("Incompatible types in print statement");
-    }
-
-    tree = make_ast_unary(A_PRINT, P_NONE, tree, 0);
-
-    return tree;
-}
-
-static ASTnode *assign_stmt() {
-    ASTnode *left, *right, *tree;
-    int id;
-
-    match(T_IDENT, "identifier");
-
-    if (TOKEN.token_type == T_LPAREN) {
-        return func_call();
-    }
-
-    if ((id = find_sym(TEXT)) < 0) {
-        fatals("undeclared variable", TEXT);
-    }
-    right = make_ast_leaf(A_LVIDENT, SYM_TAB[id].ptype, id);
-
-    match(T_ASSIGN, "=");
-    left = bin_expr(0);
-
-    left = modify_type(left, right->type, 0);
-    if (!left) {
-        fatal("Incompatible types in assignment");
-    }
-
-    tree = make_ast_node(A_ASSIGN, P_INT, left, NULL, right, 0);
-
-    return tree;
-}
-
 static ASTnode *if_stmt() {
     ASTnode *condnode, *truenode, *falsenode = NULL;
 
@@ -114,7 +71,6 @@ static ASTnode *for_stmt() {
 
 static ASTnode *return_stmt() {
     ASTnode *tree;
-    int return_type, func_type;
     int need_rparen = FALSE;
 
     if (SYM_TAB[FUNC_ID].ptype == P_VOID) {
@@ -144,8 +100,6 @@ static ASTnode *return_stmt() {
 static ASTnode *single_stmt() {
     int type;
     switch (TOKEN.token_type) {
-        case T_PRINT:
-            return print_stmt();
         case T_CHAR:
         case T_INT:
         case T_LONG:
@@ -153,8 +107,6 @@ static ASTnode *single_stmt() {
             match(T_IDENT, "identifier");
             declare_var(type);
             return NULL;
-        case T_IDENT:
-            return assign_stmt();
         case T_IF:
             return if_stmt();
         case T_WHILE:
@@ -164,9 +116,8 @@ static ASTnode *single_stmt() {
         case T_RETURN:
             return return_stmt();
         default:
-            fatald("syntax error, unexpected token", TOKEN.token_type);
+            return bin_expr(0);
     }
-    return NULL;
 }
 
 ASTnode *compound_stmt() {
@@ -177,8 +128,7 @@ ASTnode *compound_stmt() {
         tree = single_stmt();
 
         if (tree &&
-            (tree->op == A_PRINT
-             || tree->op == A_ASSIGN
+            (tree->op == A_ASSIGN
              || tree->op == A_RETURN
              || tree->op == A_FUNCCALL)) {
             match(T_SEMI, ";");
