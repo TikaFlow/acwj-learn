@@ -39,8 +39,20 @@ void declare_var(int type) {
     int id;
 
     while (TRUE) {
-        id = add_sym(TEXT, type, S_VARIABLE, 0);
-        gen_new_sym(id);
+        if (TOKEN.token_type == T_LBRACKET) {
+            match(T_LBRACKET, "[");
+
+            if (TOKEN.token_type == T_INTLIT) {
+                id = add_sym(TEXT, pointer_to(type), S_ARRAY, 0, TOKEN.int_value);
+                gen_new_sym(id);
+            }
+
+            scan();
+            match(T_RBRACKET, "]");
+        } else {
+            id = add_sym(TEXT, type, S_VARIABLE, 0, 1);
+            gen_new_sym(id);
+        }
 
         if (TOKEN.token_type == T_SEMI) {
             match(T_SEMI, ";");
@@ -55,7 +67,7 @@ void declare_var(int type) {
 ASTnode *declare_func(int type) {
     ASTnode *tree, *final_stmt;
     int nameslot, end_label = gen_label();
-    FUNC_ID = nameslot = add_sym(TEXT, type, S_FUNCTION, end_label);
+    FUNC_ID = nameslot = add_sym(TEXT, type, S_FUNCTION, end_label, 0);
     match(T_LPAREN, "(");
     // for now, no parameters
     match(T_RPAREN, ")");
@@ -86,8 +98,8 @@ void declare_global() {
 
         if (TOKEN.token_type == T_LPAREN) {
             tree = declare_func(type);
-            show_ast(tree, NO_LABEL, 0); // SHOW_AST
-            fprintf(stdout, "\n\n");
+            // show_ast(tree, NO_LABEL, 0); // SHOW_AST
+            // fprintf(stdout, "\n\n");
             gen_ast(tree, NO_LABEL, 0);
         } else {
             declare_var(type);

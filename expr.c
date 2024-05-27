@@ -16,7 +16,7 @@ static int op_prec[] = {
 ASTnode *func_call() {
     int id;
 
-    if ((id = find_sym(TEXT)) < 0) {
+    if ((id = find_sym(TEXT)) < 0 || SYM_TAB[id].stype != S_FUNCTION) {
         fatals("Undeclared function", TEXT);
     }
     match(T_LPAREN, "(");
@@ -24,6 +24,30 @@ ASTnode *func_call() {
     node = make_ast_unary(A_FUNCCALL, SYM_TAB[id].ptype, node, id);
     match(T_RPAREN, ")");
     return node;
+}
+
+static ASTnode *access_array() {
+    ASTnode *left, *right;
+    int id;
+
+    if ((id = find_sym(TEXT)) < 0 || SYM_TAB[id].stype != S_ARRAY) {
+        fatals("Undeclared array", TEXT);
+    }
+
+    left = make_ast_leaf(A_ADDR, SYM_TAB[id].ptype, id);
+    match(T_LBRACKET, "[");
+    right = bin_expr(0);
+    match(T_RBRACKET, "]");
+
+    if (!is_int(right->type)) {
+        fatal("Array index must be an integer");
+    }
+
+    right = modify_type(right, left->type, A_ADD);
+    left = make_ast_node(A_ADD, SYM_TAB[id].ptype, left, NULL, right, 0);
+    left = make_ast_unary(A_DEREF, value_at(left->type), left, 0);
+
+    return left;
 }
 
 static ASTnode *primary() {
@@ -43,6 +67,9 @@ static ASTnode *primary() {
             if (TOKEN.token_type == T_LPAREN) {
                 return func_call();
             }
+            if (TOKEN.token_type == T_LBRACKET) {
+                return access_array();
+            }
             reject_token();
 
             if ((id = find_sym(TEXT)) < 0) {
@@ -50,6 +77,11 @@ static ASTnode *primary() {
             }
             node = make_ast_leaf(A_IDENT, SYM_TAB[id].ptype, id);
             break;
+        case T_LPAREN:
+            match(T_LPAREN, "(");
+            node = bin_expr(0);
+            match(T_RPAREN, ")");
+            return node;
         default:
             node = NULL;
             fatald("syntax error, token", TOKEN.token_type);
@@ -75,6 +107,10 @@ static int stick_right(int token_type) {
 }
 
 static int op_precedence(int token_type) {
+    if (token_type == T_VOID) {
+        fatald("Token with no precendence", token_type);
+    }
+
     int prec = op_prec[token_type];
     if (prec == 0) {
         fatald("Syntax error, token type", token_type);
@@ -121,7 +157,7 @@ ASTnode *bin_expr(int ptp) {
     ASTnode *ltemp, *rtemp, *right, *left = prefix();
     int ast_op, token_type = TOKEN.token_type;
 
-    if (token_type == T_SEMI || token_type == T_RPAREN) {
+    if (token_type == T_SEMI || token_type == T_RPAREN || token_type == T_RBRACKET) {
         left->rvalue = 1;
         return left;
     }
@@ -165,7 +201,7 @@ ASTnode *bin_expr(int ptp) {
         left = make_ast_node(token_to_op(token_type), left->type, left, NULL, right, 0);
 
         token_type = TOKEN.token_type;
-        if (token_type == T_SEMI || token_type == T_RPAREN) {
+        if (token_type == T_SEMI || token_type == T_RPAREN || token_type == T_RBRACKET) {
             left->rvalue = 1;
             return left;
         }

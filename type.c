@@ -5,14 +5,14 @@
 #include "data.h"
 #include "decl.h"
 
-static int is_int(int type) {
+int is_int(int type) {
     if (type >= P_CHAR && type <= P_LONG) {
         return TRUE;
     }
     return FALSE;
 }
 
-static int is_ptr(int type) {
+int is_ptr(int type) {
     if (type >= P_VOIDPTR && type <= P_LONGPTR) {
         return TRUE;
     }

@@ -1,5 +1,5 @@
 SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
-TEST=test/18-lvalue-rvalue.txt
+TEST=test/19-array1.txt
 
 all: test
 

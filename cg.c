@@ -185,29 +185,32 @@ void cg_new_sym(int id) {
             "\t.data\n"
             "\t.globl\t%s\n",
             SYM_TAB[id].name);
-    switch (size) {
-        case 1:
-            fprintf(OUT_FILE,
-                    "%s:\t.byte\t0\n",
-                    SYM_TAB[id].name);
-            break;
-        case 2:
-            fprintf(OUT_FILE,
-                    "%s:\t.short\t0\n",
-                    SYM_TAB[id].name);
-            break;
-        case 4:
-            fprintf(OUT_FILE,
-                    "%s:\t.int\t0\n",
-                    SYM_TAB[id].name);
-            break;
-        case 8:
-            fprintf(OUT_FILE,
-                    "%s:\t.long\t0\n",
-                    SYM_TAB[id].name);
-            break;
-        default:
-            fatal("Bad type size in cg_new_sym()");
+    fprintf(OUT_FILE,
+            "%s:",
+            SYM_TAB[id].name);
+
+    Symbol *sym = &SYM_TAB[id];
+    if (sym->stype == S_ARRAY) {
+        size = cg_type_size((value_at(sym->ptype)));
+    }
+
+    for (int i = 0; i < sym->size; i++) {
+        switch (size) {
+            case 1:
+                fprintf(OUT_FILE, "\t.byte\t0\n");
+                break;
+            case 2:
+                fprintf(OUT_FILE, "\t.short\t0\n");
+                break;
+            case 4:
+                fprintf(OUT_FILE, "\t.int\t0\n");
+                break;
+            case 8:
+                fprintf(OUT_FILE, "\t.long\t0\n");
+                break;
+            default:
+                fatald("Bad type size in cg_new_sym()", size);
+        }
     }
 }
 
@@ -288,6 +291,8 @@ int cg_store_deref(int r1, int r2, int type) {
             fprintf(OUT_FILE, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
             break;
         case P_INT:
+            fprintf(OUT_FILE, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
+            break;
         case P_LONG:
             fprintf(OUT_FILE, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
             break;

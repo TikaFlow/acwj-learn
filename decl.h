@@ -110,7 +110,7 @@ void fatalc(char *s, int c);
 // sym.c
 int find_sym(char *s);
 
-int add_sym(char *name, int ptype, int stype, int end_label);
+int add_sym(char *name, int ptype, int stype, int end_label, int size);
 
 // decl.c
 int parse_type();
@@ -122,6 +122,10 @@ ASTnode *declare_func(int type);
 void declare_global();
 
 // type.c
+int is_int(int type);
+
+int is_ptr(int type);
+
 int pointer_to(int type);
 
 int value_at(int type);

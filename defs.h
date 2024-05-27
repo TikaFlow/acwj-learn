@@ -49,6 +49,8 @@ enum {
     T_IDENT,
     T_LBRACE,
     T_RBRACE,
+    T_LBRACKET,
+    T_RBRACKET,
     T_LPAREN,
     T_RPAREN,
     T_AMPER,
@@ -112,7 +114,8 @@ enum {
 // struct type
 enum {
     S_VARIABLE,
-    S_FUNCTION
+    S_FUNCTION,
+    S_ARRAY
 };
 
 // AST node struct
@@ -136,6 +139,7 @@ typedef struct Symbol {
     int ptype;
     int stype;
     int end_label;
+    int size;
 } Symbol;
 
 #endif //ACWJ_LEARN_DEFS_H

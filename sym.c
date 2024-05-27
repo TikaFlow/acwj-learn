@@ -25,7 +25,7 @@ static int new_glob() {
     return pos;
 }
 
-int add_sym(char *name, int ptype, int stype, int end_label) {
+int add_sym(char *name, int ptype, int stype, int end_label, int size) {
     int pos;
     if ((pos = find_sym(name)) >= 0) {
         return pos;
@@ -36,5 +36,6 @@ int add_sym(char *name, int ptype, int stype, int end_label) {
     SYM_TAB[pos].ptype = ptype;
     SYM_TAB[pos].stype = stype;
     SYM_TAB[pos].end_label = end_label;
+    SYM_TAB[pos].size = size;
     return pos;
 }

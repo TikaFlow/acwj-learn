@@ -158,6 +158,12 @@ int scan() {
         case '}':
             TOKEN.token_type = T_RBRACE;
             break;
+        case '[':
+            TOKEN.token_type = T_LBRACKET;
+            break;
+        case ']':
+            TOKEN.token_type = T_RBRACKET;
+            break;
         case '(':
             TOKEN.token_type = T_LPAREN;
             break;
