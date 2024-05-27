@@ -40,8 +40,8 @@ static int skip() {
     return c;
 }
 
-static char scan_char() {
-    int c = next();
+static char scan_char(char *esc) {
+    char c = next();
 
     if (c == '\\') {
         switch (c = next()) {
@@ -60,6 +60,9 @@ static char scan_char() {
             case 'v':
                 return '\v';
             case '"':
+                if (esc) {
+                    *esc = '\\';
+                }
                 return '\"';
             case '\'':
                 return '\'';
@@ -89,11 +92,15 @@ static long scan_int(int c) {
 static int scan_string() {
     int i;
     char c;
+    char esc = 0;
 
     for (i = 0; i < TEXT_LEN - 1; i++) {
-        if ((c = scan_char()) == '\"') {
-            TEXT[i] = '\0';
-            return i;
+        if ((c = scan_char(&esc)) == '\"') {
+            if (!esc) {
+                TEXT[i] = '\0';
+                return i;
+            }
+            esc = 0;
         }
         TEXT[i] = c;
     }
@@ -187,9 +194,19 @@ int scan() {
             TOKEN.token_type = T_EOF;
             return 0;
         case '+':
+            if ((c = next()) == '+') {
+                TOKEN.token_type = T_INC;
+                break;
+            }
+            put_back(c);
             TOKEN.token_type = T_PLUS;
             break;
         case '-':
+            if ((c = next()) == '-') {
+                TOKEN.token_type = T_DEC;
+                break;
+            }
+            put_back(c);
             TOKEN.token_type = T_MINUS;
             break;
         case '*':
@@ -222,6 +239,12 @@ int scan() {
         case ',':
             TOKEN.token_type = T_COMMA;
             break;
+        case '~':
+            TOKEN.token_type = T_INVERT;
+            break;
+        case '^':
+            TOKEN.token_type = T_XOR;
+            break;
         case '=':
             if ((c = next()) == '=') {
                 TOKEN.token_type = T_EQ;
@@ -236,11 +259,15 @@ int scan() {
                 break;
             }
             put_back(c);
-            fatalc("Unrecognized character", c);
+            TOKEN.token_type = T_LOGNOT;
             break;
         case '<':
             if ((c = next()) == '=') {
                 TOKEN.token_type = T_LE;
+                break;
+            }
+            if (c == '<') {
+                TOKEN.token_type = T_LSHIFT;
                 break;
             }
             put_back(c);
@@ -249,6 +276,10 @@ int scan() {
         case '>':
             if ((c = next()) == '=') {
                 TOKEN.token_type = T_GE;
+                break;
+            }
+            if (c == '>') {
+                TOKEN.token_type = T_RSHIFT;
                 break;
             }
             put_back(c);
@@ -260,10 +291,18 @@ int scan() {
                 break;
             }
             put_back(c);
-            TOKEN.token_type = T_AMPER;
+            TOKEN.token_type = T_AND;
+            break;
+        case '|':
+            if ((c = next()) == '|') {
+                TOKEN.token_type = T_LOGOR;
+                break;
+            }
+            put_back(c);
+            TOKEN.token_type = T_OR;
             break;
         case '\'':
-            TOKEN.int_value = scan_char();
+            TOKEN.int_value = scan_char(NULL);
             TOKEN.token_type = T_INTLIT;
             if (next() != '\'') {
                 fatal("Unclosed character literal");

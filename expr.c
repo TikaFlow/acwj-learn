@@ -6,11 +6,13 @@
 #include "decl.h"
 
 static int op_prec[] = {
-        0, 10, // EOF, =
-        20, 20, // +, -
-        30, 30, // *, /
-        40, 40, // ==, !=
-        50, 50, 50, 50 // <, <=, >, >=
+        0, 10, 20, 30,                // T_EOF, T_ASSIGN, T_LOGOR, T_LOGAND
+        40, 50, 60,                   // T_OR, T_XOR, T_AND
+        70, 70,                       // T_EQ, T_NE
+        80, 80, 80, 80,               // T_LT, T_GT, T_LE, T_GE
+        90, 90,                       // T_LSHIFT, T_RSHIFT
+        100, 100,                     // T_PLUS, T_MINUS
+        110, 110                      // T_STAR, T_SLASH
 };
 
 ASTnode *func_call() {
@@ -50,6 +52,39 @@ static ASTnode *access_array() {
     return left;
 }
 
+static ASTnode *postfix() {
+    ASTnode *node;
+    int id;
+
+    scan();
+    if (TOKEN.token_type == T_LPAREN) {
+        return func_call();
+    }
+    if (TOKEN.token_type == T_LBRACKET) {
+        return access_array();
+    }
+    // reject_token();
+
+    if ((id = find_sym(TEXT)) < 0) {
+        fatals("Unknown variable", TEXT);
+    }
+
+    switch (TOKEN.token_type) {
+        case T_INC:
+            match(T_INC, "++");
+            node = make_ast_leaf(A_POSTINC, SYM_TAB[id].ptype, id);
+            break;
+        case T_DEC:
+            match(T_DEC, "--");
+            node = make_ast_leaf(A_POSTDEC, SYM_TAB[id].ptype, id);
+            break;
+        default:
+            node = make_ast_leaf(A_IDENT, SYM_TAB[id].ptype, id);
+    }
+
+    return node;
+}
+
 static ASTnode *primary() {
     ASTnode *node;
     int id;
@@ -67,20 +102,7 @@ static ASTnode *primary() {
             node = make_ast_leaf(A_STRLIT, P_CHARPTR, id);
             break;
         case T_IDENT:
-            scan();
-            if (TOKEN.token_type == T_LPAREN) {
-                return func_call();
-            }
-            if (TOKEN.token_type == T_LBRACKET) {
-                return access_array();
-            }
-            reject_token();
-
-            if ((id = find_sym(TEXT)) < 0) {
-                fatals("Unknown variable", TEXT);
-            }
-            node = make_ast_leaf(A_IDENT, SYM_TAB[id].ptype, id);
-            break;
+            return postfix();
         case T_LPAREN:
             match(T_LPAREN, "(");
             node = bin_expr(0);
@@ -96,7 +118,7 @@ static ASTnode *primary() {
 }
 
 static int token_to_op(int tk) {
-    if (tk > T_EOF && tk < T_INTLIT) {
+    if (tk > T_EOF && tk < T_SLASH) {
         return tk;
     }
     fatald("Unknown token", TOKEN.token_type);
@@ -126,8 +148,8 @@ static ASTnode *prefix() {
     ASTnode *tree;
 
     switch (TOKEN.token_type) {
-        case T_AMPER:
-            scan();
+        case T_AND:
+            match(T_AND, "&");
             tree = prefix();
 
             if (tree->op != A_IDENT) {
@@ -138,7 +160,7 @@ static ASTnode *prefix() {
             tree->type = pointer_to(tree->type);
             break;
         case T_STAR:
-            scan();
+            match(T_STAR, "*");
             tree = prefix();
 
             if (tree->op != A_IDENT && tree->op != A_DEREF) {
@@ -147,6 +169,48 @@ static ASTnode *prefix() {
 
             tree = make_ast_unary(A_DEREF, value_at(tree->type), tree, 0);
             break;
+        case T_MINUS:
+            match(T_MINUS, "-");
+            tree = prefix();
+
+            tree->rvalue = 1;
+            tree = modify_type(tree, P_INT, 0);
+            tree = make_ast_unary(A_NEGATE, tree->type, tree, 0);
+            break;
+        case T_INVERT:
+            match(T_INVERT, "~");
+            tree = prefix();
+
+            tree->rvalue = 1;
+            tree = make_ast_unary(A_INVERT, tree->type, tree, 0);
+            break;
+        case T_LOGNOT:
+            match(T_LOGNOT, "!");
+            tree = prefix();
+
+            tree->rvalue = 1;
+            tree = make_ast_unary(A_LOGNOT, tree->type, tree, 0);
+            break;
+        case T_INC:
+            match(T_INC, "++");
+            tree = prefix();
+
+            if (tree->op != A_IDENT) {
+                fatal("++ operator must be followed by a variable");
+            }
+            tree = make_ast_unary(A_PREINC, tree->type, tree, 0);
+            break;
+        case T_DEC:
+            match(T_DEC, "--");
+            tree = prefix();
+
+            if (tree->op != A_IDENT) {
+                fatal("++ operator must be followed by a variable");
+            }
+            tree = make_ast_unary(A_PREDEC, tree->type, tree, 0);
+            break;
+        case T_PLUS:
+            match(T_PLUS, "+");
         default:
             tree = primary();
     }

@@ -84,20 +84,56 @@ int cg_load_int(long value) {
     return reg;
 }
 
-int cg_load_sym(int id) {
+int cg_load_sym(int id, int op) {
     int reg = alloc_register();
     switch (SYM_TAB[id].ptype) {
         case P_CHAR:
+            if (op == A_PREINC) {
+                fprintf(OUT_FILE, "\tincb\t%s\n", SYM_TAB[id].name);
+            }
+            if (op == A_PREDEC) {
+                fprintf(OUT_FILE, "\tdecb\t%s\n", SYM_TAB[id].name);
+            }
             fprintf(OUT_FILE, "\tmovzbq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+            if (op == A_POSTINC) {
+                fprintf(OUT_FILE, "\tincb\t%s\n", SYM_TAB[id].name);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(OUT_FILE, "\tdecb\t%s\n", SYM_TAB[id].name);
+            }
             break;
         case P_INT:
+            if (op == A_PREINC) {
+                fprintf(OUT_FILE, "\tincl\t%s\n", SYM_TAB[id].name);
+            }
+            if (op == A_PREDEC) {
+                fprintf(OUT_FILE, "\tdecl\t%s\n", SYM_TAB[id].name);
+            }
             fprintf(OUT_FILE, "\tmovslq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+            if (op == A_POSTINC) {
+                fprintf(OUT_FILE, "\tincl\t%s\n", SYM_TAB[id].name);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(OUT_FILE, "\tdecl\t%s\n", SYM_TAB[id].name);
+            }
             break;
         case P_LONG:
         case P_CHARPTR:
         case P_INTPTR:
         case P_LONGPTR:
+            if (op == A_PREINC) {
+                fprintf(OUT_FILE, "\tincq\t%s\n", SYM_TAB[id].name);
+            }
+            if (op == A_PREDEC) {
+                fprintf(OUT_FILE, "\tdecq\t%s\n", SYM_TAB[id].name);
+            }
             fprintf(OUT_FILE, "\tmovq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+            if (op == A_POSTINC) {
+                fprintf(OUT_FILE, "\tincq\t%s\n", SYM_TAB[id].name);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(OUT_FILE, "\tdecq\t%s\n", SYM_TAB[id].name);
+            }
             break;
         default:
             fatald("Bad type in cg_load_sym()", SYM_TAB[id].ptype);
@@ -138,11 +174,70 @@ int cg_div(int r1, int r2) {
     return r1;
 }
 
+int cg_negate(int r) {
+    fprintf(OUT_FILE, "\tneg\t%s\n", reglist[r]);
+    return r;
+}
+
+int cg_invert(int r) {
+    fprintf(OUT_FILE, "\tnot\t%s\n", reglist[r]);
+    return r;
+}
+
+int cg_lognot(int r) {
+    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r], reglist[r]);
+    fprintf(OUT_FILE, "\tsete\t%s\n", breglist[r]);
+    fprintf(OUT_FILE, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
+
+    return r;
+}
+
+int cg_tobool(int r, int op, int label) {
+    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r], reglist[r]);
+    if (op == A_IF || op == A_WHILE) {
+        fprintf(OUT_FILE, "\tje\tL%d\n", label);
+    } else {
+        fprintf(OUT_FILE, "\tsetnz\t%s\n", breglist[r]);
+        fprintf(OUT_FILE, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
+    }
+
+    return r;
+}
+
+int cg_and(int r1, int r2) {
+    fprintf(OUT_FILE, "\tand\t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r2);
+    return r1;
+}
+
+int cg_or(int r1, int r2) {
+    fprintf(OUT_FILE, "\tor\t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r2);
+    return r1;
+}
+
+int cg_xor(int r1, int r2) {
+    fprintf(OUT_FILE, "\txor\t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r2);
+    return r1;
+}
+
+int cg_sal(int r1, int r2) {
+    fprintf(OUT_FILE, "\tmovb\t%s, %%cl\n", breglist[r2]);
+    fprintf(OUT_FILE, "\tsalq\t%%cl, %s\n", reglist[r1]);
+    free_register(r2);
+    return r1;
+}
+
+int cg_sar(int r1, int r2) {
+    fprintf(OUT_FILE, "\tmovb\t%s, %%cl\n", breglist[r2]);
+    fprintf(OUT_FILE, "\tsarq\t%%cl, %s\n", reglist[r1]);
+    free_register(r2);
+    return r1;
+}
+
 int cg_sal_n(int reg, int n) {
-    fprintf(OUT_FILE,
-            "\tsalq\t$%d, %s\n",
-            n,
-            reglist[reg]);
+    fprintf(OUT_FILE, "\tsalq\t$%d, %s\n", n, reglist[reg]);
 
     return reg;
 }

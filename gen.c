@@ -49,7 +49,7 @@ static int gen_while_ast(ASTnode *node) {
     return NO_REG;
 }
 
-int gen_ast(ASTnode *node, int reg, int parentASTop) {
+int gen_ast(ASTnode *node, int label, int parent_op) {
     int leftreg, rightreg;
 
     switch (node->op) {
@@ -86,14 +86,24 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
             return cg_mul(leftreg, rightreg);
         case A_DIVIDE:
             return cg_div(leftreg, rightreg);
+        case A_AND:
+            return cg_and(leftreg, rightreg);
+        case A_OR:
+            return cg_or(leftreg, rightreg);
+        case A_XOR:
+            return cg_xor(leftreg, rightreg);
+        case A_LSHIFT:
+            return cg_sal(leftreg, rightreg);
+        case A_RSHIFT:
+            return cg_sar(leftreg, rightreg);
         case A_EQ:
         case A_NE:
         case A_LT:
         case A_GT:
         case A_LE:
         case A_GE:
-            if (parentASTop == A_IF || parentASTop == A_WHILE) {
-                return cg_compare_and_jump(node->op, leftreg, rightreg, reg);
+            if (parent_op == A_IF || parent_op == A_WHILE) {
+                return cg_compare_and_jump(node->op, leftreg, rightreg, label);
             }
             return cg_compare_and_set(node->op, leftreg, rightreg);
         case A_INTLIT:
@@ -101,8 +111,8 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
         case A_STRLIT:
             return cg_load_str(node->value.id);
         case A_IDENT:
-            if (node->rvalue || parentASTop == A_DEREF) {
-                return cg_load_sym(node->value.id);
+            if (node->rvalue || parent_op == A_DEREF) {
+                return cg_load_sym(node->value.id, node->op);
             }
             return NO_REG;
         case A_ASSIGN:
@@ -140,6 +150,20 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
                     rightreg = cg_load_int(node->value.size);
                     return cg_mul(leftreg, rightreg);
             }
+        case A_POSTINC:
+        case A_POSTDEC:
+            return cg_load_sym(node->value.id, node->op);
+        case A_PREINC:
+        case A_PREDEC:
+            return cg_load_sym(node->left->value.id, node->op);
+        case A_NEGATE:
+            return cg_negate(leftreg);
+        case A_INVERT:
+            return cg_invert(leftreg);
+        case A_LOGNOT:
+            return cg_lognot(leftreg);
+        case A_TOBOOL:
+            return cg_tobool(leftreg, parent_op, label);
         default:
             fatald("Unknown AST operator", node->op);
     }

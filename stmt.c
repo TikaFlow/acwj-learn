@@ -8,81 +8,75 @@
 static ASTnode *single_stmt();
 
 static ASTnode *if_stmt() {
-    ASTnode *condnode, *truenode, *falsenode = NULL;
+    ASTnode *cond_node, *true_node, *false_node = NULL;
 
     match(T_IF, "if");
     match(T_LPAREN, "(");
-    condnode = bin_expr(0);
-    if (condnode->op < A_EQ || condnode->op > A_GE) {
-        fatal("Bad comparison operator");
+    cond_node = bin_expr(0);
+    if (cond_node->op < A_EQ || cond_node->op > A_GE) {
+        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node, 0);
     }
     match(T_RPAREN, ")");
-    truenode = compound_stmt();
+    true_node = compound_stmt();
     if (TOKEN.token_type == T_ELSE) {
         match(T_ELSE, "else");
-        falsenode = compound_stmt();
+        false_node = compound_stmt();
     }
 
-    return make_ast_node(A_IF, P_NONE, condnode, truenode, falsenode, 0);
+    return make_ast_node(A_IF, P_NONE, cond_node, true_node, false_node, 0);
 }
 
 static ASTnode *while_stmt() {
-    ASTnode *condnode, *bodenode;
+    ASTnode *cond_node, *body_node;
 
     match(T_WHILE, "while");
     match(T_LPAREN, "(");
 
-    condnode = bin_expr(0);
-    if (condnode->op < A_EQ || condnode->op > A_GE) {
-        fatal("Bad comparison operator");
+    cond_node = bin_expr(0);
+    if (cond_node->op < A_EQ || cond_node->op > A_GE) {
+        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node, 0);
     }
     match(T_RPAREN, ")");
 
-    bodenode = compound_stmt();
+    body_node = compound_stmt();
 
-    return make_ast_node(A_WHILE, P_NONE, condnode, NULL, bodenode, 0);
+    return make_ast_node(A_WHILE, P_NONE, cond_node, NULL, body_node, 0);
 }
 
 static ASTnode *for_stmt() {
-    ASTnode *condnode, *bodenode, *preopnode, *postopnode, *tree;
+    ASTnode *cond_node, *body_node, *pre_node, *post_node, *tree;
 
     match(T_FOR, "for");
     match(T_LPAREN, "(");
 
-    preopnode = single_stmt();
+    pre_node = single_stmt();
     match(T_SEMI, ";");
 
-    condnode = bin_expr(0);
-    if (condnode->op < A_EQ || condnode->op > A_GE) {
-        fatal("Bad comparison operator");
+    cond_node = bin_expr(0);
+    if (cond_node->op < A_EQ || cond_node->op > A_GE) {
+        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node, 0);
     }
     match(T_SEMI, ";");
 
-    postopnode = single_stmt();
+    post_node = single_stmt();
     match(T_RPAREN, ")");
 
-    bodenode = compound_stmt();
+    body_node = compound_stmt();
 
-    tree = make_ast_node(A_GLUE, P_NONE, bodenode, NULL, postopnode, 0);
-    tree = make_ast_node(A_WHILE, P_NONE, condnode, NULL, tree, 0);
+    tree = make_ast_node(A_GLUE, P_NONE, body_node, NULL, post_node, 0);
+    tree = make_ast_node(A_WHILE, P_NONE, cond_node, NULL, tree, 0);
 
-    return make_ast_node(A_GLUE, P_NONE, preopnode, NULL, tree, 0);
+    return make_ast_node(A_GLUE, P_NONE, pre_node, NULL, tree, 0);
 }
 
 static ASTnode *return_stmt() {
     ASTnode *tree;
-    int need_rparen = FALSE;
 
     if (SYM_TAB[FUNC_ID].ptype == P_VOID) {
         fatal("Can't return from a void function");
     }
 
     match(T_RETURN, "return");
-
-    if (TOKEN.token_type == T_LPAREN) {
-        match(T_LPAREN, "(");
-        need_rparen = TRUE;
-    }
 
     tree = bin_expr(0);
     tree = modify_type(tree, SYM_TAB[FUNC_ID].ptype, 0);
@@ -91,9 +85,6 @@ static ASTnode *return_stmt() {
     }
 
     tree = make_ast_unary(A_RETURN, P_NONE, tree, 0);
-    if (need_rparen) {
-        match(T_RPAREN, ")");
-    }
     return tree;
 }
 

@@ -52,7 +52,7 @@ void cg_func_post_amble(int id);
 
 int cg_load_int(long value);
 
-int cg_load_sym(int id);
+int cg_load_sym(int id, int op);
 
 int cg_load_str(int id);
 
@@ -93,6 +93,24 @@ int cg_address(int id);
 int cg_deref(int reg, int type);
 
 int cg_store_deref(int r1, int r2, int type);
+
+int cg_negate(int r);
+
+int cg_invert(int r);
+
+int cg_lognot(int r);
+
+int cg_tobool(int r, int op, int label);
+
+int cg_and(int r1, int r2);
+
+int cg_or(int r1, int r2);
+
+int cg_xor(int r1, int r2);
+
+int cg_sal(int r1, int r2);
+
+int cg_sar(int r1, int r2);
 
 // expr.c
 ASTnode *func_call();
