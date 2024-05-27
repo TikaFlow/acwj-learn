@@ -98,6 +98,8 @@ int gen_ast(ASTnode *node, int reg, int parentASTop) {
             return cg_compare_and_set(node->op, leftreg, rightreg);
         case A_INTLIT:
             return cg_load_int(node->value.int_value);
+        case A_STRLIT:
+            return cg_load_str(node->value.id);
         case A_IDENT:
             if (node->rvalue || parentASTop == A_DEREF) {
                 return cg_load_sym(node->value.id);
@@ -158,6 +160,12 @@ void gen_free_regs() {
 
 void gen_new_sym(int id) {
     cg_new_sym(id);
+}
+
+int gen_new_str(char *str) {
+    int l = gen_label();
+    cg_new_str(l, str);
+    return l;
 }
 
 int gen_type_size(int type) {

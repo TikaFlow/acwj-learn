@@ -123,10 +123,7 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
     }
 
     if (is_ptr(ltype)) {
-        // I don't know why op must be zero,
-        // but it works when I remove it
-        // if (!op && ltype == rtype) {
-        if (ltype == rtype) {
+        if (!op && ltype == rtype) {
             return tree;
         }
     }
@@ -137,6 +134,7 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
             if (rsize > 1) {
                 return make_ast_unary(A_SCALE, rtype, tree, rsize);
             }
+            return tree;
         }
     }
 

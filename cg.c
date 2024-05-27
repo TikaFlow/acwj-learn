@@ -105,6 +105,12 @@ int cg_load_sym(int id) {
     return reg;
 }
 
+int cg_load_str(int id) {
+    int reg = alloc_register();
+    fprintf(OUT_FILE, "\tleaq\tL%d(%%rip), %s\n", id, reglist[reg]);
+    return reg;
+}
+
 int cg_add(int r1, int r2) {
     fprintf(OUT_FILE, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
     free_register(r2);
@@ -200,18 +206,29 @@ void cg_new_sym(int id) {
                 fprintf(OUT_FILE, "\t.byte\t0\n");
                 break;
             case 2:
-                fprintf(OUT_FILE, "\t.short\t0\n");
+                fprintf(OUT_FILE, "\t.short\t0\n"); // or .word
                 break;
             case 4:
-                fprintf(OUT_FILE, "\t.int\t0\n");
+                fprintf(OUT_FILE, "\t.int\t0\n"); // or .long
                 break;
             case 8:
-                fprintf(OUT_FILE, "\t.long\t0\n");
+                fprintf(OUT_FILE, "\t.quad\t0\n");
                 break;
             default:
                 fatald("Bad type size in cg_new_sym()", size);
         }
     }
+}
+
+void cg_new_str(int l, char *str) {
+    char *cptr;
+    cg_label(l);
+
+    for (cptr = str; *cptr; cptr++) {
+        fprintf(OUT_FILE, "\t.byte\t%d\n", *cptr);
+    }
+
+    fprintf(OUT_FILE, "\t.byte\t0\n");
 }
 
 void cg_label(int l) {
@@ -288,17 +305,19 @@ int cg_deref(int reg, int type) {
 int cg_store_deref(int r1, int r2, int type) {
     switch (type) {
         case P_CHAR:
-            fprintf(OUT_FILE, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
+            fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[r1]);
             break;
         case P_INT:
-            fprintf(OUT_FILE, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
+            fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[r1]);
             break;
         case P_LONG:
-            fprintf(OUT_FILE, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+            fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[r1]);
             break;
         default:
             fatald("Bad type in cg_store_deref()", type);
     }
+
+    fprintf(OUT_FILE, "\tmovq\t%%rax, (%s)\n", reglist[r2]);
 
     return r1;
 }

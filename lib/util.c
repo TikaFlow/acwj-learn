@@ -4,6 +4,14 @@
 
 #include <stdio.h>
 
-void print_int(long x){
-    printf("%ld\n", x);
+void printd(long d) {
+    printf("%ld\n", d);
+}
+
+void printc(char c) {
+    printf("%c", c);
+}
+
+void prints(char *s) {
+    printf("%s\n", s);
 }

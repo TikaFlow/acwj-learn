@@ -62,6 +62,10 @@ static ASTnode *primary() {
                 node = make_ast_leaf(A_INTLIT, P_INT, TOKEN.int_value);
             }
             break;
+        case T_STRLIT:
+            id = gen_new_str(TEXT);
+            node = make_ast_leaf(A_STRLIT, P_CHARPTR, id);
+            break;
         case T_IDENT:
             scan();
             if (TOKEN.token_type == T_LPAREN) {
@@ -172,7 +176,7 @@ ASTnode *bin_expr(int ptp) {
         if (ast_op == A_ASSIGN) {
             right->rvalue = 1;
 
-            right = modify_type(right, left->type, ast_op);
+            right = modify_type(right, left->type, 0);
             if (!right) {
                 fatal("===>Incompatible expression in assignment");
             }

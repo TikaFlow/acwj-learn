@@ -35,6 +35,8 @@ void gen_free_regs();
 
 void gen_new_sym(int id);
 
+int gen_new_str(char *str);
+
 int gen_type_size(int type);
 
 // cg.c
@@ -52,6 +54,8 @@ int cg_load_int(long value);
 
 int cg_load_sym(int id);
 
+int cg_load_str(int id);
+
 int cg_add(int r1, int r2);
 
 int cg_sub(int r1, int r2);
@@ -67,6 +71,8 @@ int cg_call(int reg, int id);
 int cg_store_sym(int r, int id);
 
 void cg_new_sym(int id);
+
+void cg_new_str(int l, char *str);
 
 int cg_compare_and_set(int ASTop, int r1, int r2);
 

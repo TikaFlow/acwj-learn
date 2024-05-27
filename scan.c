@@ -40,6 +40,39 @@ static int skip() {
     return c;
 }
 
+static char scan_char() {
+    int c = next();
+
+    if (c == '\\') {
+        switch (c = next()) {
+            case 'a':
+                return '\a';
+            case 'b':
+                return '\b';
+            case 'f':
+                return '\f';
+            case 'n':
+                return '\n';
+            case 'r':
+                return '\r';
+            case 't':
+                return '\t';
+            case 'v':
+                return '\v';
+            case '"':
+                return '\"';
+            case '\'':
+                return '\'';
+            case '\\':
+                return '\\';
+            default:
+                fatalc("Invalid escape sequence \\", c);
+        }
+    }
+
+    return c;
+}
+
 static long scan_int(int c) {
     int k;
     long val = 0;
@@ -53,17 +86,33 @@ static long scan_int(int c) {
     return val;
 }
 
-static int scan_ident(int c, char *buf) {
+static int scan_string() {
+    int i;
+    char c;
+
+    for (i = 0; i < TEXT_LEN - 1; i++) {
+        if ((c = scan_char()) == '\"') {
+            TEXT[i] = '\0';
+            return i;
+        }
+        TEXT[i] = c;
+    }
+
+    fatal("String is too long");
+    return 0;
+}
+
+static int scan_ident(int c) {
     int len = 0;
     while (isalpha(c) || isdigit(c) || c == '_') {
         if (len >= TEXT_LEN - 1) {
             fatal("Identifier too long");
         }
-        buf[len++] = c;
+        TEXT[len++] = c;
         c = next();
     }
     put_back(c);
-    buf[len] = '\0';
+    TEXT[len] = '\0';
     return len;
 }
 
@@ -213,6 +262,17 @@ int scan() {
             put_back(c);
             TOKEN.token_type = T_AMPER;
             break;
+        case '\'':
+            TOKEN.int_value = scan_char();
+            TOKEN.token_type = T_INTLIT;
+            if (next() != '\'') {
+                fatal("Unclosed character literal");
+            }
+            break;
+        case '"':
+            scan_string();
+            TOKEN.token_type = T_STRLIT;
+            break;
         default:
             if (isdigit(c)) {
                 TOKEN.int_value = scan_int(c);
@@ -220,7 +280,7 @@ int scan() {
                 break;
             }
             if (isalpha(c) || c == '_') {
-                scan_ident(c, TEXT);
+                scan_ident(c);
 
                 if ((token_type = keyword(TEXT))) {
                     TOKEN.token_type = token_type;

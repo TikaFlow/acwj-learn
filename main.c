@@ -41,7 +41,9 @@ int main(int argc, char *argv[]) {
     }
 
     // use C print_int
-    add_sym("print_int", P_VOID, S_FUNCTION, 0, 0);
+    add_sym("printd", P_VOID, S_FUNCTION, 0, 0);
+    add_sym("printc", P_VOID, S_FUNCTION, 0, 0);
+    add_sym("prints", P_VOID, S_FUNCTION, 0, 0);
 
     // start with scan the first token
     scan();
