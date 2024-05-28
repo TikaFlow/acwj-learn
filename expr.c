@@ -18,7 +18,7 @@ static int op_prec[] = {
 ASTnode *func_call() {
     int id;
 
-    if ((id = find_sym(TEXT)) < 0 || SYM_TAB[id].stype != S_FUNCTION) {
+    if ((id = find_sym(TEXT)) == NOT_FOUND || SYM_TAB[id].stype != S_FUNCTION) {
         fatals("Undeclared function", TEXT);
     }
     match(T_LPAREN, "(");
@@ -32,7 +32,7 @@ static ASTnode *access_array() {
     ASTnode *left, *right;
     int id;
 
-    if ((id = find_sym(TEXT)) < 0 || SYM_TAB[id].stype != S_ARRAY) {
+    if ((id = find_sym(TEXT)) == NOT_FOUND || SYM_TAB[id].stype != S_ARRAY) {
         fatals("Undeclared array", TEXT);
     }
 
@@ -65,7 +65,7 @@ static ASTnode *postfix() {
     }
     // reject_token();
 
-    if ((id = find_sym(TEXT)) < 0) {
+    if ((id = find_sym(TEXT)) == NOT_FOUND || SYM_TAB[id].stype != S_VARIABLE) {
         fatals("Unknown variable", TEXT);
     }
 

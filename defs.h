@@ -22,6 +22,8 @@
 // true and false
 #define TRUE 1
 #define FALSE 0
+// when not found, return this value - function that returns index
+#define NOT_FOUND (-1)
 
 // token type
 enum {
@@ -145,6 +147,12 @@ enum {
     S_ARRAY
 };
 
+// storage class: global or local
+enum {
+    C_GLOBAL = 1,
+    C_LOCAL
+};
+
 // AST node struct
 typedef struct ASTnode {
     int op;
@@ -165,8 +173,10 @@ typedef struct Symbol {
     char *name;
     int ptype;
     int stype;
+    int class; // global or local
     int end_label;
-    int size;
+    int size; // element number of symbol/array
+    int posn; // positive position from stack base pointer/RBP
 } Symbol;
 
 #endif //ACWJ_LEARN_DEFS_H

@@ -6,6 +6,13 @@
 #include "data.h"
 #include "decl.h"
 
+enum {
+    NO_SECTION,
+    TEXT_SECTION,
+    DATA_SECTION
+} cur_section = NO_SECTION;
+
+static int local_offset, stack_offset;
 static int freereg[4];
 static char *reglist[] = {"%r8", "%r9", "%r10", "%r11"};
 static char *breglist[] = {"%r8b", "%r9b", "%r10b", "%r11b"};
@@ -23,6 +30,31 @@ static int type_size[] = {
         8, // P_INTPTR
         8 // P_LONGPTR
 };
+
+void cg_text_section() {
+    if (cur_section != TEXT_SECTION) {
+        fprintf(OUT_FILE, "\t.text\n");
+        cur_section = TEXT_SECTION;
+    }
+}
+
+void cg_data_section() {
+    if (cur_section != DATA_SECTION) {
+        fprintf(OUT_FILE, "\t.data\n");
+        cur_section = DATA_SECTION;
+    }
+}
+
+void cg_reset_local_offset() {
+    local_offset = 0;
+}
+
+int cg_get_local_offset(int type, int is_param) {
+    int size = cg_type_size(type);
+    local_offset += size > 4 ? size : 4;
+
+    return -local_offset;
+}
 
 void cg_free_regs() {
     for (int i = 0; i < 4; i++) {
@@ -51,7 +83,6 @@ static void free_register(int reg) {
 
 void cg_pre_amble() {
     cg_free_regs();
-    fputs("\t.text\n", OUT_FILE);
 }
 
 // Nothing to do
@@ -60,21 +91,27 @@ void cg_post_amble() {
 
 void cg_func_pre_amble(int id) {
     char *name = SYM_TAB[id].name;
+    cg_text_section();
+
+    stack_offset = (local_offset + 0xFF) & ~0xFF;
+
     fprintf(OUT_FILE,
-            "\t.text\n"
             "\t.globl\t%s\n"
             "\t.type\t%s, @function\n"
             "%s:\n"
             "\tpushq\t%%rbp\n"
-            "\tmovq\t%%rsp, %%rbp\n",
-            name, name, name);
+            "\tmovq\t%%rsp, %%rbp\n"
+            "\taddq\t$%d, %%rsp\n",
+            name, name, name, -stack_offset);
 }
 
 void cg_func_post_amble(int id) {
     cg_label(SYM_TAB[id].end_label);
-    fputs("\tpopq\t%rbp\n"
-          "\tret\n",
-          OUT_FILE);
+    fprintf(OUT_FILE,
+            "\taddq\t$%d, %%rsp\n"
+            "\tpopq\t%%rbp\n"
+            "\tret\n",
+            stack_offset);
 }
 
 int cg_load_int(long value) {
@@ -84,7 +121,7 @@ int cg_load_int(long value) {
     return reg;
 }
 
-int cg_load_sym(int id, int op) {
+int cg_load_global_sym(int id, int op) {
     int reg = alloc_register();
     switch (SYM_TAB[id].ptype) {
         case P_CHAR:
@@ -136,7 +173,64 @@ int cg_load_sym(int id, int op) {
             }
             break;
         default:
-            fatald("Bad type in cg_load_sym()", SYM_TAB[id].ptype);
+            fatald("Bad type in cg_load_global_sym()", SYM_TAB[id].ptype);
+    }
+    return reg;
+}
+
+int cg_load_local_sym(int id, int op) {
+    int reg = alloc_register();
+    switch (SYM_TAB[id].ptype) {
+        case P_CHAR:
+            if (op == A_PREINC) {
+                fprintf(OUT_FILE, "\tincb\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            if (op == A_PREDEC) {
+                fprintf(OUT_FILE, "\tdecb\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            fprintf(OUT_FILE, "\tmovzbq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
+            if (op == A_POSTINC) {
+                fprintf(OUT_FILE, "\tincb\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(OUT_FILE, "\tdecb\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            break;
+        case P_INT:
+            if (op == A_PREINC) {
+                fprintf(OUT_FILE, "\tincl\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            if (op == A_PREDEC) {
+                fprintf(OUT_FILE, "\tdecl\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            fprintf(OUT_FILE, "\tmovslq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
+            if (op == A_POSTINC) {
+                fprintf(OUT_FILE, "\tincl\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(OUT_FILE, "\tdecl\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            break;
+        case P_LONG:
+        case P_CHARPTR:
+        case P_INTPTR:
+        case P_LONGPTR:
+            if (op == A_PREINC) {
+                fprintf(OUT_FILE, "\tincq\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            if (op == A_PREDEC) {
+                fprintf(OUT_FILE, "\tdecq\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            fprintf(OUT_FILE, "\tmovq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
+            if (op == A_POSTINC) {
+                fprintf(OUT_FILE, "\tincq\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            if (op == A_POSTDEC) {
+                fprintf(OUT_FILE, "\tdecq\t%d(%%rbp)\n", SYM_TAB[id].posn);
+            }
+            break;
+        default:
+            fatald("Bad type in cg_load_local_sym()", SYM_TAB[id].ptype);
     }
     return reg;
 }
@@ -253,7 +347,7 @@ int cg_call(int reg, int id) {
     return out_reg;
 }
 
-int cg_store_sym(int reg, int id) {
+int cg_store_global_sym(int reg, int id) {
     switch (SYM_TAB[id].ptype) {
         case P_CHAR:
             fprintf(OUT_FILE, "\tmovb\t%s, %s(%%rip)\n", breglist[reg], SYM_TAB[id].name);
@@ -268,7 +362,28 @@ int cg_store_sym(int reg, int id) {
             fprintf(OUT_FILE, "\tmovq\t%s, %s(%%rip)\n", reglist[reg], SYM_TAB[id].name);
             break;
         default:
-            fatald("Bad type in cg_store_sym()", SYM_TAB[id].ptype);
+            fatald("Bad type in cg_store_global_sym()", SYM_TAB[id].ptype);
+    }
+    return reg;
+}
+
+int cg_store_local_sym(int reg, int id) {
+    Symbol *sym = &SYM_TAB[id];
+    switch (SYM_TAB[id].ptype) {
+        case P_CHAR:
+            fprintf(OUT_FILE, "\tmovb\t%s, %d(%%rbp)\n", breglist[reg], sym->posn);
+            break;
+        case P_INT:
+            fprintf(OUT_FILE, "\tmovl\t%s, %d(%%rbp)\n", dreglist[reg], sym->posn);
+            break;
+        case P_LONG:
+        case P_CHARPTR:
+        case P_INTPTR:
+        case P_LONGPTR:
+            fprintf(OUT_FILE, "\tmovq\t%s, %d(%%rbp)\n", reglist[reg], SYM_TAB[id].posn);
+            break;
+        default:
+            fatald("Bad type in cg_store_local_sym()", SYM_TAB[id].ptype);
     }
     return reg;
 }
@@ -281,16 +396,21 @@ int cg_type_size(int type) {
 }
 
 void cg_new_sym(int id) {
-    int size = cg_type_size(SYM_TAB[id].ptype);
+    Symbol *sym = &SYM_TAB[id];
+
+    if (sym->stype == S_FUNCTION) {
+        return;
+    }
+
+    cg_data_section();
+
     fprintf(OUT_FILE,
-            "\t.data\n"
-            "\t.globl\t%s\n",
-            SYM_TAB[id].name);
-    fprintf(OUT_FILE,
+            "\t.globl\t%s\n"
             "%s:",
+            SYM_TAB[id].name,
             SYM_TAB[id].name);
 
-    Symbol *sym = &SYM_TAB[id];
+    int size = cg_type_size(SYM_TAB[id].ptype);
     if (sym->stype == S_ARRAY) {
         size = cg_type_size((value_at(sym->ptype)));
     }

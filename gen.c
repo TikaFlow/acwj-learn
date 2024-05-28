@@ -112,13 +112,21 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
             return cg_load_str(node->value.id);
         case A_IDENT:
             if (node->rvalue || parent_op == A_DEREF) {
-                return cg_load_sym(node->value.id, node->op);
+                if (SYM_TAB[node->value.id].class == C_LOCAL) {
+                    return cg_load_local_sym(node->value.id, node->op);
+                } else {
+                    return cg_load_global_sym(node->value.id, node->op);
+                }
             }
             return NO_REG;
         case A_ASSIGN:
             switch (node->right->op) {
                 case A_IDENT:
-                    return cg_store_sym(leftreg, node->right->value.id);
+                    if (SYM_TAB[node->right->value.id].class == C_LOCAL) {
+                        return cg_store_local_sym(leftreg, node->right->value.id);
+                    } else {
+                        return cg_store_global_sym(leftreg, node->right->value.id);
+                    }
                 case A_DEREF:
                     return cg_store_deref(leftreg, rightreg, node->right->type);
                 default:
@@ -152,10 +160,18 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
             }
         case A_POSTINC:
         case A_POSTDEC:
-            return cg_load_sym(node->value.id, node->op);
+            if (SYM_TAB[node->value.id].class == C_LOCAL) {
+                return cg_load_local_sym(node->value.id, node->op);
+            } else {
+                return cg_load_global_sym(node->value.id, node->op);
+            }
         case A_PREINC:
         case A_PREDEC:
-            return cg_load_sym(node->left->value.id, node->op);
+            if (SYM_TAB[node->left->value.id].class == C_LOCAL) {
+                return cg_load_local_sym(node->left->value.id, node->op);
+            } else {
+                return cg_load_global_sym(node->left->value.id, node->op);
+            }
         case A_NEGATE:
             return cg_negate(leftreg);
         case A_INVERT:
@@ -194,4 +210,12 @@ int gen_new_str(char *str) {
 
 int gen_type_size(int type) {
     return cg_type_size(type);
+}
+
+void gen_reset_local_offset() {
+    cg_reset_local_offset();
+}
+
+int gen_get_local_offset(int type, int is_param) {
+    return cg_get_local_offset(type, is_param);
 }

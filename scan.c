@@ -9,7 +9,7 @@ static int char_pos(char *s, int c) {
     char *p;
 
     p = strchr(s, c);
-    return p ? p - s : -1;
+    return p ? p - s : NOT_FOUND;
 }
 
 static int next() {

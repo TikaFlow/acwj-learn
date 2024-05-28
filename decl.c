@@ -35,23 +35,27 @@ int parse_type() {
     return type;
 }
 
-void declare_var(int type) {
-    int id;
-
+void declare_var(int type, int is_local) {
     while (TRUE) {
         if (TOKEN.token_type == T_LBRACKET) {
             match(T_LBRACKET, "[");
 
             if (TOKEN.token_type == T_INTLIT) {
-                id = add_sym(TEXT, pointer_to(type), S_ARRAY, 0, TOKEN.int_value);
-                gen_new_sym(id);
+                if (is_local) {
+                    add_local_sym(TEXT, pointer_to(type), S_ARRAY, 0, (int) TOKEN.int_value);
+                } else {
+                    add_global_sym(TEXT, pointer_to(type), S_ARRAY, 0, (int) TOKEN.int_value);
+                }
             }
 
             scan();
             match(T_RBRACKET, "]");
         } else {
-            id = add_sym(TEXT, type, S_VARIABLE, 0, 1);
-            gen_new_sym(id);
+            if (is_local) {
+                add_local_sym(TEXT, type, S_VARIABLE, 0, 1);
+            } else {
+                add_global_sym(TEXT, type, S_VARIABLE, 0, 1);
+            }
         }
 
         if (TOKEN.token_type == T_SEMI) {
@@ -66,8 +70,9 @@ void declare_var(int type) {
 
 ASTnode *declare_func(int type) {
     ASTnode *tree, *final_stmt;
-    int nameslot, end_label = gen_label();
-    FUNC_ID = nameslot = add_sym(TEXT, type, S_FUNCTION, end_label, 0);
+    int slot, end_label = gen_label();
+    FUNC_ID = slot = add_global_sym(TEXT, type, S_FUNCTION, end_label, 0);
+    gen_reset_local_offset();
     match(T_LPAREN, "(");
     // for now, no parameters
     match(T_RPAREN, ")");
@@ -85,7 +90,7 @@ ASTnode *declare_func(int type) {
         }
     }
 
-    return make_ast_unary(A_FUNCTION, type, tree, nameslot);
+    return make_ast_unary(A_FUNCTION, type, tree, slot);
 }
 
 void declare_global() {
@@ -102,7 +107,7 @@ void declare_global() {
             // fprintf(stdout, "\n\n");
             gen_ast(tree, NO_LABEL, 0);
         } else {
-            declare_var(type);
+            declare_var(type, FALSE);
         }
 
         if (TOKEN.token_type == T_EOF) {

@@ -1,5 +1,5 @@
 SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
-TEST=test/21-more-ops.c
+TEST=test/23-local-variable.c
 
 all: test
 

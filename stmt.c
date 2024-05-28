@@ -96,7 +96,7 @@ static ASTnode *single_stmt() {
         case T_LONG:
             type = parse_type();
             match(T_IDENT, "identifier");
-            declare_var(type);
+            declare_var(type, TRUE);
             return NULL;
         case T_IF:
             return if_stmt();
