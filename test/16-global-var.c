@@ -6,12 +6,12 @@ int main() {
     b = 3;
     c = 5;
     a = b + c * 10;
-    print_int(a);
+    printd(a);
 
     d = 1234567890123;
-    print_int(d);
+    printd(d);
     e = &d;
     f = *e;
-    print_int(f);
+    printd(f);
     return (0);
 }

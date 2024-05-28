@@ -5,8 +5,8 @@ int main(){
     arr[3] = 22;
     a = arr[3];
 
-    print_int(arr[3]);
-    print_int(a);
+    printd(arr[3]); // 22
+    printd(a); // 22
 
     return 0;
 }

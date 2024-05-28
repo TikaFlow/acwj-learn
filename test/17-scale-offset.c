@@ -6,9 +6,9 @@ int f;
 int main() {
     c = 12;
     d = 18;
-    print_int(c);
+    printd(c); // 12
     e = &c + 1;
     f = *e;
-    print_int(f);
+    printd(f); // 18
     return (0);
 }

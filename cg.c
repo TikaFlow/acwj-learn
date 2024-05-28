@@ -93,7 +93,7 @@ void cg_func_pre_amble(int id) {
     char *name = SYM_TAB[id].name;
     cg_text_section();
 
-    stack_offset = (local_offset + 0xFF) & ~0xFF;
+    stack_offset = (local_offset + 0xF) & ~0xF;
 
     fprintf(OUT_FILE,
             "\t.globl\t%s\n"
@@ -503,16 +503,36 @@ void cg_return(int reg, int id) {
 int cg_address(int id) {
     int reg = alloc_register();
 
-    fprintf(OUT_FILE,
-            "\tleaq\t%s(%%rip), %s\n",
-            SYM_TAB[id].name,
-            reglist[reg]);
+    Symbol *sym = &SYM_TAB[id];
+    if (sym->class == C_LOCAL) {
+        fprintf(OUT_FILE,
+                "\tleaq\t%d(%%rbp), %s\n",
+                sym->posn,
+                reglist[reg]);
+    } else {
+        fprintf(OUT_FILE,
+                "\tleaq\t%s(%%rip), %s\n",
+                sym->name,
+                reglist[reg]);
+    }
 
     return reg;
 }
 
 int cg_deref(int reg, int type) {
-    fprintf(OUT_FILE, "\tmovq\t(%s), %s\n", reglist[reg], reglist[reg]);
+    switch (type) {
+        case P_CHARPTR:
+            fprintf(OUT_FILE, "\tmovzbq\t(%s), %s\n", reglist[reg], reglist[reg]);
+            break;
+        case P_INTPTR:
+            fprintf(OUT_FILE, "\tmovslq\t(%s), %s\n", reglist[reg], reglist[reg]);
+            break;
+        case P_LONGPTR:
+            fprintf(OUT_FILE, "\tmovq\t(%s), %s\n", reglist[reg], reglist[reg]);
+            break;
+        default:
+            fatal("Bad type in cg_deref()");
+    }
 
     return reg;
 }

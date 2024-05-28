@@ -9,7 +9,7 @@ static int char_pos(char *s, int c) {
     char *p;
 
     p = strchr(s, c);
-    return p ? p - s : NOT_FOUND;
+    return p ? (int) (p - s) : NOT_FOUND;
 }
 
 static int next() {
@@ -32,10 +32,58 @@ static void put_back(int c) {
     PUT_BACK = c;
 }
 
-static int skip() {
+static int skip_line_comment() {
     int c;
+    while ((c = next()) != '\n' && c != EOF);
 
-    while ((c = next()) == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f');
+    return c;
+}
+
+static int skip_block_comment() {
+    int closed = FALSE, c;
+
+    while ((c = next()) != EOF) {
+        if (c == '*') {
+            if ((c = next()) == '/') {
+                c = next();
+                closed = TRUE;
+                break;
+            } else {
+                put_back(c);
+            }
+        }
+    }
+
+    if (!closed) {
+        fatal("Unterminated comment");
+    }
+
+    return c;
+}
+
+static int skip() {
+    int c = next();
+
+    while (TRUE) {
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f') {
+            c = next();
+        } else if (c == '/') {
+            int n = next();
+
+            switch (n) {
+                case '/':
+                    c = skip_line_comment();
+                    break;
+                case '*':
+                    c = skip_block_comment();
+                    break;
+                default:
+                    put_back(n);
+            }
+        } else {
+            break;
+        }
+    }
 
     return c;
 }

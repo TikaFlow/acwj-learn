@@ -2,7 +2,7 @@ int main(){
 
     char *s;
     s = "hello world";
-    prints(s);
+    prints(s); // hello world
 
     return 0;
 }
