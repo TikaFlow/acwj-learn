@@ -17,6 +17,8 @@ static void init() {
     PUT_BACK = '\n';
     TOKEN_BACK.token_type = T_EOF;
     TOKEN_BACK.int_value = 0;
+    reset_global_syms();
+    reset_loccal_syms();
 }
 
 static void usage(char *prog) {

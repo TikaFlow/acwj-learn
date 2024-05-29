@@ -6,6 +6,8 @@
 #include "data.h"
 #include "decl.h"
 
+#define FREE_REG_NUM 4
+
 enum {
     NO_SECTION,
     TEXT_SECTION,
@@ -13,10 +15,10 @@ enum {
 } cur_section = NO_SECTION;
 
 static int local_offset, stack_offset;
-static int freereg[4];
-static char *reglist[] = {"%r8", "%r9", "%r10", "%r11"};
-static char *breglist[] = {"%r8b", "%r9b", "%r10b", "%r11b"};
-static char *dreglist[] = {"%r8d", "%r9d", "%r10d", "%r11d"};
+static int freereg[FREE_REG_NUM];
+static char *breglist[] = {"%r10b", "%r11b", "%r12b", "%r13b", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *dreglist[] = {"%r10d", "%r11d", "%r12d", "%r13d", "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
+static char *reglist[] = {"%r10", "%r11", "%r12", "%r13", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static char *cmplist[] = {"sete", "setne", "setl", "setg", "setle", "setge"};
 static char *invcmplist[] = {"jne", "je", "jge", "jle", "jg", "jl"};
 static int type_size[] = {
@@ -45,11 +47,11 @@ void cg_data_section() {
     }
 }
 
-void cg_reset_local_offset() {
+static void cg_reset_local_offset() {
     local_offset = 0;
 }
 
-int cg_get_local_offset(int type, int is_param) {
+static int cg_get_local_offset(int type) {
     int size = cg_type_size(type);
     local_offset += size > 4 ? size : 4;
 
@@ -91,18 +93,41 @@ void cg_post_amble() {
 
 void cg_func_pre_amble(int id) {
     char *name = SYM_TAB[id].name;
+    int i, param_offset = 0x10, param_reg = FREE_REG_NUM;
     cg_text_section();
-
-    stack_offset = (local_offset + 0xF) & ~0xF;
+    cg_reset_local_offset();
 
     fprintf(OUT_FILE,
             "\t.globl\t%s\n"
             "\t.type\t%s, @function\n"
             "%s:\n"
             "\tpushq\t%%rbp\n"
-            "\tmovq\t%%rsp, %%rbp\n"
-            "\taddq\t$%d, %%rsp\n",
-            name, name, name, -stack_offset);
+            "\tmovq\t%%rsp, %%rbp\n",
+            name, name, name);
+
+    for (i = SYM_TAB_LEN - 1; i > LOCAL_TOP; i--) {
+        if (SYM_TAB[i].class != C_PARAM) {
+            break;
+        }
+        if (i < SYM_TAB_LEN - 6) {
+            break;
+        }
+
+        SYM_TAB[i].posn = cg_get_local_offset(SYM_TAB[i].ptype);
+        cg_store_local_sym(param_reg++, i);
+    }
+
+    for (; i > LOCAL_TOP; i--) {
+        if (SYM_TAB[i].class == C_PARAM) {
+            SYM_TAB[i].posn = param_offset;
+            param_offset += 8;
+        } else {
+            SYM_TAB[i].posn = cg_get_local_offset(SYM_TAB[i].ptype);
+        }
+    }
+
+    stack_offset = (local_offset + 0xF) & ~0xF;
+    fprintf(OUT_FILE, "\tsubq\t$%d, %%rsp\n", stack_offset);
 }
 
 void cg_func_post_amble(int id) {
@@ -504,7 +529,7 @@ int cg_address(int id) {
     int reg = alloc_register();
 
     Symbol *sym = &SYM_TAB[id];
-    if (sym->class == C_LOCAL) {
+    if (sym->class != C_GLOBAL) {
         fprintf(OUT_FILE,
                 "\tleaq\t%d(%%rbp), %s\n",
                 sym->posn,

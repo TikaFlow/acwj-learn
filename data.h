@@ -27,6 +27,10 @@ extern_ Token TOKEN_BACK;
 extern_ char TEXT[TEXT_LEN + 1];
 // symbol table
 extern_ Symbol SYM_TAB[SYM_TAB_LEN];
+// next free GLOBAL symbol slot
+extern_ int GLOBAL_TOP;
+// next free LOCAL symbol slot
+extern_ int LOCAL_TOP;
 // current function id
 extern_ int FUNC_ID;
 

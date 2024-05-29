@@ -150,7 +150,8 @@ enum {
 // storage class: global or local
 enum {
     C_GLOBAL = 1,
-    C_LOCAL
+    C_LOCAL,
+    C_PARAM
 };
 
 // AST node struct

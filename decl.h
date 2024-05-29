@@ -39,10 +39,6 @@ int gen_new_str(char *str);
 
 int gen_type_size(int type);
 
-void gen_reset_local_offset();
-
-int gen_get_local_offset(int type, int is_param);
-
 // cg.c
 void cg_free_regs();
 
@@ -120,12 +116,6 @@ int cg_sal(int r1, int r2);
 
 int cg_sar(int r1, int r2);
 
-void cg_reset_local_offset();
-
-void cg_reset_offset();
-
-int cg_get_local_offset(int type, int is_param);
-
 // expr.c
 ASTnode *func_call();
 
@@ -146,16 +136,22 @@ void fatald(char *s, int d);
 void fatalc(char *s, int c);
 
 // sym.c
+void reset_global_syms();
+
+void reset_loccal_syms();
+
 int find_sym(char *s);
 
 int add_global_sym(char *name, int ptype, int stype, int end_label, int size);
 
-int add_local_sym(char *name, int ptype, int stype, int end_label, int size);
+int add_local_sym(char *name, int ptype, int stype, int is_param, int size);
 
 // decl.c
 int parse_type();
 
-void declare_var(int type, int is_local);
+void declare_var(int type, int is_local, int is_param);
+
+void multi_declare_var(int type, int is_local, int is_param);
 
 ASTnode *declare_func(int type);
 

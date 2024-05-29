@@ -5,12 +5,16 @@
 #include "data.h"
 #include "decl.h"
 
-// next free GLOBAL symbol slot
-static int GLOBAL_TOP = 0;
-// next free LOCAL symbol slot
-static int LOCAL_TOP = SYM_TAB_LEN - 1;
 
 static void update_sym(int slot, char *name, int ptype, int stype, int class, int end_label, int size, int posn);
+
+void reset_global_syms() {
+    LOCAL_TOP = 0;
+}
+
+void reset_loccal_syms() {
+    LOCAL_TOP = SYM_TAB_LEN - 1;
+}
 
 static int new_global() {
     int pos;
@@ -30,6 +34,9 @@ static int new_local() {
 
 static int find_global(char *s) {
     for (int index = 0; index < GLOBAL_TOP; index++) {
+        if (SYM_TAB[index].class == C_PARAM) {
+            continue;
+        }
         if (*s == *SYM_TAB[index].name && !strcmp(s, SYM_TAB[index].name)) {
             return index;
         }
@@ -38,7 +45,7 @@ static int find_global(char *s) {
 }
 
 static int find_local(char *s) {
-    for (int index = SYM_TAB_LEN - 1; index > LOCAL_TOP; index--) {
+    for (int index = LOCAL_TOP + 1; index < SYM_TAB_LEN; index++) {
         if (*s == *SYM_TAB[index].name && !strcmp(s, SYM_TAB[index].name)) {
             return index;
         }
@@ -59,17 +66,20 @@ int add_global_sym(char *name, int ptype, int stype, int end_label, int size) {
     return slot;
 }
 
-int add_local_sym(char *name, int ptype, int stype, int end_label, int size) {
-    int slot, posn;
-
-    if ((slot = find_local(name)) != NOT_FOUND) {
-        return slot;
+int add_local_sym(char *name, int ptype, int stype, int is_param, int size) {
+    if (find_local(name) != NOT_FOUND) {
+        return -1;
     }
 
-    slot = new_local();
-    posn = gen_get_local_offset(ptype, FALSE);
-    update_sym(slot, name, ptype, stype, C_LOCAL, end_label, size, posn);
-    return slot;
+    int local_slot = new_local();
+    if (is_param) {
+        update_sym(local_slot, name, ptype, stype, C_PARAM, 0, size, 0);
+        update_sym(new_global(), name, ptype, stype, C_PARAM, 0, size, 0);
+    } else {
+        update_sym(local_slot, name, ptype, stype, C_LOCAL, 0, size, 0);
+    }
+
+    return local_slot;
 }
 
 static void update_sym(int slot, char *name, int ptype, int stype, int class, int end_label, int size, int posn) {
