@@ -1,3 +1,7 @@
+int param8(int a, int b, int c, int d, int e, int f, int g, int h);
+int fred(int a, int b, int c);
+int main();
+
 int param8(int a, int b, int c, int d, int e, int f, int g, int h) {
   printd(a); printd(b); printd(c); printd(d);
   printd(e); printd(f); printd(g); printd(h);

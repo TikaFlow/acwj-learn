@@ -16,6 +16,12 @@ void reset_loccal_syms() {
     LOCAL_TOP = SYM_TAB_LEN - 1;
 }
 
+void copy_func_params(int slot) {
+    for (int i = 0, id = slot + 1; i < SYM_TAB[slot].posn; i++, id++) {
+        add_local_sym(SYM_TAB[id].name, SYM_TAB[id].ptype, SYM_TAB[id].stype, SYM_TAB[id].class, SYM_TAB[id].size);
+    }
+}
+
 static int new_global() {
     int pos;
     if ((pos = GLOBAL_TOP++) >= LOCAL_TOP) {
@@ -53,7 +59,7 @@ static int find_local(char *s) {
     return NOT_FOUND;
 }
 
-int add_global_sym(char *name, int ptype, int stype, int end_label, int size) {
+int add_global_sym(char *name, int ptype, int stype, int class, int end_label, int size) {
     int slot;
 
     if ((slot = find_global(name)) != NOT_FOUND) {
@@ -61,23 +67,20 @@ int add_global_sym(char *name, int ptype, int stype, int end_label, int size) {
     }
 
     slot = new_global();
-    update_sym(slot, name, ptype, stype, C_GLOBAL, end_label, size, 0);
-    gen_new_sym(slot);
+    update_sym(slot, name, ptype, stype, class, end_label, size, 0);
+    if (class == C_GLOBAL) {
+        gen_new_sym(slot);
+    }
     return slot;
 }
 
-int add_local_sym(char *name, int ptype, int stype, int is_param, int size) {
+int add_local_sym(char *name, int ptype, int stype, int class, int size) {
     if (find_local(name) != NOT_FOUND) {
         return -1;
     }
 
     int local_slot = new_local();
-    if (is_param) {
-        update_sym(local_slot, name, ptype, stype, C_PARAM, 0, size, 0);
-        update_sym(new_global(), name, ptype, stype, C_PARAM, 0, size, 0);
-    } else {
-        update_sym(local_slot, name, ptype, stype, C_LOCAL, 0, size, 0);
-    }
+    update_sym(local_slot, name, ptype, stype, class, 0, size, 0);
 
     return local_slot;
 }

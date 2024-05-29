@@ -364,7 +364,7 @@ int cg_sal_n(int reg, int n) {
 int cg_call(int id, int args_num) {
     int out_reg = alloc_register();
 
-    fprintf(OUT_FILE, "\tcall\t%s\n", SYM_TAB[id].name);
+    fprintf(OUT_FILE, "\tcall\t%s@PLT\n", SYM_TAB[id].name);
 
     if (args_num > 6) {
         fprintf(OUT_FILE, "\taddq\t$%d, %%rsp\n", 8 * (args_num - 6));
