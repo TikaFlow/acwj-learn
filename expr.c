@@ -15,6 +15,27 @@ static int op_prec[] = {
         110, 110                      // T_STAR, T_SLASH
 };
 
+static ASTnode *param_list() {
+    ASTnode *node = NULL, *param_node = NULL;
+    int param_cnt = 0;
+
+    while (TOKEN.token_type != T_RPAREN) {
+        param_node = bin_expr(0);
+        node = make_ast_node(A_GLUE, P_NONE, node, NULL, param_node, param_cnt++);
+
+        switch (TOKEN.token_type) {
+            case T_COMMA:
+                match(T_COMMA, ",");
+            case T_RPAREN:
+                break;
+            default:
+                fatald("Unexpected token in param list", TOKEN.token_type);
+        }
+    }
+
+    return node;
+}
+
 ASTnode *func_call() {
     int id;
 
@@ -22,7 +43,8 @@ ASTnode *func_call() {
         fatals("Undeclared function", TEXT);
     }
     match(T_LPAREN, "(");
-    ASTnode *node = bin_expr(0);
+    ASTnode *node = param_list();
+    // TODO check params against prototype
     node = make_ast_unary(A_FUNCCALL, SYM_TAB[id].ptype, node, id);
     match(T_RPAREN, ")");
     return node;
@@ -225,9 +247,15 @@ ASTnode *bin_expr(int ptp) {
     ASTnode *ltemp, *rtemp, *right, *left = prefix();
     int ast_op, token_type = TOKEN.token_type;
 
-    if (token_type == T_SEMI || token_type == T_RPAREN || token_type == T_RBRACKET) {
-        left->rvalue = 1;
-        return left;
+    switch (token_type) {
+        case T_SEMI:
+        case T_RPAREN:
+        case T_RBRACKET:
+        case T_COMMA:
+            left->rvalue = 1;
+            return left;
+        default:
+            break;
     }
 
     while (op_precedence(token_type) > ptp
@@ -269,9 +297,15 @@ ASTnode *bin_expr(int ptp) {
         left = make_ast_node(token_to_op(token_type), left->type, left, NULL, right, 0);
 
         token_type = TOKEN.token_type;
-        if (token_type == T_SEMI || token_type == T_RPAREN || token_type == T_RBRACKET) {
-            left->rvalue = 1;
-            return left;
+        switch (token_type) {
+            case T_SEMI:
+            case T_RPAREN:
+            case T_RBRACKET:
+            case T_COMMA:
+                left->rvalue = 1;
+                return left;
+            default:
+                break;
         }
     }
 

@@ -68,7 +68,9 @@ int cg_div(int r1, int r2);
 
 int cg_sal_n(int reg, int n);
 
-int cg_call(int reg, int id);
+int cg_call(int id, int args_num);
+
+void cg_copy_arg(int reg, int arg_pos);
 
 int cg_store_global_sym(int r, int id);
 

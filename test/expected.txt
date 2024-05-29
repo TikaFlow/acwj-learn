@@ -129,3 +129,13 @@ Everything works! It's great!
 3
 4
 5
+=================== test/25-function-call-args.c ===================
+1
+2
+3
+5
+8
+13
+21
+34
+9

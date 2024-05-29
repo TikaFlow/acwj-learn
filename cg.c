@@ -361,15 +361,26 @@ int cg_sal_n(int reg, int n) {
     return reg;
 }
 
-int cg_call(int reg, int id) {
+int cg_call(int id, int args_num) {
     int out_reg = alloc_register();
 
-    fprintf(OUT_FILE, "\tmovq\t%s, %%rdi\n", reglist[reg]);
     fprintf(OUT_FILE, "\tcall\t%s\n", SYM_TAB[id].name);
+
+    if (args_num > 6) {
+        fprintf(OUT_FILE, "\taddq\t$%d, %%rsp\n", 8 * (args_num - 6));
+    }
+
     fprintf(OUT_FILE, "\tmovq\t%%rax, %s\n", reglist[out_reg]);
 
-    free_register(reg);
     return out_reg;
+}
+
+void cg_copy_arg(int reg, int arg_pos) {
+    if (arg_pos > 5) {
+        fprintf(OUT_FILE, "\tpushq\t%s\n", reglist[reg]);
+    } else {
+        fprintf(OUT_FILE, "\tmovq\t%s, %s\n", reglist[reg], reglist[FREE_REG_NUM + arg_pos]);
+    }
 }
 
 int cg_store_global_sym(int reg, int id) {

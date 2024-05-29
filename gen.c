@@ -49,6 +49,24 @@ static int gen_while_ast(ASTnode *node) {
     return NO_REG;
 }
 
+static int gen_func_call(ASTnode *node) {
+    ASTnode *glue = node;
+    int reg, args_num = 0;
+
+    while ((glue = glue->left)) {
+        reg = gen_ast(glue->right, NO_LABEL, glue->op);
+        cg_copy_arg(reg, glue->value.size);
+
+        if (!args_num) {
+            args_num = glue->value.size + 1;
+        }
+
+        gen_free_regs();
+    }
+
+    return cg_call(node->value.id, args_num);
+}
+
 int gen_ast(ASTnode *node, int label, int parent_op) {
     int leftreg, rightreg;
 
@@ -57,6 +75,8 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
             return gen_if_ast(node);
         case A_WHILE:
             return gen_while_ast(node);
+        case A_FUNCCALL:
+            return gen_func_call(node);
         case A_GLUE:
             gen_ast(node->left, NO_LABEL, node->op);
             gen_free_regs();
@@ -137,8 +157,6 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
         case A_RETURN:
             cg_return(leftreg, FUNC_ID);
             return NO_REG;
-        case A_FUNCCALL:
-            return cg_call(leftreg, node->value.id);
         case A_ADDR:
             return cg_address(node->value.id);
         case A_DEREF:
