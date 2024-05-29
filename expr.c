@@ -270,7 +270,7 @@ ASTnode *bin_expr(int ptp) {
 
             right = modify_type(right, left->type, 0);
             if (!right) {
-                fatal("===>Incompatible expression in assignment");
+                fatal("Incompatible expression in assignment");
             }
             // swap left and right
             ltemp = left;
