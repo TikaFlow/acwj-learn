@@ -2,8 +2,6 @@
 // Created by tika on 24-5-19.
 //
 
-#include <errno.h>
-
 #define extern_
 
 #include "data.h"
@@ -17,44 +15,218 @@ static void init() {
     PUT_BACK = '\n';
     TOKEN_BACK.token_type = T_EOF;
     TOKEN_BACK.int_value = 0;
+
+    reset_sym_table();
     reset_global_syms();
     reset_loccal_syms();
 }
 
 static void usage(char *prog) {
-    fprintf(stderr, "Usage: %s infile\n", prog);
-    exit(1);
+    printf("Usage: %s [-vcST] [-o outfile] file [file ...]\n", prog);
+    printf("\t-v give verbose output of the compilation stages\n");
+    printf("\t-c generate object files but don't link them\n");
+    printf("\t-S generate assembly files but don't link them\n");
+    printf("\t-T dump the AST trees for each input file\n");
+    printf("\t-o outfile, produce the outfile executable file\n");
 }
 
-int main(int argc, char *argv[]) {
+static char *alter_suffix(char *str, char suf) {
+    char *new_str, *pos;
 
-    if (argc != 2) usage(argv[0]);
+    if (!(new_str = strdup(str))) {
+        return NULL;
+    }
+
+    if (!(pos = strrchr(new_str, '.'))) {
+        return NULL;
+    }
+
+    if (!*++pos) {
+        return NULL;
+    }
+
+    *pos++ = suf;
+    *pos = 0;
+
+    return new_str;
+}
+
+static char *do_compile(char *file) {
+    OUT_FILE_NAME = alter_suffix(file, 's');
+
+    if (!OUT_FILE_NAME) {
+        fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", file);
+        exit(1);
+    }
+
+    if (!(IN_FILE = fopen(file, "r"))) {
+        fprintf(stderr, "Unable to open %s: %s\n", file, strerror(errno));
+        exit(1);
+    }
+
+    if ((OUT_FILE = fopen(OUT_FILE_NAME, "w")) == NULL) {
+        fprintf(stderr, "Unable to create %s: %s\n", OUT_FILE_NAME, strerror(errno));
+        exit(1);
+    }
 
     init();
-
-    if ((IN_FILE = fopen(argv[1], "r")) == NULL) {
-        fprintf(stderr, "Unable to open %s: %s\n", argv[1], strerror(errno));
-        exit(1);
+    if (FLAG_v) {
+        printf("Compiling %s\n", file);
     }
 
-    if ((OUT_FILE = fopen("out.s", "w")) == NULL) {
-        fprintf(stderr, "Unable to create out.s: %s\n", strerror(errno));
-        exit(1);
-    }
-
-    // use C print_int
-    add_global_sym("printd", P_VOID, S_FUNCTION, C_GLOBAL, 0, 0);
-    add_global_sym("printc", P_VOID, S_FUNCTION, C_GLOBAL, 0, 0);
-    add_global_sym("prints", P_VOID, S_FUNCTION, C_GLOBAL, 0, 0);
+    // TODO printf may not work when we check prototypes because it's a variadic function
+    add_global_sym("printf", P_INT, S_FUNCTION, C_GLOBAL, 0, 0);
 
     // start with scan the first token
     scan();
-
     gen_pre_amble();
     declare_global();
     gen_post_amble();
 
     fclose(OUT_FILE);
     fclose(IN_FILE);
-    exit(0);
+
+    return OUT_FILE_NAME;
+}
+
+static char *do_assembly(char *file) {
+    char cmd[MAX_TEXT];
+    int err;
+
+    char *o_file = alter_suffix(file, 'o');
+
+    // as -o o_file file
+    snprintf(cmd, MAX_TEXT, "%s %s %s", AS_CMD, o_file, file);
+
+    if (FLAG_v) {
+        printf("%s\n", cmd);
+    }
+
+    if ((err = system(cmd))) {
+        fprintf(stderr, "Assembly of %s failed: %s\n", o_file, strerror(err));
+    }
+
+    return o_file;
+}
+
+static void do_link(char *o_file, char *obj_list[]) {
+    int err, cnt = 0;
+    char cmd[MAX_TEXT];
+
+    cnt += snprintf(cmd + cnt, MAX_TEXT - cnt, "%s %s", LD_CMD, o_file);
+    while (*obj_list) {
+        cnt += snprintf(cmd + cnt, MAX_TEXT - cnt, " %s", *obj_list++);
+    }
+    snprintf(cmd + cnt, MAX_TEXT - cnt, " %s", LD_SUFFIX);
+
+    if (FLAG_v) {
+        printf("%s\n", cmd);
+    }
+
+    if ((err = system(cmd))) {
+        fprintf(stderr, "Link failed: %s\n", strerror(err));
+    }
+}
+
+/*
+ * Parse the command line options and return the output file name.
+ */
+static char *parse_options(int argc, char *argv[], int *i_ptr) {
+    int i;
+    char *o_file = NULL;
+    // parse the command line arguments
+    for (i = 1; i < argc; i++) {
+        // No leading '-', then it's a file name
+        if (*argv[i] != '-') {
+            break;
+        }
+
+        // each argument after '-' is a flag
+        for (int j = 1; *argv[i] == '-' && argv[i][j]; j++) {
+            switch (argv[i][j]) {
+                case 'v':
+                    FLAG_v = TRUE;
+                    break;
+                case 'c':
+                    FLAG_c = TRUE;
+                    break;
+                case 'S':
+                    FLAG_S = TRUE;
+                    break;
+                case 'T':
+                    FLAG_T = TRUE;
+                    break;
+                case 'o':
+                    // -o option must have a file name after it
+                    if (argv[i][j + 1] == '\0' && i + 1 < argc) {
+                        o_file = argv[++i];
+                        break;
+                    }
+                    fprintf(stderr, "Expected file name after -o\n");
+                default:
+                    usage(argv[0]);
+                    break;
+            }
+        }
+    }
+
+    *i_ptr = i;
+    return o_file;
+}
+
+int main(int argc, char *argv[]) {
+
+    if (argc < 2) usage(argv[0]);
+
+    FLAG_v = FALSE;
+    FLAG_c = FALSE;
+    FLAG_S = FALSE;
+    FLAG_T = FALSE;
+
+    char *asm_file, *obj_file, *o_file;
+    char *obj_list[MAX_OBJ];
+    int i, obj_cnt = 0;
+
+    // TODO maybe need preprocess here later
+
+    // parse the options and get the output file name
+    if (!(o_file = parse_options(argc, argv, &i))) {
+        o_file = A_OUT;
+    }
+
+    while (i < argc) {
+        // compile
+        asm_file = do_compile(argv[i++]);
+
+        if (FLAG_c || !FLAG_S) {
+            // assembly
+            obj_file = do_assembly(asm_file);
+
+            if (obj_cnt >= MAX_OBJ - 1) {
+                fprintf(stderr, "Too many object files\n");
+                exit(1);
+            }
+
+            obj_list[obj_cnt++] = obj_file;
+            obj_list[obj_cnt] = NULL;
+        }
+
+        if (!FLAG_S) {
+            unlink(asm_file);
+        }
+    }
+
+    // link
+    if (!(FLAG_c || FLAG_S)) {
+        do_link(o_file, obj_list);
+
+        // delete the object files
+        if (!FLAG_c) {
+            for (i = 0; obj_list[i]; i++) {
+                unlink(obj_list[i]);
+            }
+        }
+    }
+
+    return 0;
 }

@@ -10,11 +10,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
+#include <unistd.h>
 
 // symbol length
-#define TEXT_LEN 512
+#define MAX_TEXT 1024
 // symbol table length
-#define SYM_TAB_LEN 1024
+#define MAX_SYM 1024
+// max number of obj files
+#define MAX_OBJ 256
 // when no register is available
 #define NO_REG (-1)
 // when no label is available
@@ -24,6 +28,13 @@
 #define FALSE 0
 // when not found, return this value - function that returns index
 #define NOT_FOUND (-1)
+// default output file name
+#define A_OUT "a.out"
+// assembler command
+#define AS_CMD "as -o"
+// linker command
+#define LD_CMD "ld -o"
+#define LD_SUFFIX "/lib/x86_64-linux-gnu/crt1.o -lc -dynamic-linker /lib64/ld-linux-x86-64.so.2"
 
 // token type
 enum {

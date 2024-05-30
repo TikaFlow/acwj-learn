@@ -36,7 +36,7 @@ static int gendumplabel() {
     return id++;
 }
 
-void show_ast(ASTnode *n, int label, int level) {
+void dump_ast(ASTnode *n, int label, int level) {
     int Lfalse, Lstart, Lend;
 
 
@@ -49,17 +49,17 @@ void show_ast(ASTnode *n, int label, int level) {
                 fprintf(stdout, ", end L%d", Lend);
             }
             fprintf(stdout, "\n");
-            show_ast(n->left, Lfalse, level+2);
-            show_ast(n->mid, NO_LABEL, level+2);
-            if (n->right) show_ast(n->right, NO_LABEL, level+2);
+            dump_ast(n->left, Lfalse, level+2);
+            dump_ast(n->mid, NO_LABEL, level+2);
+            if (n->right) dump_ast(n->right, NO_LABEL, level+2);
             return;
         case A_WHILE:
             Lstart = gendumplabel();
             for (int i=0; i < level; i++) fprintf(stdout, " ");
             fprintf(stdout, "A_WHILE, start L%d\n", Lstart);
             Lend = gendumplabel();
-            show_ast(n->left, Lend, level+2);
-            show_ast(n->right, NO_LABEL, level+2);
+            dump_ast(n->left, Lend, level+2);
+            dump_ast(n->right, NO_LABEL, level+2);
             return;
     }
 
@@ -67,8 +67,8 @@ void show_ast(ASTnode *n, int label, int level) {
     if (n->op==A_GLUE) level= -2;
 
     // General AST node handling
-    if (n->left) show_ast(n->left, NO_LABEL, level+2);
-    if (n->right) show_ast(n->right, NO_LABEL, level+2);
+    if (n->left) dump_ast(n->left, NO_LABEL, level+2);
+    if (n->right) dump_ast(n->right, NO_LABEL, level+2);
 
 
     for (int i=0; i < level; i++) fprintf(stdout, " ");
@@ -124,6 +124,6 @@ void show_ast(ASTnode *n, int label, int level) {
         case A_SCALE:
             fprintf(stdout, "A_SCALE %d\n", n->value.size); return;
         default:
-            fatald("Unknown show_ast operator", n->op);
+            fatald("Unknown dump_ast operator", n->op);
     }
 }

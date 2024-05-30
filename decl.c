@@ -175,8 +175,12 @@ void declare_global() {
             if (!tree) {
                 continue; // for prototype, no code to generate
             }
-            // show_ast(tree, NO_LABEL, 0); // SHOW_AST
-            // fprintf(stdout, "\n\n");
+
+            if (FLAG_T) {
+                dump_ast(tree, NO_LABEL, 0); // SHOW_AST
+                fprintf(stdout, "\n\n");
+            }
+
             gen_ast(tree, NO_LABEL, 0);
             reset_loccal_syms();
         } else {

@@ -142,7 +142,7 @@ static int scan_string() {
     char c;
     char esc = 0;
 
-    for (i = 0; i < TEXT_LEN - 1; i++) {
+    for (i = 0; i < MAX_TEXT - 1; i++) {
         if ((c = scan_char(&esc)) == '\"') {
             if (!esc) {
                 TEXT[i] = '\0';
@@ -160,7 +160,7 @@ static int scan_string() {
 static int scan_ident(int c) {
     int len = 0;
     while (isalpha(c) || isdigit(c) || c == '_') {
-        if (len >= TEXT_LEN - 1) {
+        if (len >= MAX_TEXT - 1) {
             fatal("Identifier too long");
         }
         TEXT[len++] = c;

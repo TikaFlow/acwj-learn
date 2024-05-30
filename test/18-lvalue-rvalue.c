@@ -4,8 +4,8 @@ int main() {
     int *c;
 
     a = b = 34;
-    printd(a); // 34
-    printd(b); // 34
+    printf("%d\n", a); // 34
+    printf("%d\n", b); // 34
     // a
     /*
      *
@@ -13,7 +13,7 @@ int main() {
      */
 
     a = b + 45;
-    printd(a); // 79
+    printf("%d\n", a); // 79
     // local variable should - 1
     // line comment test
     /*
@@ -22,9 +22,9 @@ int main() {
      */
     // c = &a + 1;
     c = &a - 1;
-    printd(*c); // 34
+    printf("%d\n", *c); // 34
     *c = a + 10;
-    printd(b); // 89
+    printf("%d\n", b); // 89
 
     return (0);
 }

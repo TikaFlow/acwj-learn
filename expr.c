@@ -259,7 +259,7 @@ ASTnode *bin_expr(int ptp) {
     }
 
     while (op_precedence(token_type) > ptp
-           || stick_right(token_type) && op_precedence(token_type) == ptp) {
+           || (stick_right(token_type) && op_precedence(token_type) == ptp)) {
         scan();
 
         right = bin_expr(op_prec[token_type]);

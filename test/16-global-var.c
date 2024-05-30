@@ -6,12 +6,12 @@ int main() {
     b = 3;
     c = 5;
     a = b + c * 10;
-    printd(a);
+    printf("%d\n", a);
 
     d = 1234567890123;
-    printd(d);
+    printf("%ld\n", d);
     e = &d;
     f = *e;
-    printd(f);
+    printf("%ld\n", f);
     return (0);
 }

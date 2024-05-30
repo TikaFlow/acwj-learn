@@ -6,45 +6,45 @@ char *str;
 int   x;
 
 int main() {
-    b= 5; c= 7; a= b + c++; printd(a); printd(c);
-    e= 5; f= 7; d= e + f++; printd(d); printd(f);
-    h= 5; i= 7; g= h + i++; printd(g); printd(i);
-    printc('\n');
-    a= b-- + c; printd(a); printd(b);
-    d= e-- + f; printd(d); printd(e);
-    g= h-- + i; printd(g); printd(h);
-    printc('\n');
-    a= ++b + c; printd(a); printd(b);
-    d= ++e + f; printd(d); printd(e);
-    g= ++h + i; printd(g); printd(h);
-    printc('\n');
-    a= b * --c; printd(a); printd(c);
-    d= e * --f; printd(d); printd(f);
-    g= h * --i; printd(g); printd(i);
-    printc('\n');
+    b= 5; c= 7; a= b + c++; printf("%d\n", a); printf("%d\n", c);
+    e= 5; f= 7; d= e + f++; printf("%d\n", d); printf("%d\n", f);
+    h= 5; i= 7; g= h + i++; printf("%d\n", g); printf("%d\n", i);
+    printf("%c", '\n');
+    a= b-- + c; printf("%d\n", a); printf("%d\n", b);
+    d= e-- + f; printf("%d\n", d); printf("%d\n", e);
+    g= h-- + i; printf("%d\n", g); printf("%d\n", h);
+    printf("%c", '\n');
+    a= ++b + c; printf("%d\n", a); printf("%d\n", b);
+    d= ++e + f; printf("%d\n", d); printf("%d\n", e);
+    g= ++h + i; printf("%d\n", g); printf("%d\n", h);
+    printf("%c", '\n');
+    a= b * --c; printf("%d\n", a); printf("%d\n", c);
+    d= e * --f; printf("%d\n", d); printf("%d\n", f);
+    g= h * --i; printf("%d\n", g); printf("%d\n", i);
+    printf("%c", '\n');
 
-    x= -66 + +23; printd(x);
-    printd(-10 * -10);
-    x= 1; x= ~x; printd(x);
-    x= 2 > 5; printd(x);
-    x= !x; printd(x);
-    x= !x; printd(x);
-    x= 13; if (x) { printd(13); }
-    x= 0; if (!x) { printd(14); }
+    x= -66 + +23; printf("%d\n", x);
+    printf("%d\n", -10 * -10);
+    x= 1; x= ~x; printf("%d\n", x);
+    x= 2 > 5; printf("%d\n", x);
+    x= !x; printf("%d\n", x);
+    x= !x; printf("%d\n", x);
+    x= 13; if (x) { printf("%d\n", 13); }
+    x= 0; if (!x) { printf("%d\n", 14); }
     for (str= "Hello world\n"; *str; str++) {
-        printc(*str);
+        printf("%c", *str);
     }
-    printc('\n');
+    printf("%c", '\n');
 
     d= 42; e= 19;
-    printd(d & e);
-    printd(d | e);
-    printd(d ^ e);
-    printd(1 << 3);
-    printd(63 >> 3);
-    printc('\n');
+    printf("%d\n", d & e);
+    printf("%d\n", d | e);
+    printf("%d\n", d ^ e);
+    printf("%d\n", 1 << 3);
+    printf("%d\n", 63 >> 3);
+    printf("%c", '\n');
 
-    prints("Everything works! It's great!\n");
+    printf("%s\n", "Everything works! It's great!\n");
 
     return(0);
 }

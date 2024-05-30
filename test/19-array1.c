@@ -5,8 +5,8 @@ int main(){
     // arr[3] = 22;
     // a = arr[3];
     //
-    // printd(arr[3]); // 22
-    // printd(a); // 22
+    // printf("%d\n", arr[3]); // 22
+    // printf("%d\n", a); // 22
 
     return 0;
 }

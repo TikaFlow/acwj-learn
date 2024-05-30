@@ -20,7 +20,7 @@ ASTnode *make_ast_leaf(int op, int type, long int_value);
 
 ASTnode *make_ast_unary(int op, int type, ASTnode *left, long int_value);
 
-void show_ast(ASTnode *n, int label, int level);
+void dump_ast(ASTnode *n, int label, int level);
 
 // gen.c
 int gen_label();
@@ -141,6 +141,8 @@ void fatalc(char *s, int c);
 void reset_global_syms();
 
 void reset_loccal_syms();
+
+void reset_sym_table();
 
 void copy_func_params(int slot);
 

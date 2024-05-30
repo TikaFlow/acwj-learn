@@ -105,11 +105,11 @@ void cg_func_pre_amble(int id) {
             "\tmovq\t%%rsp, %%rbp\n",
             name, name, name);
 
-    for (i = SYM_TAB_LEN - 1; i > LOCAL_TOP; i--) {
+    for (i = MAX_SYM - 1; i > LOCAL_TOP; i--) {
         if (SYM_TAB[i].class != C_PARAM) {
             break;
         }
-        if (i < SYM_TAB_LEN - 6) {
+        if (i < MAX_SYM - 6) {
             break;
         }
 
@@ -540,16 +540,10 @@ int cg_address(int id) {
     int reg = alloc_register();
 
     Symbol *sym = &SYM_TAB[id];
-    if (sym->class != C_GLOBAL) {
-        fprintf(OUT_FILE,
-                "\tleaq\t%d(%%rbp), %s\n",
-                sym->posn,
-                reglist[reg]);
+    if (sym->class == C_GLOBAL) {
+        fprintf(OUT_FILE, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[reg]);
     } else {
-        fprintf(OUT_FILE,
-                "\tleaq\t%s(%%rip), %s\n",
-                sym->name,
-                reglist[reg]);
+        fprintf(OUT_FILE, "\tleaq\t%d(%%rbp), %s\n", sym->posn, reglist[reg]);
     }
 
     return reg;

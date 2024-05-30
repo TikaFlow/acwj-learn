@@ -13,7 +13,12 @@ void reset_global_syms() {
 }
 
 void reset_loccal_syms() {
-    LOCAL_TOP = SYM_TAB_LEN - 1;
+    LOCAL_TOP = MAX_SYM - 1;
+}
+
+void reset_sym_table() {
+    reset_global_syms();
+    reset_loccal_syms();
 }
 
 void copy_func_params(int slot) {
@@ -51,7 +56,7 @@ static int find_global(char *s) {
 }
 
 static int find_local(char *s) {
-    for (int index = LOCAL_TOP + 1; index < SYM_TAB_LEN; index++) {
+    for (int index = LOCAL_TOP + 1; index < MAX_SYM; index++) {
         if (*s == *SYM_TAB[index].name && !strcmp(s, SYM_TAB[index].name)) {
             return index;
         }
@@ -86,7 +91,7 @@ int add_local_sym(char *name, int ptype, int stype, int class, int size) {
 }
 
 static void update_sym(int slot, char *name, int ptype, int stype, int class, int end_label, int size, int posn) {
-    if (slot == NOT_FOUND || slot >= SYM_TAB_LEN) {
+    if (slot == NOT_FOUND || slot >= MAX_SYM) {
         fatal("Invalid symbol slot number in updatesym()");
     }
     SYM_TAB[slot].name = strdup(name);

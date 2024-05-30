@@ -8,12 +8,12 @@ char foo(){
 
 int main() {
   int result;
-  printd(10);
+  printf("%d\n", 10);
   result = fred(15);
-  printd(result);
+  printf("%d\n", result);
   result = fred(15) + 10;
-  printd(result);
-  printd(foo(15)-500);
-  printd(fred(15)-500);
+  printf("%d\n", result);
+  printf("%d\n", foo(15)-500);
+  printf("%d\n", fred(15)-500);
   return 0;
 }
