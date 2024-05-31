@@ -26,14 +26,13 @@ extern_ Token TOKEN;
 extern_ Token TOKEN_BACK;
 // last symbol
 extern_ char TEXT[MAX_TEXT + 1];
-// symbol table
-extern_ Symbol SYM_TAB[MAX_SYM];
-// next free GLOBAL symbol slot
-extern_ int GLOBAL_TOP;
-// next free LOCAL symbol slot
-extern_ int LOCAL_TOP;
-// current function id
-extern_ int FUNC_ID;
+// symbol table of global/local/param/composite
+extern_ Symbol *GLOBAL_HEAD, *GLOBAL_TAIL;
+extern_ Symbol *LOCAL_HEAD, *LOCAL_TAIL;
+extern_ Symbol *PARAM_HEAD, *PARAM_TAIL;
+extern_ Symbol *COMPOSITE_HEAD, *COMPOSITE_TAIL;
+// current function pointer
+extern_ Symbol *FUNC_PTR;
 
 // runtime flags
 // verbose mode

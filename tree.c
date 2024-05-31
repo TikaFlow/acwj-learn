@@ -5,7 +5,7 @@
 #include "data.h"
 #include "decl.h"
 
-ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, long int_value) {
+ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, Symbol *sym, long int_value) {
 
     ASTnode *node = (ASTnode *) malloc(sizeof(ASTnode));
 
@@ -19,16 +19,17 @@ ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *r
     node->left = left;
     node->mid = mid;
     node->right = right;
+    node->sym = sym;
     node->int_value = int_value;
     return node;
 }
 
-ASTnode *make_ast_leaf(int op, int type, long int_value) {
-    return make_ast_node(op, type, NULL, NULL, NULL, int_value);
+ASTnode *make_ast_leaf(int op, int type, Symbol *sym, long int_value) {
+    return make_ast_node(op, type, NULL, NULL, NULL, sym, int_value);
 }
 
-ASTnode *make_ast_unary(int op, int type, ASTnode *left, long int_value) {
-    return make_ast_node(op, type, left, NULL, NULL, int_value);
+ASTnode *make_ast_unary(int op, int type, ASTnode *left, Symbol *sym, long int_value) {
+    return make_ast_node(op, type, left, NULL, NULL, sym, int_value);
 }
 
 static int gendumplabel() {
@@ -78,7 +79,7 @@ void dump_ast(ASTnode *node, int label, int level) {
             fprintf(stdout, "\n\n");
             return;
         case A_FUNCTION:
-            fprintf(stdout, "A_FUNCTION %s\n", SYM_TAB[node->id].name);
+            fprintf(stdout, "A_FUNCTION %s\n", node->sym->name);
             return;
         case A_ADD:
             fprintf(stdout, "A_ADD\n");
@@ -115,9 +116,9 @@ void dump_ast(ASTnode *node, int label, int level) {
             return;
         case A_IDENT:
             if (node->rvalue)
-                fprintf(stdout, "A_IDENT rval %s\n", SYM_TAB[node->id].name);
+                fprintf(stdout, "A_IDENT rval %s\n", node->sym->name);
             else
-                fprintf(stdout, "A_IDENT %s\n", SYM_TAB[node->id].name);
+                fprintf(stdout, "A_IDENT %s\n", node->sym->name);
             return;
         case A_ASSIGN:
             fprintf(stdout, "A_ASSIGN\n");
@@ -129,10 +130,10 @@ void dump_ast(ASTnode *node, int label, int level) {
             fprintf(stdout, "A_RETURN\n");
             return;
         case A_FUNCCALL:
-            fprintf(stdout, "A_FUNCCALL %s\n", SYM_TAB[node->id].name);
+            fprintf(stdout, "A_FUNCCALL %s\n", node->sym->name);
             return;
         case A_ADDR:
-            fprintf(stdout, "A_ADDR %s\n", SYM_TAB[node->id].name);
+            fprintf(stdout, "A_ADDR %s\n", node->sym->name);
             return;
         case A_DEREF:
             if (node->rvalue)

@@ -45,7 +45,7 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
         }
 
         if (lsize < rsize) {
-            return make_ast_unary(A_WIDEN, rtype, tree, 0);
+            return make_ast_unary(A_WIDEN, rtype, tree, NULL, 0);
         }
     }
 
@@ -59,7 +59,7 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
         if (is_int(ltype) && is_ptr(rtype)) {
             rsize = gen_type_size(value_at(rtype));
             if (rsize > 1) {
-                return make_ast_unary(A_SCALE, rtype, tree, rsize);
+                return make_ast_unary(A_SCALE, rtype, tree, NULL, rsize);
             }
             return tree;
         }

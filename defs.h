@@ -15,8 +15,6 @@
 
 // symbol length
 #define MAX_TEXT 1024
-// symbol table length
-#define MAX_SYM 1024
 // max number of obj files
 #define MAX_OBJ 256
 // when no register is available
@@ -35,6 +33,11 @@
 // linker command
 #define LD_CMD "ld -o"
 #define LD_SUFFIX "/lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2"
+
+// typedefs
+typedef struct Symbol Symbol;
+typedef struct ASTnode ASTnode;
+typedef struct Token Token;
 
 // token type
 enum {
@@ -89,10 +92,10 @@ enum {
 };
 
 // token struct
-typedef struct Token {
+struct Token {
     int token_type;
     long int_value;
-} Token;
+};
 
 // AST node type
 enum {
@@ -160,24 +163,24 @@ enum {
     C_LOCAL,
     C_PARAM
 };
-
 // AST node struct
-typedef struct ASTnode {
+struct ASTnode {
     int op;
     int type;
     int rvalue;
-    struct ASTnode *left;
-    struct ASTnode *mid;
-    struct ASTnode *right;
+    ASTnode *left;
+    ASTnode *mid;
+    ASTnode *right;
+    Symbol *sym; // symbol pointer in the symbol table
     union {
         long int_value; // intlit
         int id; // symbol slot id
         int size; // scale
     };
-} ASTnode;
+};
 
 // symbol table struct
-typedef struct Symbol {
+struct Symbol {
     char *name;
     int ptype;
     int stype;
@@ -190,6 +193,8 @@ typedef struct Symbol {
         int n_param; // for function, number of parameters
         int posn; // for param, positive position from stack base pointer/RBP
     };
-} Symbol;
+    Symbol *next;
+    Symbol *first;
+};
 
 #endif //ACWJ_LEARN_DEFS_H

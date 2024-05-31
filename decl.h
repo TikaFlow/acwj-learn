@@ -14,11 +14,11 @@ void reject_token();
 int scan();
 
 // tree.c
-ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, long int_value);
+ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, Symbol *sym, long int_value);
 
-ASTnode *make_ast_leaf(int op, int type, long int_value);
+ASTnode *make_ast_leaf(int op, int type, Symbol *sym, long int_value);
 
-ASTnode *make_ast_unary(int op, int type, ASTnode *left, long int_value);
+ASTnode *make_ast_unary(int op, int type, ASTnode *left, Symbol *sym, long int_value);
 
 void dump_ast(ASTnode *n, int label, int level);
 
@@ -33,7 +33,7 @@ void gen_post_amble();
 
 void gen_free_regs();
 
-void gen_new_sym(int id);
+void gen_new_sym(Symbol *sym);
 
 int gen_new_str(char *str);
 
@@ -46,17 +46,17 @@ void cg_pre_amble();
 
 void cg_post_amble();
 
-void cg_func_pre_amble(int id);
+void cg_func_pre_amble(Symbol *sym);
 
-void cg_func_post_amble(int id);
+void cg_func_post_amble(Symbol *sym);
 
 int cg_load_int(long value);
 
-int cg_load_global_sym(int id, int op);
+int cg_load_global_sym(Symbol *sym, int op);
 
-int cg_load_local_sym(int id, int op);
+int cg_load_local_sym(Symbol *sym, int op);
 
-int cg_load_str(int id);
+int cg_load_str(int label);
 
 int cg_add(int r1, int r2);
 
@@ -68,17 +68,17 @@ int cg_div(int r1, int r2);
 
 int cg_sal_n(int reg, int n);
 
-int cg_call(int id, int args_num);
+int cg_call(Symbol *sym, int args_num);
 
 void cg_copy_arg(int reg, int arg_pos);
 
-int cg_store_global_sym(int r, int id);
+int cg_store_global_sym(int r, Symbol *sym);
 
-int cg_store_local_sym(int r, int id);
+int cg_store_local_sym(int r, Symbol *sym);
 
-void cg_new_sym(int id);
+void cg_new_sym(Symbol *sym);
 
-void cg_new_str(int l, char *str);
+void cg_new_str(int label, char *str);
 
 int cg_compare_and_set(int ASTop, int r1, int r2);
 
@@ -92,9 +92,9 @@ int cg_widen(int r, int old_type, int new_type);
 
 int cg_type_size(int type);
 
-void cg_return(int reg, int id);
+void cg_return(int reg, Symbol *sym);
 
-int cg_address(int id);
+int cg_address(Symbol *sym);
 
 int cg_deref(int reg, int type);
 
@@ -140,22 +140,28 @@ void fatalc(char *s, int c);
 // sym.c
 void reset_global_syms();
 
-void reset_loccal_syms();
+void reset_local_syms();
 
 void reset_sym_table();
 
-void copy_func_params(int slot);
+Symbol *find_global(char *s);
 
-int find_sym(char *s);
+Symbol *find_local(char *s);
 
-int add_global_sym(char *name, int ptype, int stype, int class, int size);
+Symbol *find_composite(char *s);
 
-int add_local_sym(char *name, int ptype, int stype, int class, int size);
+Symbol *find_sym(char *s);
+
+Symbol *add_global_sym(char *name, int ptype, int stype, int class, int size);
+
+Symbol *add_local_sym(char *name, int ptype, int stype, int class, int size);
+
+Symbol *add_param_sym(char *name, int ptype, int stype, int class, int size);
 
 // decl.c
 int parse_type();
 
-void declare_var(int type, int class);
+Symbol *declare_var(int type, int class);
 
 void multi_declare_var(int type, int class);
 

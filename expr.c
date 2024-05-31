@@ -21,7 +21,7 @@ static ASTnode *param_list() {
 
     while (TOKEN.token_type != T_RPAREN) {
         param_node = bin_expr(0);
-        node = make_ast_node(A_GLUE, P_NONE, node, NULL, param_node, param_cnt++);
+        node = make_ast_node(A_GLUE, P_NONE, node, NULL, param_node, NULL, param_cnt++);
 
         switch (TOKEN.token_type) {
             case T_COMMA:
@@ -37,28 +37,28 @@ static ASTnode *param_list() {
 }
 
 ASTnode *func_call() {
-    int id;
+    Symbol *func;
 
-    if ((id = find_sym(TEXT)) == NOT_FOUND || SYM_TAB[id].stype != S_FUNCTION) {
+    if (!(func = find_global(TEXT)) || func->stype != S_FUNCTION) {
         fatals("Undeclared function", TEXT);
     }
     match(T_LPAREN, "(");
     ASTnode *node = param_list();
     // TODO check params against prototype
-    node = make_ast_unary(A_FUNCCALL, SYM_TAB[id].ptype, node, id);
+    node = make_ast_unary(A_FUNCCALL, func->ptype, node, func, 0);
     match(T_RPAREN, ")");
     return node;
 }
 
 static ASTnode *access_array() {
     ASTnode *left, *right;
-    int id;
+    Symbol *arr;
 
-    if ((id = find_sym(TEXT)) == NOT_FOUND || SYM_TAB[id].stype != S_ARRAY) {
+    if (!(arr = find_sym(TEXT)) || arr->stype != S_ARRAY) {
         fatals("Undeclared array", TEXT);
     }
 
-    left = make_ast_leaf(A_ADDR, SYM_TAB[id].ptype, id);
+    left = make_ast_leaf(A_ADDR, arr->ptype, arr, 0);
     match(T_LBRACKET, "[");
     right = bin_expr(0);
     match(T_RBRACKET, "]");
@@ -68,15 +68,15 @@ static ASTnode *access_array() {
     }
 
     right = modify_type(right, left->type, A_ADD);
-    left = make_ast_node(A_ADD, SYM_TAB[id].ptype, left, NULL, right, 0);
-    left = make_ast_unary(A_DEREF, value_at(left->type), left, 0);
+    left = make_ast_node(A_ADD, arr->ptype, left, NULL, right, NULL, 0);
+    left = make_ast_unary(A_DEREF, value_at(left->type), left, NULL, 0);
 
     return left;
 }
 
 static ASTnode *postfix() {
     ASTnode *node;
-    int id;
+    Symbol *var;
 
     scan();
     if (TOKEN.token_type == T_LPAREN) {
@@ -87,21 +87,21 @@ static ASTnode *postfix() {
     }
     // reject_token();
 
-    if ((id = find_sym(TEXT)) == NOT_FOUND || SYM_TAB[id].stype != S_VARIABLE) {
+    if (!(var = find_sym(TEXT)) || var->stype != S_VARIABLE) {
         fatals("Unknown variable", TEXT);
     }
 
     switch (TOKEN.token_type) {
         case T_INC:
             match(T_INC, "++");
-            node = make_ast_leaf(A_POSTINC, SYM_TAB[id].ptype, id);
+            node = make_ast_leaf(A_POSTINC, var->ptype, var, 0);
             break;
         case T_DEC:
             match(T_DEC, "--");
-            node = make_ast_leaf(A_POSTDEC, SYM_TAB[id].ptype, id);
+            node = make_ast_leaf(A_POSTDEC, var->ptype, var, 0);
             break;
         default:
-            node = make_ast_leaf(A_IDENT, SYM_TAB[id].ptype, id);
+            node = make_ast_leaf(A_IDENT, var->ptype, var, 0);
     }
 
     return node;
@@ -109,19 +109,19 @@ static ASTnode *postfix() {
 
 static ASTnode *primary() {
     ASTnode *node;
-    int id;
+    int label;
 
     switch (TOKEN.token_type) {
         case T_INTLIT:
             if (TOKEN.int_value >= 0 && TOKEN.int_value <= 255) {
-                node = make_ast_leaf(A_INTLIT, P_CHAR, TOKEN.int_value);
+                node = make_ast_leaf(A_INTLIT, P_CHAR, NULL, TOKEN.int_value);
             } else {
-                node = make_ast_leaf(A_INTLIT, P_INT, TOKEN.int_value);
+                node = make_ast_leaf(A_INTLIT, P_INT, NULL, TOKEN.int_value);
             }
             break;
         case T_STRLIT:
-            id = gen_new_str(TEXT);
-            node = make_ast_leaf(A_STRLIT, pointer_to(P_CHAR), id);
+            label = gen_new_str(TEXT);
+            node = make_ast_leaf(A_STRLIT, pointer_to(P_CHAR), NULL, label);
             break;
         case T_IDENT:
             return postfix();
@@ -189,7 +189,7 @@ static ASTnode *prefix() {
                 fatal("* operator must be followed by a variable or *");
             }
 
-            tree = make_ast_unary(A_DEREF, value_at(tree->type), tree, 0);
+            tree = make_ast_unary(A_DEREF, value_at(tree->type), tree, NULL, 0);
             break;
         case T_MINUS:
             match(T_MINUS, "-");
@@ -197,21 +197,21 @@ static ASTnode *prefix() {
 
             tree->rvalue = 1;
             tree = modify_type(tree, P_INT, 0);
-            tree = make_ast_unary(A_NEGATE, tree->type, tree, 0);
+            tree = make_ast_unary(A_NEGATE, tree->type, tree, NULL, 0);
             break;
         case T_INVERT:
             match(T_INVERT, "~");
             tree = prefix();
 
             tree->rvalue = 1;
-            tree = make_ast_unary(A_INVERT, tree->type, tree, 0);
+            tree = make_ast_unary(A_INVERT, tree->type, tree, NULL, 0);
             break;
         case T_LOGNOT:
             match(T_LOGNOT, "!");
             tree = prefix();
 
             tree->rvalue = 1;
-            tree = make_ast_unary(A_LOGNOT, tree->type, tree, 0);
+            tree = make_ast_unary(A_LOGNOT, tree->type, tree, NULL, 0);
             break;
         case T_INC:
             match(T_INC, "++");
@@ -220,7 +220,7 @@ static ASTnode *prefix() {
             if (tree->op != A_IDENT) {
                 fatal("++ operator must be followed by a variable");
             }
-            tree = make_ast_unary(A_PREINC, tree->type, tree, 0);
+            tree = make_ast_unary(A_PREINC, tree->type, tree, NULL, 0);
             break;
         case T_DEC:
             match(T_DEC, "--");
@@ -229,7 +229,7 @@ static ASTnode *prefix() {
             if (tree->op != A_IDENT) {
                 fatal("++ operator must be followed by a variable");
             }
-            tree = make_ast_unary(A_PREDEC, tree->type, tree, 0);
+            tree = make_ast_unary(A_PREDEC, tree->type, tree, NULL, 0);
             break;
         case T_PLUS:
             match(T_PLUS, "+");
@@ -294,7 +294,7 @@ ASTnode *bin_expr(int ptp) {
             }
         }
 
-        left = make_ast_node(token_to_op(token_type), left->type, left, NULL, right, 0);
+        left = make_ast_node(token_to_op(token_type), left->type, left, NULL, right, NULL, 0);
 
         token_type = TOKEN.token_type;
         switch (token_type) {

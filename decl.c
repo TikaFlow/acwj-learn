@@ -35,48 +35,76 @@ int parse_type() {
     return type;
 }
 
-void declare_var(int type, int class) {
+Symbol *declare_var(int type, int class) {
+    Symbol *sym = NULL;
+
+    switch (class) {
+        case C_GLOBAL:
+            if (find_global(TEXT)) {
+                fatals("Global variable redeclaration", TEXT);
+            }
+        case C_LOCAL:
+        case C_PARAM:
+            if (find_local(TEXT)) {
+                fatals("Local variable redeclaration", TEXT);
+            }
+        default:
+            break;
+    }
+
     if (TOKEN.token_type == T_LBRACKET) {
         match(T_LBRACKET, "[");
 
         if (TOKEN.token_type == T_INTLIT) {
-            if (class == C_LOCAL) {
-                // add_local_sym(TEXT, pointer_to(type), S_ARRAY, 0, (int) TOKEN.int_value);
-                fatal("For now, declaration of local arrays is not implemented");
-            } else {
-                add_global_sym(TEXT, pointer_to(type), S_ARRAY, class, (int) TOKEN.int_value);
+            switch (class) {
+                case C_GLOBAL:
+                    sym = add_global_sym(TEXT, pointer_to(type), S_ARRAY, class, (int) TOKEN.int_value);
+                    break;
+                case C_LOCAL:
+                case C_PARAM:
+                    fatal("For now, declaration of local arrays is not implemented");
+                default:
+                    break;
             }
         }
 
         scan();
         match(T_RBRACKET, "]");
     } else {
-        if (class == C_LOCAL) {
-            if (add_local_sym(TEXT, type, S_VARIABLE, class, 1) == -1) {
-                fatals("Local variable redeclaration", TEXT);
-            }
-        } else {
-            add_global_sym(TEXT, type, S_VARIABLE, class, 1);
+        switch (class) {
+            case C_GLOBAL:
+                sym = add_global_sym(TEXT, type, S_VARIABLE, class, 1);
+                break;
+            case C_LOCAL:
+                sym = add_local_sym(TEXT, type, S_VARIABLE, class, 1);
+                break;
+            case C_PARAM:
+                sym = add_param_sym(TEXT, type, S_VARIABLE, class, 1);
+                break;
+            default:
+                break;
         }
     }
+
+    return sym;
 }
 
-static int declare_params(int id) {
-    int type, origin_param_cnt, param_id = id + 1, param_cnt = 0;
+static int declare_params(Symbol *func_sym) {
+    int type, param_cnt = 0;
+    Symbol *proto_ptr = NULL;
 
-    if (param_id) {
-        origin_param_cnt = SYM_TAB[id].n_param;
+    if (func_sym) {
+        proto_ptr = func_sym->first;
     }
 
     while (TOKEN.token_type != T_RPAREN) {
         type = parse_type();
         match(T_IDENT, "identifier");
 
-        if (param_id) {
-            if (type != SYM_TAB[id].ptype) {
+        if (proto_ptr) {
+            if (type != proto_ptr->ptype) {
                 fatald("Type mismatch of parameter", param_cnt);
             }
-            param_id++;
         } else {
             declare_var(type, C_PARAM);
         }
@@ -93,8 +121,8 @@ static int declare_params(int id) {
         }
     }
 
-    if (id != NOT_FOUND && param_cnt != origin_param_cnt) {
-        fatals("Parameter count mismatch for function", SYM_TAB[id].name);
+    if (func_sym && param_cnt != func_sym->n_param) {
+        fatals("Parameter count mismatch for function", func_sym->name);
     }
 
     return param_cnt;
@@ -102,35 +130,35 @@ static int declare_params(int id) {
 
 ASTnode *declare_func(int type) {
     ASTnode *tree, *final_stmt;
-    int id, slot, end_label, param_cnt;
+    Symbol *old_func, *new_func = NULL;
+    int end_label, param_cnt;
 
-    if ((id = find_sym(TEXT)) != NOT_FOUND && SYM_TAB[id].stype != S_FUNCTION) {
-        id = NOT_FOUND;
+    if ((old_func = find_global(TEXT)) && old_func->stype != S_FUNCTION) {
+        old_func = NULL;
     }
 
-    if (id == NOT_FOUND) {
+    if (!old_func) {
         end_label = gen_label();
-        slot = add_global_sym(TEXT, type, S_FUNCTION, C_GLOBAL, end_label);
+        new_func = add_global_sym(TEXT, type, S_FUNCTION, C_GLOBAL, end_label);
     }
 
     match(T_LPAREN, "(");
-    param_cnt = declare_params(id);
+    param_cnt = declare_params(old_func);
     match(T_RPAREN, ")");
 
-    if (id == NOT_FOUND) {
-        SYM_TAB[slot].n_param = param_cnt;
+    if (new_func) {
+        new_func->n_param = param_cnt;
+        new_func->first = PARAM_HEAD;
+        old_func = new_func;
     }
+    PARAM_HEAD = PARAM_TAIL = NULL;
 
     if (TOKEN.token_type == T_SEMI) {
         match(T_SEMI, ";");
         return NULL;
     }
 
-    if (id == NOT_FOUND) {
-        id = slot;
-    }
-    copy_func_params(id);
-    FUNC_ID = id;
+    FUNC_PTR = old_func;
 
     tree = compound_stmt();
 
@@ -145,7 +173,7 @@ ASTnode *declare_func(int type) {
         }
     }
 
-    return make_ast_unary(A_FUNCTION, type, tree, id);
+    return make_ast_unary(A_FUNCTION, type, tree, old_func, end_label);
 }
 
 void multi_declare_var(int type, int class) {
@@ -182,7 +210,7 @@ void declare_global() {
             }
 
             gen_ast(tree, NO_LABEL, 0);
-            reset_loccal_syms();
+            reset_local_syms();
         } else {
             multi_declare_var(type, C_GLOBAL);
         }

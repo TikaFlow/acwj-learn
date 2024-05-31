@@ -5,104 +5,120 @@
 #include "data.h"
 #include "decl.h"
 
-
-static void update_sym(int slot, char *name, int ptype, int stype, int class, int size, int posn);
+static void add_sym(Symbol **head, Symbol **tail, Symbol *sym);
 
 void reset_global_syms() {
-    LOCAL_TOP = 0;
+    GLOBAL_HEAD = GLOBAL_TAIL = NULL;
+    COMPOSITE_HEAD = COMPOSITE_TAIL = NULL;
 }
 
-void reset_loccal_syms() {
-    LOCAL_TOP = MAX_SYM - 1;
+void reset_local_syms() {
+    LOCAL_HEAD = LOCAL_TAIL = NULL;
+    PARAM_HEAD = PARAM_TAIL = NULL;
+    FUNC_PTR = NULL;
 }
 
 void reset_sym_table() {
     reset_global_syms();
-    reset_loccal_syms();
+    reset_local_syms();
 }
 
-void copy_func_params(int slot) {
-    for (int i = 0, id = slot + 1; i < SYM_TAB[slot].n_param; i++, id++) {
-        add_local_sym(SYM_TAB[id].name, SYM_TAB[id].ptype, SYM_TAB[id].stype, SYM_TAB[id].class, SYM_TAB[id].size);
-    }
-}
+static Symbol *new_sym(char *name, int ptype, int stype, int class, int size, int posn) {
+    Symbol *sym = (Symbol *) malloc(sizeof(Symbol));
 
-static int new_global() {
-    int pos;
-    if ((pos = GLOBAL_TOP++) >= LOCAL_TOP) {
-        fatal("too many global symbols!");
-    }
-    return pos;
-}
-
-static int new_local() {
-    int pos;
-    if ((pos = LOCAL_TOP--) <= GLOBAL_TOP) {
-        fatal("too many local symbols!");
-    }
-    return pos;
-}
-
-static int find_global(char *s) {
-    for (int index = 0; index < GLOBAL_TOP; index++) {
-        if (SYM_TAB[index].class == C_PARAM) {
-            continue;
-        }
-        if (*s == *SYM_TAB[index].name && !strcmp(s, SYM_TAB[index].name)) {
-            return index;
-        }
-    }
-    return NOT_FOUND;
-}
-
-static int find_local(char *s) {
-    for (int index = LOCAL_TOP + 1; index < MAX_SYM; index++) {
-        if (*s == *SYM_TAB[index].name && !strcmp(s, SYM_TAB[index].name)) {
-            return index;
-        }
-    }
-    return NOT_FOUND;
-}
-
-int add_global_sym(char *name, int ptype, int stype, int class, int size) {
-    int slot;
-
-    if ((slot = find_global(name)) != NOT_FOUND) {
-        return slot;
+    if (!sym) {
+        fatal("Unable to malloc symbol in new_sym()");
     }
 
-    slot = new_global();
-    update_sym(slot, name, ptype, stype, class, size, 0);
+    sym->name = strdup(name);
+    sym->ptype = ptype;
+    sym->stype = stype;
+    sym->class = class;
+    sym->size = size;
+    sym->posn = posn;
+    sym->next = NULL;
+    sym->first = NULL;
+
+    // generate space if is a GLOBAL symbol
     if (class == C_GLOBAL) {
-        gen_new_sym(slot);
-    }
-    return slot;
-}
-
-int add_local_sym(char *name, int ptype, int stype, int class, int size) {
-    if (find_local(name) != NOT_FOUND) {
-        return -1;
+        gen_new_sym(sym);
     }
 
-    int local_slot = new_local();
-    update_sym(local_slot, name, ptype, stype, class, size, 0);
-
-    return local_slot;
+    return sym;
 }
 
-static void update_sym(int slot, char *name, int ptype, int stype, int class, int size, int posn) {
-    if (slot == NOT_FOUND || slot >= MAX_SYM) {
-        fatal("Invalid symbol slot number in updatesym()");
+Symbol *add_global_sym(char *name, int ptype, int stype, int class, int size) {
+    Symbol *sym = new_sym(name, ptype, stype, class, size, 0);
+    add_sym(&GLOBAL_HEAD, &GLOBAL_TAIL, sym);
+
+    return sym;
+}
+
+Symbol *add_param_sym(char *name, int ptype, int stype, int class, int size) {
+    Symbol *sym = new_sym(name, ptype, stype, class, size, 0);
+    add_sym(&PARAM_HEAD, &PARAM_TAIL, sym);
+
+    return sym;
+}
+
+Symbol *add_local_sym(char *name, int ptype, int stype, int class, int size) {
+    Symbol *sym = new_sym(name, ptype, stype, class, size, 0);
+    add_sym(&LOCAL_HEAD, &LOCAL_TAIL, sym);
+
+    return sym;
+}
+
+static void add_sym(Symbol **head, Symbol **tail, Symbol *sym) {
+    if (!(head && tail && sym)) {
+        fatal("Either head or tail or sym is NULL in add_sym()");
     }
-    SYM_TAB[slot].name = strdup(name);
-    SYM_TAB[slot].ptype = ptype;
-    SYM_TAB[slot].stype = stype;
-    SYM_TAB[slot].class = class;
-    SYM_TAB[slot].size = size;
-    SYM_TAB[slot].posn = posn;
+
+    if (*tail) {
+        (*tail)->next = sym;
+        *tail = sym;
+    } else {
+        *head = *tail = sym;
+    }
+
+    sym->next = NULL;
 }
 
-int find_sym(char *s) {
-    int slot;
-    return (slot = find_local(s)) == NOT_FOUND ? find_global(s) : slot;
+static Symbol *find_sym_in_list(char *s, Symbol *list) {
+    while (list) {
+        if ((list->name) && *(list->name) == *s && !strcmp(list->name, s)) {
+            return list;
+        }
+
+        list = list->next;
+    }
+
+    return NULL;
+}
+
+Symbol *find_global(char *s) {
+    return find_sym_in_list(s, GLOBAL_HEAD);
+}
+
+static Symbol *find_param(char *s) {
+    if (FUNC_PTR) {
+        return find_sym_in_list(s, FUNC_PTR->first);
+    }
+
+    return NULL;
+}
+
+Symbol *find_local(char *s) {
+    Symbol *sym;
+
+    return (sym = find_param(s)) ? sym : find_sym_in_list(s, LOCAL_HEAD);
+}
+
+Symbol *find_composite(char *s) {
+    return find_sym_in_list(s, COMPOSITE_HEAD);
+}
+
+Symbol *find_sym(char *s) {
+    Symbol *sym;
+
+    return (sym = find_local(s)) ? sym : find_global(s);
 }

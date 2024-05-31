@@ -18,7 +18,7 @@ static void init() {
 
     reset_sym_table();
     reset_global_syms();
-    reset_loccal_syms();
+    reset_local_syms();
 }
 
 static void usage(char *prog) {

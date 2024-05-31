@@ -6,7 +6,7 @@ for file in test/*.c; do
     if [ -f "$file"  ]; then
         echo "=================== $file ===================" >> test/output.txt
         # compile
-        (set -x; ./${exec} -vo out "$file") || exit1
+        (set -x; ./${exec} -vo out "$file") || exit 1
 
         # read args if there are any
         args=""
