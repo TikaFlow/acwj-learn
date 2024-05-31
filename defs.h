@@ -34,7 +34,7 @@
 #define AS_CMD "as -o"
 // linker command
 #define LD_CMD "ld -o"
-#define LD_SUFFIX "/lib/x86_64-linux-gnu/crt1.o -lc -dynamic-linker /lib64/ld-linux-x86-64.so.2"
+#define LD_SUFFIX "/lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2"
 
 // token type
 enum {
@@ -140,15 +140,11 @@ enum {
 
 // primitive type
 enum {
-    P_NONE,
-    P_VOID,
-    P_CHAR,
-    P_INT,
-    P_LONG,
-    P_VOIDPTR,
-    P_CHARPTR,
-    P_INTPTR,
-    P_LONGPTR
+    P_NONE = 0x00,
+    P_VOID = 0x10,
+    P_CHAR = 0x20,
+    P_INT = 0x30,
+    P_LONG = 0x40
 };
 
 // struct type
@@ -173,11 +169,11 @@ typedef struct ASTnode {
     struct ASTnode *left;
     struct ASTnode *mid;
     struct ASTnode *right;
-    union value {
+    union {
         long int_value; // intlit
         int id; // symbol slot id
         int size; // scale
-    } value;
+    };
 } ASTnode;
 
 // symbol table struct
@@ -186,9 +182,14 @@ typedef struct Symbol {
     int ptype;
     int stype;
     int class; // global or local
-    int end_label;
-    int size; // element number of symbol/array
-    int posn; // positive position from stack base pointer/RBP
+    union {
+        int end_label;
+        int size;
+    }; // element number of symbol/array
+    union {
+        int n_param; // for function, number of parameters
+        int posn; // for param, positive position from stack base pointer/RBP
+    };
 } Symbol;
 
 #endif //ACWJ_LEARN_DEFS_H

@@ -6,7 +6,7 @@
 #include "decl.h"
 
 
-static void update_sym(int slot, char *name, int ptype, int stype, int class, int end_label, int size, int posn);
+static void update_sym(int slot, char *name, int ptype, int stype, int class, int size, int posn);
 
 void reset_global_syms() {
     LOCAL_TOP = 0;
@@ -22,7 +22,7 @@ void reset_sym_table() {
 }
 
 void copy_func_params(int slot) {
-    for (int i = 0, id = slot + 1; i < SYM_TAB[slot].posn; i++, id++) {
+    for (int i = 0, id = slot + 1; i < SYM_TAB[slot].n_param; i++, id++) {
         add_local_sym(SYM_TAB[id].name, SYM_TAB[id].ptype, SYM_TAB[id].stype, SYM_TAB[id].class, SYM_TAB[id].size);
     }
 }
@@ -64,7 +64,7 @@ static int find_local(char *s) {
     return NOT_FOUND;
 }
 
-int add_global_sym(char *name, int ptype, int stype, int class, int end_label, int size) {
+int add_global_sym(char *name, int ptype, int stype, int class, int size) {
     int slot;
 
     if ((slot = find_global(name)) != NOT_FOUND) {
@@ -72,7 +72,7 @@ int add_global_sym(char *name, int ptype, int stype, int class, int end_label, i
     }
 
     slot = new_global();
-    update_sym(slot, name, ptype, stype, class, end_label, size, 0);
+    update_sym(slot, name, ptype, stype, class, size, 0);
     if (class == C_GLOBAL) {
         gen_new_sym(slot);
     }
@@ -85,12 +85,12 @@ int add_local_sym(char *name, int ptype, int stype, int class, int size) {
     }
 
     int local_slot = new_local();
-    update_sym(local_slot, name, ptype, stype, class, 0, size, 0);
+    update_sym(local_slot, name, ptype, stype, class, size, 0);
 
     return local_slot;
 }
 
-static void update_sym(int slot, char *name, int ptype, int stype, int class, int end_label, int size, int posn) {
+static void update_sym(int slot, char *name, int ptype, int stype, int class, int size, int posn) {
     if (slot == NOT_FOUND || slot >= MAX_SYM) {
         fatal("Invalid symbol slot number in updatesym()");
     }
@@ -98,7 +98,6 @@ static void update_sym(int slot, char *name, int ptype, int stype, int class, in
     SYM_TAB[slot].ptype = ptype;
     SYM_TAB[slot].stype = stype;
     SYM_TAB[slot].class = class;
-    SYM_TAB[slot].end_label = end_label;
     SYM_TAB[slot].size = size;
     SYM_TAB[slot].posn = posn;
 }

@@ -148,7 +148,7 @@ void copy_func_params(int slot);
 
 int find_sym(char *s);
 
-int add_global_sym(char *name, int ptype, int stype, int class, int end_label, int size);
+int add_global_sym(char *name, int ptype, int stype, int class, int size);
 
 int add_local_sym(char *name, int ptype, int stype, int class, int size);
 

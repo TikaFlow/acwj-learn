@@ -19,7 +19,7 @@ ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *r
     node->left = left;
     node->mid = mid;
     node->right = right;
-    node->value.int_value = int_value;
+    node->int_value = int_value;
     return node;
 }
 
@@ -36,94 +36,114 @@ static int gendumplabel() {
     return id++;
 }
 
-void dump_ast(ASTnode *n, int label, int level) {
+void dump_ast(ASTnode *node, int label, int level) {
     int Lfalse, Lstart, Lend;
 
 
-    switch (n->op) {
+    switch (node->op) {
         case A_IF:
             Lfalse = gendumplabel();
-            for (int i=0; i < level; i++) fprintf(stdout, " ");
+            for (int i = 0; i < level; i++) fprintf(stdout, " ");
             fprintf(stdout, "A_IF");
-            if (n->right) { Lend = gendumplabel();
+            if (node->right) {
+                Lend = gendumplabel();
                 fprintf(stdout, ", end L%d", Lend);
             }
             fprintf(stdout, "\n");
-            dump_ast(n->left, Lfalse, level+2);
-            dump_ast(n->mid, NO_LABEL, level+2);
-            if (n->right) dump_ast(n->right, NO_LABEL, level+2);
+            dump_ast(node->left, Lfalse, level + 2);
+            dump_ast(node->mid, NO_LABEL, level + 2);
+            if (node->right) dump_ast(node->right, NO_LABEL, level + 2);
             return;
         case A_WHILE:
             Lstart = gendumplabel();
-            for (int i=0; i < level; i++) fprintf(stdout, " ");
+            for (int i = 0; i < level; i++) fprintf(stdout, " ");
             fprintf(stdout, "A_WHILE, start L%d\n", Lstart);
             Lend = gendumplabel();
-            dump_ast(n->left, Lend, level+2);
-            dump_ast(n->right, NO_LABEL, level+2);
+            dump_ast(node->left, Lend, level + 2);
+            dump_ast(node->right, NO_LABEL, level + 2);
             return;
     }
 
     // Reset level to -2 for A_GLUE
-    if (n->op==A_GLUE) level= -2;
+    if (node->op == A_GLUE) level = -2;
 
     // General AST node handling
-    if (n->left) dump_ast(n->left, NO_LABEL, level+2);
-    if (n->right) dump_ast(n->right, NO_LABEL, level+2);
+    if (node->left) dump_ast(node->left, NO_LABEL, level + 2);
+    if (node->right) dump_ast(node->right, NO_LABEL, level + 2);
 
 
-    for (int i=0; i < level; i++) fprintf(stdout, " ");
-    switch (n->op) {
+    for (int i = 0; i < level; i++) fprintf(stdout, " ");
+    switch (node->op) {
         case A_GLUE:
-            fprintf(stdout, "\n\n"); return;
+            fprintf(stdout, "\n\n");
+            return;
         case A_FUNCTION:
-            fprintf(stdout, "A_FUNCTION %s\n", SYM_TAB[n->value.id].name); return;
+            fprintf(stdout, "A_FUNCTION %s\n", SYM_TAB[node->id].name);
+            return;
         case A_ADD:
-            fprintf(stdout, "A_ADD\n"); return;
+            fprintf(stdout, "A_ADD\n");
+            return;
         case A_SUBTRACT:
-            fprintf(stdout, "A_SUBTRACT\n"); return;
+            fprintf(stdout, "A_SUBTRACT\n");
+            return;
         case A_MULTIPLY:
-            fprintf(stdout, "A_MULTIPLY\n"); return;
+            fprintf(stdout, "A_MULTIPLY\n");
+            return;
         case A_DIVIDE:
-            fprintf(stdout, "A_DIVIDE\n"); return;
+            fprintf(stdout, "A_DIVIDE\n");
+            return;
         case A_EQ:
-            fprintf(stdout, "A_EQ\n"); return;
+            fprintf(stdout, "A_EQ\n");
+            return;
         case A_NE:
-            fprintf(stdout, "A_NE\n"); return;
+            fprintf(stdout, "A_NE\n");
+            return;
         case A_LT:
-            fprintf(stdout, "A_LE\n"); return;
+            fprintf(stdout, "A_LE\n");
+            return;
         case A_GT:
-            fprintf(stdout, "A_GT\n"); return;
+            fprintf(stdout, "A_GT\n");
+            return;
         case A_LE:
-            fprintf(stdout, "A_LE\n"); return;
+            fprintf(stdout, "A_LE\n");
+            return;
         case A_GE:
-            fprintf(stdout, "A_GE\n"); return;
+            fprintf(stdout, "A_GE\n");
+            return;
         case A_INTLIT:
-            fprintf(stdout, "A_INTLIT %ld\n", n->value.int_value); return;
+            fprintf(stdout, "A_INTLIT %ld\n", node->int_value);
+            return;
         case A_IDENT:
-            if (n->rvalue)
-                fprintf(stdout, "A_IDENT rval %s\n", SYM_TAB[n->value.id].name);
+            if (node->rvalue)
+                fprintf(stdout, "A_IDENT rval %s\n", SYM_TAB[node->id].name);
             else
-                fprintf(stdout, "A_IDENT %s\n", SYM_TAB[n->value.id].name);
+                fprintf(stdout, "A_IDENT %s\n", SYM_TAB[node->id].name);
             return;
         case A_ASSIGN:
-            fprintf(stdout, "A_ASSIGN\n"); return;
+            fprintf(stdout, "A_ASSIGN\n");
+            return;
         case A_WIDEN:
-            fprintf(stdout, "A_WIDEN\n"); return;
+            fprintf(stdout, "A_WIDEN\n");
+            return;
         case A_RETURN:
-            fprintf(stdout, "A_RETURN\n"); return;
+            fprintf(stdout, "A_RETURN\n");
+            return;
         case A_FUNCCALL:
-            fprintf(stdout, "A_FUNCCALL %s\n", SYM_TAB[n->value.id].name); return;
+            fprintf(stdout, "A_FUNCCALL %s\n", SYM_TAB[node->id].name);
+            return;
         case A_ADDR:
-            fprintf(stdout, "A_ADDR %s\n", SYM_TAB[n->value.id].name); return;
+            fprintf(stdout, "A_ADDR %s\n", SYM_TAB[node->id].name);
+            return;
         case A_DEREF:
-            if (n->rvalue)
+            if (node->rvalue)
                 fprintf(stdout, "A_DEREF rval\n");
             else
                 fprintf(stdout, "A_DEREF\n");
             return;
         case A_SCALE:
-            fprintf(stdout, "A_SCALE %d\n", n->value.size); return;
+            fprintf(stdout, "A_SCALE %d\n", node->size);
+            return;
         default:
-            fatald("Unknown dump_ast operator", n->op);
+            fatald("Unknown dump_ast operator", node->op);
     }
 }

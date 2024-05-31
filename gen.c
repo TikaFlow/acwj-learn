@@ -55,16 +55,16 @@ static int gen_func_call(ASTnode *node) {
 
     while ((glue = glue->left)) {
         reg = gen_ast(glue->right, NO_LABEL, glue->op);
-        cg_copy_arg(reg, glue->value.size);
+        cg_copy_arg(reg, glue->size);
 
         if (!args_num) {
-            args_num = glue->value.size + 1;
+            args_num = glue->size + 1;
         }
 
         gen_free_regs();
     }
 
-    return cg_call(node->value.id, args_num);
+    return cg_call(node->id, args_num);
 }
 
 int gen_ast(ASTnode *node, int label, int parent_op) {
@@ -84,9 +84,9 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
             gen_free_regs();
             return NO_REG;
         case A_FUNCTION:
-            cg_func_pre_amble(node->value.id);
+            cg_func_pre_amble(node->id);
             gen_ast(node->left, NO_LABEL, node->op);
-            cg_func_post_amble(node->value.id);
+            cg_func_post_amble(node->id);
             return NO_REG;
     }
 
@@ -127,25 +127,25 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
             }
             return cg_compare_and_set(node->op, leftreg, rightreg);
         case A_INTLIT:
-            return cg_load_int(node->value.int_value);
+            return cg_load_int(node->int_value);
         case A_STRLIT:
-            return cg_load_str(node->value.id);
+            return cg_load_str(node->id);
         case A_IDENT:
             if (node->rvalue || parent_op == A_DEREF) {
-                if (SYM_TAB[node->value.id].class != C_GLOBAL) {
-                    return cg_load_local_sym(node->value.id, node->op);
+                if (SYM_TAB[node->id].class != C_GLOBAL) {
+                    return cg_load_local_sym(node->id, node->op);
                 } else {
-                    return cg_load_global_sym(node->value.id, node->op);
+                    return cg_load_global_sym(node->id, node->op);
                 }
             }
             return NO_REG;
         case A_ASSIGN:
             switch (node->right->op) {
                 case A_IDENT:
-                    if (SYM_TAB[node->right->value.id].class != C_GLOBAL) {
-                        return cg_store_local_sym(leftreg, node->right->value.id);
+                    if (SYM_TAB[node->right->id].class != C_GLOBAL) {
+                        return cg_store_local_sym(leftreg, node->right->id);
                     } else {
-                        return cg_store_global_sym(leftreg, node->right->value.id);
+                        return cg_store_global_sym(leftreg, node->right->id);
                     }
                 case A_DEREF:
                     return cg_store_deref(leftreg, rightreg, node->right->type);
@@ -158,14 +158,14 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
             cg_return(leftreg, FUNC_ID);
             return NO_REG;
         case A_ADDR:
-            return cg_address(node->value.id);
+            return cg_address(node->id);
         case A_DEREF:
             if (node->rvalue) {
                 return cg_deref(leftreg, node->left->type);
             }
             return leftreg;
         case A_SCALE:
-            switch (node->value.size) {
+            switch (node->size) {
                 case 2:
                     return cg_sal_n(leftreg, 1);
                 case 4:
@@ -173,22 +173,22 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
                 case 8:
                     return cg_sal_n(leftreg, 3);
                 default:
-                    rightreg = cg_load_int(node->value.size);
+                    rightreg = cg_load_int(node->size);
                     return cg_mul(leftreg, rightreg);
             }
         case A_POSTINC:
         case A_POSTDEC:
-            if (SYM_TAB[node->value.id].class != C_GLOBAL) {
-                return cg_load_local_sym(node->value.id, node->op);
+            if (SYM_TAB[node->id].class != C_GLOBAL) {
+                return cg_load_local_sym(node->id, node->op);
             } else {
-                return cg_load_global_sym(node->value.id, node->op);
+                return cg_load_global_sym(node->id, node->op);
             }
         case A_PREINC:
         case A_PREDEC:
-            if (SYM_TAB[node->left->value.id].class != C_GLOBAL) {
-                return cg_load_local_sym(node->left->value.id, node->op);
+            if (SYM_TAB[node->left->id].class != C_GLOBAL) {
+                return cg_load_local_sym(node->left->id, node->op);
             } else {
-                return cg_load_global_sym(node->left->value.id, node->op);
+                return cg_load_global_sym(node->left->id, node->op);
             }
         case A_NEGATE:
             return cg_negate(leftreg);

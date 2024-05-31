@@ -121,7 +121,7 @@ static ASTnode *primary() {
             break;
         case T_STRLIT:
             id = gen_new_str(TEXT);
-            node = make_ast_leaf(A_STRLIT, P_CHARPTR, id);
+            node = make_ast_leaf(A_STRLIT, pointer_to(P_CHAR), id);
             break;
         case T_IDENT:
             return postfix();

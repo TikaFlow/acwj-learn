@@ -44,7 +44,7 @@ void declare_var(int type, int class) {
                 // add_local_sym(TEXT, pointer_to(type), S_ARRAY, 0, (int) TOKEN.int_value);
                 fatal("For now, declaration of local arrays is not implemented");
             } else {
-                add_global_sym(TEXT, pointer_to(type), S_ARRAY, class, 0, (int) TOKEN.int_value);
+                add_global_sym(TEXT, pointer_to(type), S_ARRAY, class, (int) TOKEN.int_value);
             }
         }
 
@@ -56,7 +56,7 @@ void declare_var(int type, int class) {
                 fatals("Local variable redeclaration", TEXT);
             }
         } else {
-            add_global_sym(TEXT, type, S_VARIABLE, class, 0, 1);
+            add_global_sym(TEXT, type, S_VARIABLE, class, 1);
         }
     }
 }
@@ -65,7 +65,7 @@ static int declare_params(int id) {
     int type, origin_param_cnt, param_id = id + 1, param_cnt = 0;
 
     if (param_id) {
-        origin_param_cnt = SYM_TAB[id].posn;
+        origin_param_cnt = SYM_TAB[id].n_param;
     }
 
     while (TOKEN.token_type != T_RPAREN) {
@@ -110,7 +110,7 @@ ASTnode *declare_func(int type) {
 
     if (id == NOT_FOUND) {
         end_label = gen_label();
-        slot = add_global_sym(TEXT, type, S_FUNCTION, C_GLOBAL, end_label, 0);
+        slot = add_global_sym(TEXT, type, S_FUNCTION, C_GLOBAL, end_label);
     }
 
     match(T_LPAREN, "(");
@@ -118,7 +118,7 @@ ASTnode *declare_func(int type) {
     match(T_RPAREN, ")");
 
     if (id == NOT_FOUND) {
-        SYM_TAB[slot].posn = param_cnt;
+        SYM_TAB[slot].n_param = param_cnt;
     }
 
     if (TOKEN.token_type == T_SEMI) {

@@ -75,7 +75,7 @@ static char *do_compile(char *file) {
     }
 
     // TODO printf may not work when we check prototypes because it's a variadic function
-    add_global_sym("printf", P_INT, S_FUNCTION, C_GLOBAL, 0, 0);
+    add_global_sym("printf", P_INT, S_FUNCTION, C_GLOBAL, 0);
 
     // start with scan the first token
     scan();

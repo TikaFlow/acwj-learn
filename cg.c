@@ -21,17 +21,6 @@ static char *dreglist[] = {"%r10d", "%r11d", "%r12d", "%r13d", "%edi", "%esi", "
 static char *reglist[] = {"%r10", "%r11", "%r12", "%r13", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static char *cmplist[] = {"sete", "setne", "setl", "setg", "setle", "setge"};
 static char *invcmplist[] = {"jne", "je", "jge", "jle", "jg", "jl"};
-static int type_size[] = {
-        0, // P_NONE
-        0, // P_VOID
-        1, // P_CHAR
-        4, // P_INT
-        8, // P_LONG
-        8, // P_VOIDPTR
-        8, // P_CHARPTR
-        8, // P_INTPTR
-        8 // P_LONGPTR
-};
 
 void cg_text_section() {
     if (cur_section != TEXT_SECTION) {
@@ -148,114 +137,112 @@ int cg_load_int(long value) {
 
 int cg_load_global_sym(int id, int op) {
     int reg = alloc_register();
-    switch (SYM_TAB[id].ptype) {
-        case P_CHAR:
-            if (op == A_PREINC) {
-                fprintf(OUT_FILE, "\tincb\t%s\n", SYM_TAB[id].name);
-            }
-            if (op == A_PREDEC) {
-                fprintf(OUT_FILE, "\tdecb\t%s\n", SYM_TAB[id].name);
-            }
-            fprintf(OUT_FILE, "\tmovzbq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
-            if (op == A_POSTINC) {
-                fprintf(OUT_FILE, "\tincb\t%s\n", SYM_TAB[id].name);
-            }
-            if (op == A_POSTDEC) {
-                fprintf(OUT_FILE, "\tdecb\t%s\n", SYM_TAB[id].name);
-            }
-            break;
-        case P_INT:
-            if (op == A_PREINC) {
-                fprintf(OUT_FILE, "\tincl\t%s\n", SYM_TAB[id].name);
-            }
-            if (op == A_PREDEC) {
-                fprintf(OUT_FILE, "\tdecl\t%s\n", SYM_TAB[id].name);
-            }
-            fprintf(OUT_FILE, "\tmovslq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
-            if (op == A_POSTINC) {
-                fprintf(OUT_FILE, "\tincl\t%s\n", SYM_TAB[id].name);
-            }
-            if (op == A_POSTDEC) {
-                fprintf(OUT_FILE, "\tdecl\t%s\n", SYM_TAB[id].name);
-            }
-            break;
-        case P_LONG:
-        case P_CHARPTR:
-        case P_INTPTR:
-        case P_LONGPTR:
-            if (op == A_PREINC) {
-                fprintf(OUT_FILE, "\tincq\t%s\n", SYM_TAB[id].name);
-            }
-            if (op == A_PREDEC) {
-                fprintf(OUT_FILE, "\tdecq\t%s\n", SYM_TAB[id].name);
-            }
-            fprintf(OUT_FILE, "\tmovq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
-            if (op == A_POSTINC) {
-                fprintf(OUT_FILE, "\tincq\t%s\n", SYM_TAB[id].name);
-            }
-            if (op == A_POSTDEC) {
-                fprintf(OUT_FILE, "\tdecq\t%s\n", SYM_TAB[id].name);
-            }
-            break;
-        default:
-            fatald("Bad type in cg_load_global_sym()", SYM_TAB[id].ptype);
+    if (cg_type_size(SYM_TAB[id].ptype) == 8) {
+        if (op == A_PREINC) {
+            fprintf(OUT_FILE, "\tincq\t%s\n", SYM_TAB[id].name);
+        }
+        if (op == A_PREDEC) {
+            fprintf(OUT_FILE, "\tdecq\t%s\n", SYM_TAB[id].name);
+        }
+        fprintf(OUT_FILE, "\tmovq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+        if (op == A_POSTINC) {
+            fprintf(OUT_FILE, "\tincq\t%s\n", SYM_TAB[id].name);
+        }
+        if (op == A_POSTDEC) {
+            fprintf(OUT_FILE, "\tdecq\t%s\n", SYM_TAB[id].name);
+        }
+    } else {
+        switch (SYM_TAB[id].ptype) {
+            case P_CHAR:
+                if (op == A_PREINC) {
+                    fprintf(OUT_FILE, "\tincb\t%s\n", SYM_TAB[id].name);
+                }
+                if (op == A_PREDEC) {
+                    fprintf(OUT_FILE, "\tdecb\t%s\n", SYM_TAB[id].name);
+                }
+                fprintf(OUT_FILE, "\tmovzbq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+                if (op == A_POSTINC) {
+                    fprintf(OUT_FILE, "\tincb\t%s\n", SYM_TAB[id].name);
+                }
+                if (op == A_POSTDEC) {
+                    fprintf(OUT_FILE, "\tdecb\t%s\n", SYM_TAB[id].name);
+                }
+                break;
+            case P_INT:
+                if (op == A_PREINC) {
+                    fprintf(OUT_FILE, "\tincl\t%s\n", SYM_TAB[id].name);
+                }
+                if (op == A_PREDEC) {
+                    fprintf(OUT_FILE, "\tdecl\t%s\n", SYM_TAB[id].name);
+                }
+                fprintf(OUT_FILE, "\tmovslq\t%s(%%rip), %s\n", SYM_TAB[id].name, reglist[reg]);
+                if (op == A_POSTINC) {
+                    fprintf(OUT_FILE, "\tincl\t%s\n", SYM_TAB[id].name);
+                }
+                if (op == A_POSTDEC) {
+                    fprintf(OUT_FILE, "\tdecl\t%s\n", SYM_TAB[id].name);
+                }
+                break;
+            default:
+                fatald("Bad type in cg_load_global_sym()", SYM_TAB[id].ptype);
+        }
     }
     return reg;
 }
 
 int cg_load_local_sym(int id, int op) {
     int reg = alloc_register();
-    switch (SYM_TAB[id].ptype) {
-        case P_CHAR:
-            if (op == A_PREINC) {
-                fprintf(OUT_FILE, "\tincb\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            if (op == A_PREDEC) {
-                fprintf(OUT_FILE, "\tdecb\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            fprintf(OUT_FILE, "\tmovzbq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
-            if (op == A_POSTINC) {
-                fprintf(OUT_FILE, "\tincb\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            if (op == A_POSTDEC) {
-                fprintf(OUT_FILE, "\tdecb\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            break;
-        case P_INT:
-            if (op == A_PREINC) {
-                fprintf(OUT_FILE, "\tincl\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            if (op == A_PREDEC) {
-                fprintf(OUT_FILE, "\tdecl\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            fprintf(OUT_FILE, "\tmovslq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
-            if (op == A_POSTINC) {
-                fprintf(OUT_FILE, "\tincl\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            if (op == A_POSTDEC) {
-                fprintf(OUT_FILE, "\tdecl\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            break;
-        case P_LONG:
-        case P_CHARPTR:
-        case P_INTPTR:
-        case P_LONGPTR:
-            if (op == A_PREINC) {
-                fprintf(OUT_FILE, "\tincq\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            if (op == A_PREDEC) {
-                fprintf(OUT_FILE, "\tdecq\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            fprintf(OUT_FILE, "\tmovq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
-            if (op == A_POSTINC) {
-                fprintf(OUT_FILE, "\tincq\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            if (op == A_POSTDEC) {
-                fprintf(OUT_FILE, "\tdecq\t%d(%%rbp)\n", SYM_TAB[id].posn);
-            }
-            break;
-        default:
-            fatald("Bad type in cg_load_local_sym()", SYM_TAB[id].ptype);
+
+    if (cg_type_size(SYM_TAB[id].ptype) == 8) {
+
+        if (op == A_PREINC) {
+            fprintf(OUT_FILE, "\tincq\t%d(%%rbp)\n", SYM_TAB[id].posn);
+        }
+        if (op == A_PREDEC) {
+            fprintf(OUT_FILE, "\tdecq\t%d(%%rbp)\n", SYM_TAB[id].posn);
+        }
+        fprintf(OUT_FILE, "\tmovq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
+        if (op == A_POSTINC) {
+            fprintf(OUT_FILE, "\tincq\t%d(%%rbp)\n", SYM_TAB[id].posn);
+        }
+        if (op == A_POSTDEC) {
+            fprintf(OUT_FILE, "\tdecq\t%d(%%rbp)\n", SYM_TAB[id].posn);
+        }
+    } else {
+        switch (SYM_TAB[id].ptype) {
+            case P_CHAR:
+                if (op == A_PREINC) {
+                    fprintf(OUT_FILE, "\tincb\t%d(%%rbp)\n", SYM_TAB[id].posn);
+                }
+                if (op == A_PREDEC) {
+                    fprintf(OUT_FILE, "\tdecb\t%d(%%rbp)\n", SYM_TAB[id].posn);
+                }
+                fprintf(OUT_FILE, "\tmovzbq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
+                if (op == A_POSTINC) {
+                    fprintf(OUT_FILE, "\tincb\t%d(%%rbp)\n", SYM_TAB[id].posn);
+                }
+                if (op == A_POSTDEC) {
+                    fprintf(OUT_FILE, "\tdecb\t%d(%%rbp)\n", SYM_TAB[id].posn);
+                }
+                break;
+            case P_INT:
+                if (op == A_PREINC) {
+                    fprintf(OUT_FILE, "\tincl\t%d(%%rbp)\n", SYM_TAB[id].posn);
+                }
+                if (op == A_PREDEC) {
+                    fprintf(OUT_FILE, "\tdecl\t%d(%%rbp)\n", SYM_TAB[id].posn);
+                }
+                fprintf(OUT_FILE, "\tmovslq\t%d(%%rbp), %s\n", SYM_TAB[id].posn, reglist[reg]);
+                if (op == A_POSTINC) {
+                    fprintf(OUT_FILE, "\tincl\t%d(%%rbp)\n", SYM_TAB[id].posn);
+                }
+                if (op == A_POSTDEC) {
+                    fprintf(OUT_FILE, "\tdecl\t%d(%%rbp)\n", SYM_TAB[id].posn);
+                }
+                break;
+            default:
+                fatald("Bad type in cg_load_local_sym()", SYM_TAB[id].ptype);
+        }
     }
     return reg;
 }
@@ -384,51 +371,61 @@ void cg_copy_arg(int reg, int arg_pos) {
 }
 
 int cg_store_global_sym(int reg, int id) {
-    switch (SYM_TAB[id].ptype) {
-        case P_CHAR:
-            fprintf(OUT_FILE, "\tmovb\t%s, %s(%%rip)\n", breglist[reg], SYM_TAB[id].name);
-            break;
-        case P_INT:
-            fprintf(OUT_FILE, "\tmovl\t%s, %s(%%rip)\n", dreglist[reg], SYM_TAB[id].name);
-            break;
-        case P_LONG:
-        case P_CHARPTR:
-        case P_INTPTR:
-        case P_LONGPTR:
-            fprintf(OUT_FILE, "\tmovq\t%s, %s(%%rip)\n", reglist[reg], SYM_TAB[id].name);
-            break;
-        default:
-            fatald("Bad type in cg_store_global_sym()", SYM_TAB[id].ptype);
+    Symbol *sym = &SYM_TAB[id];
+
+    if (cg_type_size(sym->ptype) == 8) {
+        fprintf(OUT_FILE, "\tmovq\t%s, %s(%%rip)\n", reglist[reg], sym->name);
+    } else {
+        switch (sym->ptype) {
+            case P_CHAR:
+                fprintf(OUT_FILE, "\tmovb\t%s, %s(%%rip)\n", breglist[reg], sym->name);
+                break;
+            case P_INT:
+                fprintf(OUT_FILE, "\tmovl\t%s, %s(%%rip)\n", dreglist[reg], sym->name);
+                break;
+            default:
+                fatald("Bad type in cg_store_global_sym()", sym->ptype);
+        }
     }
     return reg;
 }
 
 int cg_store_local_sym(int reg, int id) {
     Symbol *sym = &SYM_TAB[id];
-    switch (SYM_TAB[id].ptype) {
-        case P_CHAR:
-            fprintf(OUT_FILE, "\tmovb\t%s, %d(%%rbp)\n", breglist[reg], sym->posn);
-            break;
-        case P_INT:
-            fprintf(OUT_FILE, "\tmovl\t%s, %d(%%rbp)\n", dreglist[reg], sym->posn);
-            break;
-        case P_LONG:
-        case P_CHARPTR:
-        case P_INTPTR:
-        case P_LONGPTR:
-            fprintf(OUT_FILE, "\tmovq\t%s, %d(%%rbp)\n", reglist[reg], SYM_TAB[id].posn);
-            break;
-        default:
-            fatald("Bad type in cg_store_local_sym()", SYM_TAB[id].ptype);
+
+    if (cg_type_size(sym->ptype) == 8) {
+        fprintf(OUT_FILE, "\tmovq\t%s, %d(%%rbp)\n", reglist[reg], sym->posn);
+    } else {
+        switch (sym->ptype) {
+            case P_CHAR:
+                fprintf(OUT_FILE, "\tmovb\t%s, %d(%%rbp)\n", breglist[reg], sym->posn);
+                break;
+            case P_INT:
+                fprintf(OUT_FILE, "\tmovl\t%s, %d(%%rbp)\n", dreglist[reg], sym->posn);
+                break;
+            default:
+                fatald("Bad type in cg_store_local_sym()", sym->ptype);
+        }
     }
     return reg;
 }
 
 int cg_type_size(int type) {
-    if (type < P_NONE || type > P_LONGPTR) {
-        fatal("Bad type in gen_type_size()");
+    if (is_ptr(type)) {
+        return 8;
     }
-    return type_size[type];
+    switch (type) {
+        case P_CHAR:
+            return 1;
+        case P_INT:
+            return 4;
+        case P_LONG:
+            return 8;
+        default:
+            fatald("Bad type in cg_type_size()", type);
+    }
+
+    return 0; // keep -Wall happy
 }
 
 void cg_new_sym(int id) {
@@ -443,10 +440,10 @@ void cg_new_sym(int id) {
     fprintf(OUT_FILE,
             "\t.globl\t%s\n"
             "%s:",
-            SYM_TAB[id].name,
-            SYM_TAB[id].name);
+            sym->name,
+            sym->name);
 
-    int size = cg_type_size(SYM_TAB[id].ptype);
+    int size = cg_type_size(sym->ptype);
     if (sym->stype == S_ARRAY) {
         size = cg_type_size((value_at(sym->ptype)));
     }
@@ -550,14 +547,16 @@ int cg_address(int id) {
 }
 
 int cg_deref(int reg, int type) {
-    switch (type) {
-        case P_CHARPTR:
+    int size = cg_type_size(value_at(type));
+
+    switch (size) {
+        case 1:
             fprintf(OUT_FILE, "\tmovzbq\t(%s), %s\n", reglist[reg], reglist[reg]);
             break;
-        case P_INTPTR:
+        case 4:
             fprintf(OUT_FILE, "\tmovslq\t(%s), %s\n", reglist[reg], reglist[reg]);
             break;
-        case P_LONGPTR:
+        case 8:
             fprintf(OUT_FILE, "\tmovq\t(%s), %s\n", reglist[reg], reglist[reg]);
             break;
         default:
@@ -568,14 +567,16 @@ int cg_deref(int reg, int type) {
 }
 
 int cg_store_deref(int r1, int r2, int type) {
-    switch (type) {
-        case P_CHAR:
+    int size = cg_type_size(type);
+
+    switch (size) {
+        case 1:
             fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[r1]);
             break;
-        case P_INT:
+        case 4:
             fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[r1]);
             break;
-        case P_LONG:
+        case 8:
             fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[r1]);
             break;
         default:

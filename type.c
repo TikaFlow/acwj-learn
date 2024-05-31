@@ -6,65 +6,27 @@
 #include "decl.h"
 
 int is_int(int type) {
-    if (type >= P_CHAR && type <= P_LONG) {
-        return TRUE;
-    }
-    return FALSE;
+    return !(type & 0xf);
 }
 
 int is_ptr(int type) {
-    if (type >= P_VOIDPTR && type <= P_LONGPTR) {
-        return TRUE;
-    }
-    return FALSE;
+    return type & 0xf;
 }
 
 int pointer_to(int type) {
-    int new_type;
-
-    switch (type) {
-        case P_VOID:
-            new_type = P_VOIDPTR;
-            break;
-        case P_CHAR:
-            new_type = P_CHARPTR;
-            break;
-        case P_INT:
-            new_type = P_INTPTR;
-            break;
-        case P_LONG:
-            new_type = P_LONGPTR;
-            break;
-        default:
-            new_type = P_NONE;
-            fatald("Unrecognized in pointer_to: unknown type", type);
+    if ((type & 0xf) == 0xf) {
+        fatald("The pointer is too deep at pointer_to(), type", type);
     }
 
-    return new_type;
+    return type + 1;
 }
 
 int value_at(int type) {
-    int new_type;
-
-    switch (type) {
-        case P_VOIDPTR:
-            new_type = P_VOID;
-            break;
-        case P_CHARPTR:
-            new_type = P_CHAR;
-            break;
-        case P_INTPTR:
-            new_type = P_INT;
-            break;
-        case P_LONGPTR:
-            new_type = P_LONG;
-            break;
-        default:
-            new_type = P_NONE;
-            fatald("Unrecognized in value_at: unknown type", type);
+    if (!(type & 0xf)) {
+        fatald("Unable to dereference a non-pointer at value_at(), type", type);
     }
 
-    return new_type;
+    return type - 1;
 }
 
 ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
