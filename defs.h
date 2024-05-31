@@ -24,6 +24,9 @@
 // true and false
 #define TRUE 1
 #define FALSE 0
+// align direction
+#define ASC 1
+#define DESC (-1)
 // when not found, return this value - function that returns index
 #define NOT_FOUND (-1)
 // default output file name
@@ -77,6 +80,7 @@ enum {
     T_WHILE,
     T_FOR,
     T_RETURN,
+    T_STRUCT,
     // structures
     T_INTLIT,
     T_STRLIT,
@@ -147,7 +151,8 @@ enum {
     P_VOID = 0x10,
     P_CHAR = 0x20,
     P_INT = 0x30,
-    P_LONG = 0x40
+    P_LONG = 0x40,
+    P_STRUCT = 0x50
 };
 
 // struct type
@@ -159,9 +164,12 @@ enum {
 
 // storage class: global or local
 enum {
-    C_GLOBAL = 1,
+    C_NONE,
+    C_GLOBAL,
     C_LOCAL,
-    C_PARAM
+    C_PARAM,
+    C_STRUCT,
+    C_MEMBER
 };
 // AST node struct
 struct ASTnode {
@@ -184,7 +192,8 @@ struct Symbol {
     char *name;
     int ptype;
     int stype;
-    int class; // global or local
+    Symbol *ctype; // for struct/union, pointer to it's type
+    int class; // global/local/param/struct/union/member
     union {
         int end_label;
         int size;

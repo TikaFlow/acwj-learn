@@ -206,6 +206,11 @@ static int keyword(char *s) {
                 return T_RETURN;
             }
             break;
+        case 's':
+            if (!strcmp(s, "struct")) {
+                return T_STRUCT;
+            }
+            break;
         case 'v':
             if (!strcmp(s, "void")) {
                 return T_VOID;

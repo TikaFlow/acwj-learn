@@ -39,6 +39,8 @@ int gen_new_str(char *str);
 
 int gen_type_size(int type);
 
+int gen_align(int type, int offset, int direction);
+
 // cg.c
 void cg_free_regs();
 
@@ -118,6 +120,8 @@ int cg_sal(int r1, int r2);
 
 int cg_sar(int r1, int r2);
 
+int cg_align(int type, int offset, int direction);
+
 // expr.c
 ASTnode *func_call();
 
@@ -144,26 +148,32 @@ void reset_local_syms();
 
 void reset_sym_table();
 
-Symbol *find_global(char *s);
+Symbol *find_global_sym(char *s);
 
-Symbol *find_local(char *s);
+Symbol *find_local_sym(char *s);
 
-Symbol *find_composite(char *s);
+Symbol *find_struct_sym(char *s);
+
+Symbol *find_member_sym(char *s);
 
 Symbol *find_sym(char *s);
 
-Symbol *add_global_sym(char *name, int ptype, int stype, int class, int size);
+Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
-Symbol *add_local_sym(char *name, int ptype, int stype, int class, int size);
+Symbol *add_local_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
-Symbol *add_param_sym(char *name, int ptype, int stype, int class, int size);
+Symbol *add_param_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+
+Symbol *add_struct_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+
+Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
 // decl.c
-int parse_type();
+int parse_type(Symbol **ctype);
 
-Symbol *declare_var(int type, int class);
+Symbol *declare_var(int type,Symbol *ctype,int class);
 
-void multi_declare_var(int type, int class);
+void multi_declare_var(int type,Symbol *ctype, int class);
 
 ASTnode *declare_func(int type);
 
@@ -179,5 +189,7 @@ int pointer_to(int type);
 int value_at(int type);
 
 ASTnode *modify_type(ASTnode *tree, int rtype, int op);
+
+int size_of_type(int type, Symbol *ctype);
 
 #endif //ACWJ_LEARN_DEL_H

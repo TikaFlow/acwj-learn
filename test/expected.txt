@@ -175,3 +175,5 @@ Argument 0 is ./out
 Argument 1 is abc
 Argument 2 is def
 Argument 3 is hello_abc
+=================== test/31-struct1.c ===================
+Please watch debug info...

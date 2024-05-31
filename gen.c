@@ -229,3 +229,7 @@ int gen_new_str(char *str) {
 int gen_type_size(int type) {
     return cg_type_size(type);
 }
+
+int gen_align(int type, int offset, int direction){
+    return cg_align(type, offset, direction);
+}

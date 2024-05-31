@@ -39,7 +39,7 @@ static ASTnode *param_list() {
 ASTnode *func_call() {
     Symbol *func;
 
-    if (!(func = find_global(TEXT)) || func->stype != S_FUNCTION) {
+    if (!(func = find_global_sym(TEXT)) || func->stype != S_FUNCTION) {
         fatals("Undeclared function", TEXT);
     }
     match(T_LPAREN, "(");

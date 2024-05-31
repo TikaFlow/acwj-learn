@@ -29,16 +29,24 @@ int value_at(int type) {
     return type - 1;
 }
 
+int size_of_type(int ptype, Symbol *ctype) {
+    return ptype == P_STRUCT ? ctype->size : gen_type_size(ptype);
+}
+
 ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
     int lsize, rsize, ltype = tree->type;
+
+    if (ltype == P_STRUCT || rtype == P_STRUCT) {
+        fatal("I don't know how to deal with it yet");
+    }
 
     if (is_int(ltype) && is_int(rtype)) {
         if (ltype == rtype) {
             return tree;
         }
 
-        lsize = gen_type_size(ltype);
-        rsize = gen_type_size(rtype);
+        lsize = size_of_type(ltype, NULL); // TODO need fix this
+        rsize = size_of_type(rtype, NULL);
 
         if (lsize > rsize) {
             return NULL;

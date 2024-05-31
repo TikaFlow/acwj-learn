@@ -51,6 +51,23 @@ static void cg_set_stack_offset() {
     stack_offset = (local_offset + 0xF) & ~0xF;
 }
 
+int cg_align(int type, int offset, int direction) {
+    int align = 4;
+
+    switch (type) {
+        case P_CHAR:
+            return offset;
+        case P_INT:
+        case P_LONG:
+            break;
+        default:
+            fatald("Bad type in cg_align()", type);
+    }
+
+    offset = (offset + (align - 1) * direction) & ~(align - 1);
+    return offset;
+}
+
 void cg_free_regs() {
     for (int i = 0; i < 4; i++) {
         freereg[i] = 1;
@@ -436,9 +453,9 @@ void cg_new_sym(Symbol *sym) {
             sym->name,
             sym->name);
 
-    int size = cg_type_size(sym->ptype);
+    int size = size_of_type(sym->ptype, sym->ctype);
     if (sym->stype == S_ARRAY) {
-        size = cg_type_size((value_at(sym->ptype)));
+        size = size_of_type(value_at(sym->ptype), sym->ctype); // howto? if a struct array
     }
 
     for (int i = 0; i < sym->size; i++) {
@@ -456,7 +473,9 @@ void cg_new_sym(Symbol *sym) {
                 fprintf(OUT_FILE, "\t.quad\t0\n");
                 break;
             default:
-                fatald("Bad type size in cg_new_sym()", size);
+                for (int i = 0; i < size; ++i) {
+                    fprintf(OUT_FILE, "\t.byte\t0\n");
+                }
         }
     }
 }

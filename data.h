@@ -30,7 +30,8 @@ extern_ char TEXT[MAX_TEXT + 1];
 extern_ Symbol *GLOBAL_HEAD, *GLOBAL_TAIL;
 extern_ Symbol *LOCAL_HEAD, *LOCAL_TAIL;
 extern_ Symbol *PARAM_HEAD, *PARAM_TAIL;
-extern_ Symbol *COMPOSITE_HEAD, *COMPOSITE_TAIL;
+extern_ Symbol *STRUCT_HEAD, *STRUCT_TAIL;
+extern_ Symbol *MEMBER_HEAD, *MEMBER_TAIL;
 // current function pointer
 extern_ Symbol *FUNC_PTR;
 

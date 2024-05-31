@@ -89,14 +89,15 @@ static ASTnode *return_stmt() {
 }
 
 static ASTnode *single_stmt() {
+    Symbol *ctype;
     int type;
     switch (TOKEN.token_type) {
         case T_CHAR:
         case T_INT:
         case T_LONG:
-            type = parse_type();
+            type = parse_type(&ctype);
             match(T_IDENT, "identifier");
-            multi_declare_var(type, C_LOCAL);
+            multi_declare_var(type,ctype, C_LOCAL);
             return NULL;
         case T_IF:
             return if_stmt();
