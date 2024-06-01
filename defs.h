@@ -81,6 +81,7 @@ enum {
     T_FOR,
     T_RETURN,
     T_STRUCT,
+    T_UNION,
     // structures
     T_INTLIT,
     T_STRLIT,
@@ -95,12 +96,6 @@ enum {
     T_COMMA,
     T_DOT,
     T_ARROW
-};
-
-// token struct
-struct Token {
-    int token_type;
-    long int_value;
 };
 
 // AST node type
@@ -154,11 +149,13 @@ enum {
     P_CHAR = 0x20,
     P_INT = 0x30,
     P_LONG = 0x40,
-    P_STRUCT = 0x50
+    P_STRUCT = 0x50,
+    P_UNION = 0x60
 };
 
 // struct type
 enum {
+    S_NONE,
     S_VARIABLE,
     S_FUNCTION,
     S_ARRAY
@@ -171,8 +168,16 @@ enum {
     C_LOCAL,
     C_PARAM,
     C_STRUCT,
+    C_UNION,
     C_MEMBER
 };
+
+// token struct
+struct Token {
+    int token_type;
+    long int_value;
+};
+
 // AST node struct
 struct ASTnode {
     int op;

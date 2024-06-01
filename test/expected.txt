@@ -183,3 +183,14 @@ A
 78187493520
 78187505930
 78187481110
+=================== test/33-union.c ===================
+A
+66
+66
+The next two depend on the endian of the platform
+66
+66
+w is a
+x is 97
+y is 97
+z is 97

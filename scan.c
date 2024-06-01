@@ -129,9 +129,31 @@ static long scan_int(int c) {
     int k;
     long val = 0;
 
-    while ((k = char_pos("0123456789", c)) >= 0) {
-        val = val * 10 + k;
+    if (c == '0') {
         c = next();
+        if (c == 'x' || c == 'X') { // hexadecimal
+            c = next();
+            while ((k = char_pos("0123456789abcdefABCDEF", c)) >= 0) {
+                val = (val << 4) + (k > 0xf ? k - 6 : k);
+                c = next();
+            }
+        } else if (c == 'b' || c == 'B') { // binary
+            c = next();
+            while ((k = char_pos("01", c)) >= 0) {
+                val = (val << 1) + k;
+                c = next();
+            }
+        } else { // octal
+            while ((k = char_pos("01234567", c)) >= 0) {
+                val = (val << 3) + k;
+                c = next();
+            }
+        }
+    } else { // decimal
+        while ((k = char_pos("0123456789", c)) >= 0) {
+            val = val * 10 + k;
+            c = next();
+        }
     }
 
     put_back(c);
@@ -210,6 +232,11 @@ static int keyword(char *s) {
         case 's':
             if (!strcmp(s, "struct")) {
                 return T_STRUCT;
+            }
+            break;
+        case 'u':
+            if (!strcmp(s, "union")) {
+                return T_UNION;
             }
             break;
         case 'v':
@@ -376,6 +403,7 @@ int scan() {
             if (isdigit(c)) {
                 TOKEN.int_value = scan_int(c);
                 TOKEN.token_type = T_INTLIT;
+                // TODO postfix of integer?
                 break;
             }
             if (isalpha(c) || c == '_') {

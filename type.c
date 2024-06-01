@@ -30,13 +30,13 @@ int value_at(int type) {
 }
 
 int size_of_type(int ptype, Symbol *ctype) {
-    return ptype == P_STRUCT ? ctype->size : gen_type_size(ptype);
+    return (ptype == P_STRUCT || ptype == P_UNION) ? ctype->size : gen_type_size(ptype);
 }
 
 ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
     int lsize, rsize, ltype = tree->type;
 
-    if (ltype == P_STRUCT || rtype == P_STRUCT) {
+    if (ltype == P_STRUCT || ltype == P_UNION || rtype == P_STRUCT || rtype == P_UNION) {
         fatal("I don't know how to deal with it yet");
     }
 

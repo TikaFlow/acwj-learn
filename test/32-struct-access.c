@@ -14,7 +14,7 @@ int main() {
     printf("%d\n", var.x);
     var.y = 65; // ASCII code for 'A'
     printf("%c\n", var.y);
-    var.z = 78187493520; // decimal value is 78187493520
+    var.z = 0x1234567890; // decimal value is 78187493520
     printf("%ld\n", var.z);
 
     result = var.x + var.y + var.z;

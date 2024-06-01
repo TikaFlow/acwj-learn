@@ -5,7 +5,7 @@
 #include "data.h"
 #include "decl.h"
 
-static Symbol *declare_struct();
+static Symbol *declare_composite(int ptype);
 
 int parse_type(Symbol **ctype) {
     int type = 0;
@@ -24,13 +24,17 @@ int parse_type(Symbol **ctype) {
             break;
         case T_STRUCT:
             type = P_STRUCT;
-            *ctype = declare_struct();
+            *ctype = declare_composite(P_STRUCT);
+            break;
+        case T_UNION:
+            type = P_UNION;
+            *ctype = declare_composite(P_UNION);
             break;
         default:
             fatald("Illegal type, token", TOKEN.token_type);
     }
 
-    if (type != P_STRUCT) {
+    if (type != P_STRUCT && type != P_UNION) {
         scan();
     }
 
@@ -209,20 +213,26 @@ void multi_declare_var(int type, Symbol *ctype, int class) {
     }
 }
 
-static Symbol *declare_struct() {
+static Symbol *declare_composite(int ptype) {
     Symbol *member, *ctype = NULL;
     int offset = 0;
 
-    match(T_STRUCT, "struct");
+    // skip struct/union keyword
+    scan();
 
+    // if a named composite
     if (TOKEN.token_type == T_IDENT) {
-        ctype = find_struct_sym(TEXT);
+        if (ptype == P_STRUCT) {
+            ctype = find_struct_sym(TEXT);
+        } else {
+            ctype = find_union_sym(TEXT);
+        }
         match(T_IDENT, "identifier");
     }
 
     if (TOKEN.token_type != T_LBRACE) {
         if (!ctype) {
-            fatals("Unknown struct type", TEXT);
+            fatals("Unknown struct/union type", TEXT);
         }
         return ctype;
     }
@@ -231,7 +241,11 @@ static Symbol *declare_struct() {
     if (ctype) {
         fatals("Struct type already defined", TEXT);
     }
-    ctype = add_struct_sym(TEXT, P_STRUCT, NULL, C_NONE, 0);
+    if (ptype == P_STRUCT) {
+        ctype = add_struct_sym(TEXT, P_STRUCT, NULL, S_NONE, 0);
+    } else {
+        ctype = add_union_sym(TEXT, P_UNION, NULL, S_NONE, 0);
+    }
     match(T_LBRACE, "{");
     declare_var_list(NULL, C_MEMBER, T_SEMI, T_RBRACE);
     match(T_RBRACE, "}");
@@ -239,15 +253,25 @@ static Symbol *declare_struct() {
     ctype->first = MEMBER_HEAD;
     MEMBER_HEAD = MEMBER_TAIL = NULL;
 
-    for (member = ctype->first; member; member = member->next) {
-        member->posn = gen_align(member->ptype, offset, ASC);
-        offset = member->posn + size_of_type(member->ptype, member->ctype);
+    if (ptype == P_STRUCT) { // for struct
+        for (member = ctype->first; member; member = member->next) {
+            member->posn = gen_align(member->ptype, offset, ASC);
+            offset = member->posn + size_of_type(member->ptype, member->ctype);
+        }
+        ctype->size = offset;
+    } else { // for union
+        int cur_size, max_size = 0;
+        for (member = ctype->first; member; member = member->next) {
+            member->posn = 0;
+            cur_size = size_of_type(member->ptype, member->ctype);
+            max_size = max_size > cur_size ? max_size : cur_size;
+        }
+        ctype->size = max_size;
     }
-    ctype->size = offset;
 
     // DEBUG START
     // print struct info // TODO remove it later
-    printf("[DEBUG]: struct %s's size is %d\n", ctype->name, ctype->size);
+    printf("[DEBUG]: struct/union %s's size is %d\n", ctype->name, ctype->size);
     for (Symbol *debug_member = ctype->first; debug_member; debug_member = debug_member->next) {
         printf("[DEBUG]: offset of %s.%s is %d\n", ctype->name, debug_member->name, debug_member->posn);
     }
@@ -265,7 +289,7 @@ void declare_global() {
     while (TRUE) {
         type = parse_type(&ctype);
 
-        if (type == P_STRUCT && TOKEN.token_type == T_SEMI) {
+        if ((type == P_STRUCT || type == P_UNION) && TOKEN.token_type == T_SEMI) {
             match(T_SEMI, ";");
             continue;
         }
@@ -283,7 +307,7 @@ void declare_global() {
                 fprintf(stdout, "\n\n");
             }
 
-            gen_ast(tree, NO_LABEL, 0);
+            gen_ast(tree, NO_LABEL, A_NONE);
             reset_local_syms();
         } else {
             multi_declare_var(type, ctype, C_GLOBAL);

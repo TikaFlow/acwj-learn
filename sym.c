@@ -10,6 +10,7 @@ static void add_sym(Symbol **head, Symbol **tail, Symbol *sym);
 void reset_global_syms() {
     GLOBAL_HEAD = GLOBAL_TAIL = NULL;
     STRUCT_HEAD = STRUCT_TAIL = NULL;
+    UNION_HEAD = UNION_TAIL = NULL;
     MEMBER_HEAD = MEMBER_TAIL = NULL;
 }
 
@@ -77,6 +78,13 @@ Symbol *add_struct_sym(char *name, int ptype, Symbol *ctype, int stype, int size
     return sym;
 }
 
+Symbol *add_union_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
+    Symbol *sym = new_sym(name, ptype, ctype, stype, C_UNION, size, 0);
+    add_sym(&UNION_HEAD, &UNION_TAIL, sym);
+
+    return sym;
+}
+
 Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
     Symbol *sym = new_sym(name, ptype, ctype, stype, C_MEMBER, size, 0);
     add_sym(&MEMBER_HEAD, &MEMBER_TAIL, sym);
@@ -131,6 +139,10 @@ Symbol *find_local_sym(char *s) {
 
 Symbol *find_struct_sym(char *s) {
     return find_sym_in_list(s, STRUCT_HEAD);
+}
+
+Symbol *find_union_sym(char *s) {
+    return find_sym_in_list(s, UNION_HEAD);
 }
 
 Symbol *find_member_sym(char *s) {

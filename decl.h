@@ -25,7 +25,7 @@ void dump_ast(ASTnode *n, int label, int level);
 // gen.c
 int gen_label();
 
-int gen_ast(ASTnode *node, int reg, int parentASTop);
+int gen_ast(ASTnode *node, int reg, int parent_op);
 
 void gen_pre_amble();
 
@@ -154,6 +154,8 @@ Symbol *find_local_sym(char *s);
 
 Symbol *find_struct_sym(char *s);
 
+Symbol *find_union_sym(char *s);
+
 Symbol *find_member_sym(char *s);
 
 Symbol *find_sym(char *s);
@@ -166,14 +168,16 @@ Symbol *add_param_sym(char *name, int ptype, Symbol *ctype, int stype, int size)
 
 Symbol *add_struct_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
+Symbol *add_union_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+
 Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
 // decl.c
 int parse_type(Symbol **ctype);
 
-Symbol *declare_var(int type,Symbol *ctype,int class);
+Symbol *declare_var(int type, Symbol *ctype, int class);
 
-void multi_declare_var(int type,Symbol *ctype, int class);
+void multi_declare_var(int type, Symbol *ctype, int class);
 
 ASTnode *declare_func(int type);
 

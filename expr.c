@@ -82,16 +82,16 @@ static ASTnode *access_member(int with_pointer) {
     if (!(var = find_sym(TEXT)) || var->stype != S_VARIABLE) {
         fatals("Unknown variable", TEXT);
     }
-    if (!with_pointer && var->ptype != P_STRUCT) {
+    if (!with_pointer && var->ptype != P_STRUCT && var->ptype != P_UNION) {
         fatals("Can't access member of non-struct type", TEXT);
     }
-    if (with_pointer && var->ptype != pointer_to(P_STRUCT)) {
+    if (with_pointer && var->ptype != pointer_to(P_STRUCT) && var->ptype != pointer_to(P_UNION)) {
         fatals("Can't access member of non-struct type", TEXT);
     }
 
     // get var's pointer
     if (with_pointer) {
-        left = make_ast_leaf(A_IDENT, pointer_to(P_STRUCT), var, 0);
+        left = make_ast_leaf(A_IDENT, pointer_to(var->ptype), var, 0);
     } else {
         left = make_ast_leaf(A_ADDR, var->ptype, var, 0);
     }
@@ -247,7 +247,7 @@ static ASTnode *prefix() {
             tree = prefix();
 
             tree->rvalue = TRUE;
-            tree = modify_type(tree, P_INT, 0);
+            tree = modify_type(tree, P_INT, P_NONE);
             tree = make_ast_unary(A_NEGATE, tree->type, tree, NULL, 0);
             break;
         case T_INVERT:
@@ -319,7 +319,7 @@ ASTnode *bin_expr(int ptp) {
         if (ast_op == A_ASSIGN) {
             right->rvalue = TRUE;
 
-            right = modify_type(right, left->type, 0);
+            right = modify_type(right, left->type, P_NONE);
             if (!right) {
                 fatal("Incompatible expression in assignment");
             }

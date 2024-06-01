@@ -79,7 +79,7 @@ static ASTnode *return_stmt() {
     match(T_RETURN, "return");
 
     tree = bin_expr(0);
-    tree = modify_type(tree, FUNC_PTR->ptype, 0);
+    tree = modify_type(tree, FUNC_PTR->ptype, P_NONE);
     if (!tree) {
         fatal("Incompatible return type");
     }
