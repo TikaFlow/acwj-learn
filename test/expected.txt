@@ -177,3 +177,9 @@ Argument 2 is def
 Argument 3 is hello_abc
 =================== test/31-struct1.c ===================
 Please watch debug info...
+=================== test/32-struct-access.c ===================
+12345
+A
+78187493520
+78187505930
+78187481110

@@ -74,16 +74,67 @@ static ASTnode *access_array() {
     return left;
 }
 
+static ASTnode *access_member(int with_pointer) {
+    ASTnode *left, *right;
+    Symbol *var, *ctype, *member;
+
+    // check variable type
+    if (!(var = find_sym(TEXT)) || var->stype != S_VARIABLE) {
+        fatals("Unknown variable", TEXT);
+    }
+    if (!with_pointer && var->ptype != P_STRUCT) {
+        fatals("Can't access member of non-struct type", TEXT);
+    }
+    if (with_pointer && var->ptype != pointer_to(P_STRUCT)) {
+        fatals("Can't access member of non-struct type", TEXT);
+    }
+
+    // get var's pointer
+    if (with_pointer) {
+        left = make_ast_leaf(A_IDENT, pointer_to(P_STRUCT), var, 0);
+    } else {
+        left = make_ast_leaf(A_ADDR, var->ptype, var, 0);
+    }
+    left->rvalue = TRUE;
+    ctype = var->ctype;
+
+    scan();
+    match(T_IDENT, "identifier");
+
+    // get member name
+    for (member = ctype->first; member; member = member->next) {
+        if (!strcmp(member->name, TEXT)) {
+            break;
+        }
+    }
+    if (!member) {
+        fatals("No member found in struct/union", TEXT);
+    }
+
+    // get member offset
+    right = make_ast_leaf(A_INTLIT, P_INT, NULL, member->posn);
+    // add offset to pointer
+    left = make_ast_node(A_ADD, pointer_to(member->ptype), left, NULL, right, NULL, 0);
+    // dereference pointer to get member value
+    left = make_ast_unary(A_DEREF, member->ptype, left, NULL, 0);
+
+    return left;
+}
+
 static ASTnode *postfix() {
     ASTnode *node;
     Symbol *var;
 
     scan();
-    if (TOKEN.token_type == T_LPAREN) {
-        return func_call();
-    }
-    if (TOKEN.token_type == T_LBRACKET) {
-        return access_array();
+    switch (TOKEN.token_type) {
+        case T_LPAREN:
+            return func_call();
+        case T_LBRACKET:
+            return access_array();
+        case T_DOT:
+            return access_member(FALSE);
+        case T_ARROW:
+            return access_member(TRUE);
     }
     // reject_token();
 
@@ -195,7 +246,7 @@ static ASTnode *prefix() {
             match(T_MINUS, "-");
             tree = prefix();
 
-            tree->rvalue = 1;
+            tree->rvalue = TRUE;
             tree = modify_type(tree, P_INT, 0);
             tree = make_ast_unary(A_NEGATE, tree->type, tree, NULL, 0);
             break;
@@ -203,14 +254,14 @@ static ASTnode *prefix() {
             match(T_INVERT, "~");
             tree = prefix();
 
-            tree->rvalue = 1;
+            tree->rvalue = TRUE;
             tree = make_ast_unary(A_INVERT, tree->type, tree, NULL, 0);
             break;
         case T_LOGNOT:
             match(T_LOGNOT, "!");
             tree = prefix();
 
-            tree->rvalue = 1;
+            tree->rvalue = TRUE;
             tree = make_ast_unary(A_LOGNOT, tree->type, tree, NULL, 0);
             break;
         case T_INC:
@@ -252,7 +303,7 @@ ASTnode *bin_expr(int ptp) {
         case T_RPAREN:
         case T_RBRACKET:
         case T_COMMA:
-            left->rvalue = 1;
+            left->rvalue = TRUE;
             return left;
         default:
             break;
@@ -266,7 +317,7 @@ ASTnode *bin_expr(int ptp) {
 
         ast_op = token_to_op(token_type);
         if (ast_op == A_ASSIGN) {
-            right->rvalue = 1;
+            right->rvalue = TRUE;
 
             right = modify_type(right, left->type, 0);
             if (!right) {
@@ -277,8 +328,8 @@ ASTnode *bin_expr(int ptp) {
             left = right;
             right = ltemp;
         } else {
-            left->rvalue = 1;
-            right->rvalue = 1;
+            left->rvalue = TRUE;
+            right->rvalue = TRUE;
 
             ltemp = modify_type(left, right->type, ast_op);
             rtemp = modify_type(right, left->type, ast_op);
@@ -302,13 +353,13 @@ ASTnode *bin_expr(int ptp) {
             case T_RPAREN:
             case T_RBRACKET:
             case T_COMMA:
-                left->rvalue = 1;
+                left->rvalue = TRUE;
                 return left;
             default:
                 break;
         }
     }
 
-    left->rvalue = 1;
+    left->rvalue = TRUE;
     return left;
 }

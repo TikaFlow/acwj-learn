@@ -14,7 +14,7 @@ enum {
     DATA_SECTION
 } cur_section = NO_SECTION;
 
-static int local_offset, stack_offset;
+static int local_offset, stack_offset, ALIGN = 0b11;
 static int freereg[FREE_REG_NUM];
 static char *breglist[] = {"%r10b", "%r11b", "%r12b", "%r13b", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static char *dreglist[] = {"%r10d", "%r11d", "%r12d", "%r13d", "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
@@ -52,20 +52,7 @@ static void cg_set_stack_offset() {
 }
 
 int cg_align(int type, int offset, int direction) {
-    int align = 4;
-
-    switch (type) {
-        case P_CHAR:
-            return offset;
-        case P_INT:
-        case P_LONG:
-            break;
-        default:
-            fatald("Bad type in cg_align()", type);
-    }
-
-    offset = (offset + (align - 1) * direction) & ~(align - 1);
-    return offset;
+    return type == P_CHAR ? offset : (offset + ALIGN * direction) & ~ALIGN;
 }
 
 void cg_free_regs() {

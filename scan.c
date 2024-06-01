@@ -79,6 +79,7 @@ static int skip() {
                     break;
                 default:
                     put_back(n);
+                    return c;
             }
         } else {
             break;
@@ -258,6 +259,9 @@ int scan() {
             if ((c = next()) == '-') {
                 TOKEN.token_type = T_DEC;
                 break;
+            } else if (c == '>') {
+                TOKEN.token_type = T_ARROW;
+                break;
             }
             put_back(c);
             TOKEN.token_type = T_MINUS;
@@ -291,6 +295,9 @@ int scan() {
             break;
         case ',':
             TOKEN.token_type = T_COMMA;
+            break;
+        case '.':
+            TOKEN.token_type = T_DOT;
             break;
         case '~':
             TOKEN.token_type = T_INVERT;

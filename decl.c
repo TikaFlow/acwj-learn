@@ -211,7 +211,7 @@ void multi_declare_var(int type, Symbol *ctype, int class) {
 
 static Symbol *declare_struct() {
     Symbol *member, *ctype = NULL;
-    int offset;
+    int offset = 0;
 
     match(T_STRUCT, "struct");
 
@@ -236,14 +236,12 @@ static Symbol *declare_struct() {
     declare_var_list(NULL, C_MEMBER, T_SEMI, T_RBRACE);
     match(T_RBRACE, "}");
 
-    member = ctype->first = MEMBER_HEAD;
+    ctype->first = MEMBER_HEAD;
     MEMBER_HEAD = MEMBER_TAIL = NULL;
 
-    member->posn = 0;
-    offset = size_of_type(member->ptype, member->ctype);
-    for (member = member->next; member; member = member->next) {
+    for (member = ctype->first; member; member = member->next) {
         member->posn = gen_align(member->ptype, offset, ASC);
-        offset += size_of_type(member->ptype, member->ctype);
+        offset = member->posn + size_of_type(member->ptype, member->ctype);
     }
     ctype->size = offset;
 
