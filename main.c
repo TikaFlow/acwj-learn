@@ -196,7 +196,8 @@ int main(int argc, char *argv[]) {
 
     while (i < argc) {
         // compile
-        asm_file = do_compile(argv[i++]);
+        IN_FILE_NAME = argv[i++];
+        asm_file = do_compile(IN_FILE_NAME);
 
         if (FLAG_c || !FLAG_S) {
             // assembly

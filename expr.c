@@ -125,6 +125,11 @@ static ASTnode *postfix() {
     ASTnode *node;
     Symbol *var;
 
+    if ((var = find_enum_val_sym(TEXT))) {
+        match(T_IDENT, "identifier");
+        return make_ast_leaf(A_INTLIT, P_INT, NULL, var->posn);
+    }
+
     scan();
     switch (TOKEN.token_type) {
         case T_LPAREN:

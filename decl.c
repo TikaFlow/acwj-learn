@@ -7,20 +7,30 @@
 
 static Symbol *declare_composite(int ptype);
 
+static void declare_enum();
+
+static int declare_typedef(Symbol **ctype);
+
+static int type_of_typedef(char *name, Symbol **ctype);
+
 int parse_type(Symbol **ctype) {
-    int type = 0;
+    int type = 0, can_no_var = FALSE;
     switch (TOKEN.token_type) {
         case T_VOID:
             type = P_VOID;
+            match(T_VOID, "void");
             break;
         case T_CHAR:
             type = P_CHAR;
+            match(T_CHAR, "char");
             break;
         case T_INT:
             type = P_INT;
+            match(T_INT, "int");
             break;
         case T_LONG:
             type = P_LONG;
+            match(T_LONG, "long");
             break;
         case T_STRUCT:
             type = P_STRUCT;
@@ -30,12 +40,20 @@ int parse_type(Symbol **ctype) {
             type = P_UNION;
             *ctype = declare_composite(P_UNION);
             break;
+        case T_ENUM:
+            type = P_INT;
+            declare_enum();
+            can_no_var = TRUE;
+            break;
+        case T_TYPEDEF:
+            type = declare_typedef(ctype);
+            can_no_var = TRUE;
+            break;
+        case T_IDENT:
+            type = type_of_typedef(TEXT, ctype);
+            break;
         default:
             fatald("Illegal type, token", TOKEN.token_type);
-    }
-
-    if (type != P_STRUCT && type != P_UNION) {
-        scan();
     }
 
     while (TRUE) {
@@ -43,7 +61,18 @@ int parse_type(Symbol **ctype) {
             break;
         }
         type = pointer_to(type);
+        can_no_var = FALSE;
         scan();
+    }
+
+    // No variable name follows
+    if (TOKEN.token_type == T_SEMI) {
+        // not a variable declaration, but only a struct/union/enum/typedef definition
+        if (type == P_STRUCT || type == P_UNION || can_no_var) {
+            type = P_NONE;
+        } else {
+            fatal("Variable name expected");
+        }
     }
 
     return type;
@@ -133,10 +162,16 @@ static int declare_var_list(Symbol *func, int class, int separate_token, int end
 
         param_cnt++;
 
-        if (TOKEN.token_type == separate_token) {
-            match(separate_token, "separator");
-        } else if (TOKEN.token_type != end_token) {
-            fatald("Expected a separator or end token, but occurred", TOKEN.token_type);
+        if (TOKEN.token_type == end_token) {
+            // if a struct or union
+            if (!func) {
+                warning("No semicolon at end of struct or union");
+            }
+            break;
+        }
+        match(separate_token, "separator");
+        if (TOKEN.token_type == end_token) {
+            break;
         }
     }
 
@@ -269,16 +304,114 @@ static Symbol *declare_composite(int ptype) {
         ctype->size = max_size;
     }
 
+#ifdef DEBUG
     // DEBUG START
-    // print struct info // TODO remove it later
-    printf("[DEBUG]: struct/union %s's size is %d\n", ctype->name, ctype->size);
+    // print struct info
+    printf("[DEBUG] struct/union %s's size is %d\n", ctype->name, ctype->size);
     for (Symbol *debug_member = ctype->first; debug_member; debug_member = debug_member->next) {
-        printf("[DEBUG]: offset of %s.%s is %d\n", ctype->name, debug_member->name, debug_member->posn);
+        printf("[DEBUG] offset of %s.%s is %d\n", ctype->name, debug_member->name, debug_member->posn);
     }
     printf("\n");
     // DEBUG END
+#endif
 
     return ctype;
+}
+
+static void declare_enum() {
+    Symbol *enum_sym = NULL;
+    char *name;
+    int val = 0;
+
+    // skip enum keyword
+    scan();
+
+    if (TOKEN.token_type == T_IDENT) {
+        enum_sym = find_enum_type_sym(TEXT);
+        name = strdup(TEXT);
+        match(T_IDENT, "identifier");
+    }
+
+    if (TOKEN.token_type != T_LBRACE) {
+        if (!enum_sym) {
+            fatals("Unknown enum type", name);
+        }
+        return;
+    }
+
+    // then must be {
+    // we are declare a new enum type
+    match(T_LBRACE, "{");
+    if (enum_sym) {
+        fatals("Enum type already defined", enum_sym->name);
+    }
+    add_enum_sym(name, C_ENUMTYPE, 0);
+
+    while (TRUE) {
+        match(T_IDENT, "identifier"); // must have a name
+        name = strdup(TEXT);
+
+        enum_sym = find_enum_val_sym(TEXT);
+        if (enum_sym) {
+            fatals("Enum value already defined", TEXT);
+        }
+
+        if (TOKEN.token_type == T_ASSIGN) {
+            match(T_ASSIGN, "=");
+            if (TOKEN.token_type != T_INTLIT) {
+                fatal("Enum value must be integer literal");
+            }
+
+            val = (int) TOKEN.int_value;
+            match(T_INTLIT, "integer literal");
+        }
+
+        add_enum_sym(name, C_ENUMVAL, val++);
+
+        if (TOKEN.token_type == T_RBRACE) {
+            break;
+        }
+        match(T_COMMA, ",");
+        if (TOKEN.token_type == T_RBRACE) {
+            break;
+        }
+    }
+
+    match(T_RBRACE, "}");
+}
+
+static int declare_typedef(Symbol **ctype) {
+    int type;
+
+    // skip typedef keyword
+    match(T_TYPEDEF, "typedef");
+
+    type = parse_type(ctype);
+
+    if (TOKEN.token_type != T_IDENT) {
+        fatal("Typedef type must be identifier");
+    }
+    if (find_typedef_sym(TEXT)) {
+        fatals("Typedef type already defined", TEXT);
+    }
+
+    add_typedef_sym(TEXT, type, *ctype, S_NONE, 0);
+
+    return type;
+}
+
+static int type_of_typedef(char *name, Symbol **ctype) {
+    Symbol *type;
+
+    if (!(type = find_typedef_sym(name))) {
+        fatals("Unknown type", name);
+    }
+
+    // skip type name
+    match(T_IDENT, "identifier");
+    *ctype = type->ctype;
+
+    return type->ptype;
 }
 
 void declare_global() {
@@ -289,7 +422,7 @@ void declare_global() {
     while (TRUE) {
         type = parse_type(&ctype);
 
-        if ((type == P_STRUCT || type == P_UNION) && TOKEN.token_type == T_SEMI) {
+        if (type == P_NONE) {
             match(T_SEMI, ";");
             continue;
         }

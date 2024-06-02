@@ -133,6 +133,8 @@ ASTnode *compound_stmt();
 // misc.c
 void match(int token_type, char *what);
 
+void warning(char *s);
+
 void fatal(char *s);
 
 void fatals(char *s1, char *s2);
@@ -158,6 +160,12 @@ Symbol *find_union_sym(char *s);
 
 Symbol *find_member_sym(char *s);
 
+Symbol *find_enum_type_sym(char *s);
+
+Symbol *find_enum_val_sym(char *s);
+
+Symbol *find_typedef_sym(char *s);
+
 Symbol *find_sym(char *s);
 
 Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
@@ -171,6 +179,10 @@ Symbol *add_struct_sym(char *name, int ptype, Symbol *ctype, int stype, int size
 Symbol *add_union_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
 Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+
+Symbol *add_enum_sym(char *name, int class, int value);
+
+Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
 // decl.c
 int parse_type(Symbol **ctype);

@@ -18,6 +18,7 @@ extern_ int LINE;
 extern_ int PUT_BACK;
 // input and output file
 extern_ FILE *IN_FILE;
+extern_ char *IN_FILE_NAME;
 extern_ FILE *OUT_FILE;
 extern_ char *OUT_FILE_NAME;
 // last token
@@ -33,6 +34,8 @@ extern_ Symbol *PARAM_HEAD, *PARAM_TAIL;
 extern_ Symbol *STRUCT_HEAD, *STRUCT_TAIL;
 extern_ Symbol *UNION_HEAD, *UNION_TAIL;
 extern_ Symbol *MEMBER_HEAD, *MEMBER_TAIL;
+extern_ Symbol *ENUM_HEAD, *ENUM_TAIL;
+extern_ Symbol *TYPEDEF_HEAD, *TYPEDEF_TAIL;
 // current function pointer
 extern_ Symbol *FUNC_PTR;
 

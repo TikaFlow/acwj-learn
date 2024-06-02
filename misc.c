@@ -13,9 +13,13 @@ void match(int token_type, char *what) {
     fatals("expected", what);
 }
 
+void warning(char *s) {
+    fprintf(stderr, "[WARNING] %s:%d %s.\n", IN_FILE_NAME, LINE, s);
+}
+
 // Print out fatal messages
 void fatal(char *s) {
-    fprintf(stderr, "%s on line %d.\n", s, LINE);
+    fprintf(stderr, "[ERROR] %s:%d %s.\n", IN_FILE_NAME, LINE, s);
     fclose(OUT_FILE);
     fclose(IN_FILE);
     unlink(OUT_FILE_NAME);
@@ -23,7 +27,7 @@ void fatal(char *s) {
 }
 
 void fatals(char *s1, char *s2) {
-    fprintf(stderr, "%s:%s on line %d.\n", s1, s2, LINE);
+    fprintf(stderr, "[ERROR] %s:%d %s:%s.\n", IN_FILE_NAME, LINE, s1, s2);
     fclose(OUT_FILE);
     fclose(IN_FILE);
     unlink(OUT_FILE_NAME);
@@ -31,7 +35,7 @@ void fatals(char *s1, char *s2) {
 }
 
 void fatald(char *s, int d) {
-    fprintf(stderr, "%s:%d on line %d.\n", s, d, LINE);
+    fprintf(stderr, "[ERROR] %s:%d %s:%d.\n", IN_FILE_NAME, LINE, s, d);
     fclose(OUT_FILE);
     fclose(IN_FILE);
     unlink(OUT_FILE_NAME);
@@ -39,7 +43,7 @@ void fatald(char *s, int d) {
 }
 
 void fatalc(char *s, int c) {
-    fprintf(stderr, "%s:%c on line %d.\n", s, c, LINE);
+    fprintf(stderr, "[ERROR] %s:%d %s:%c.\n", IN_FILE_NAME, LINE, s, c);
     fclose(OUT_FILE);
     fclose(IN_FILE);
     unlink(OUT_FILE_NAME);

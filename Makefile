@@ -2,7 +2,7 @@ HEADER=defs.h data.h decl.h
 SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
 EXEC=tcc
 
-NEW=test/33-union.c
+NEW=test/34-enum-typedef.c
 ASM=$(NEW:.c=.s)
 
 .PHONY: all test clean
@@ -10,7 +10,7 @@ ASM=$(NEW:.c=.s)
 all: test
 
 $(EXEC): $(HEADER) $(SRCS)
-	gcc -o $@ -g -Wall $^
+	gcc -o $@ -g -Wall -DDEBUG $^
 
 new: $(NEW) $(EXEC)
 	./$(EXEC) -S $<

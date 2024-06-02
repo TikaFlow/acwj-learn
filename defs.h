@@ -82,6 +82,8 @@ enum {
     T_RETURN,
     T_STRUCT,
     T_UNION,
+    T_ENUM,
+    T_TYPEDEF,
     // structures
     T_INTLIT,
     T_STRLIT,
@@ -169,7 +171,10 @@ enum {
     C_PARAM,
     C_STRUCT,
     C_UNION,
-    C_MEMBER
+    C_MEMBER,
+    C_ENUMTYPE,
+    C_ENUMVAL,
+    C_TYPEDEF
 };
 
 // token struct
