@@ -52,8 +52,8 @@ static Symbol *new_sym(char *name, int ptype, Symbol *ctype, int stype, int clas
     return sym;
 }
 
-Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_GLOBAL, size, 0);
+Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int size) {
+    Symbol *sym = new_sym(name, ptype, ctype, stype, class, size, 0);
     add_sym(&GLOBAL_HEAD, &GLOBAL_TAIL, sym);
 
     return sym;

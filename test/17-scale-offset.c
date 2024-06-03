@@ -1,3 +1,4 @@
+#include <stdio.h>
 int c;
 int d;
 int *e;

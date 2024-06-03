@@ -1,18 +1,23 @@
 HEADER=defs.h data.h decl.h
+INC_DIR=/tmp/include
 SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
 EXEC=tcc
 
-NEW=test/34-enum-typedef.c
+NEW=test/35-pre-process.c
 ASM=$(NEW:.c=.s)
 
-.PHONY: all test clean
+.PHONY: all test clean inc
 
 all: test
 
-$(EXEC): $(HEADER) $(SRCS)
-	gcc -o $@ -g -Wall -DDEBUG $^
+inc:
+	mkdir -p $(INC_DIR)
+	rsync -a include/ $(INC_DIR)/
 
-new: $(NEW) $(EXEC)
+$(EXEC): $(HEADER) $(SRCS)
+	gcc -o $@ -g -Wall -DDEBUG -DINC_DIR=\"$(INC_DIR)\" $^
+
+new: $(NEW) $(EXEC) inc
 	./$(EXEC) -S $<
 	@mv $(ASM) out.s
 	as -o out.o out.s
@@ -20,7 +25,7 @@ new: $(NEW) $(EXEC)
 	@echo "=================== $(NEW) ==================="
 	@./out
 
-test: $(EXEC)
+test: $(EXEC) inc
 	@echo "Running tests..."
 	@test/test-all.sh $(EXEC)
 	@echo "Comparing output with expected..."

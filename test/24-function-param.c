@@ -1,3 +1,4 @@
+#include <stdio.h>
 int param8(int a, int b, int c, int d, int e, int f, int g, int h) {
     printf("%d\n", a); printf("%d\n", b); printf("%d\n", c); printf("%d\n", d);
     printf("%d\n", e); printf("%d\n", f); printf("%d\n", g); printf("%d\n", h);

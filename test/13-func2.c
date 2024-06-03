@@ -1,3 +1,4 @@
+#include <stdio.h>
 int fred() {
   return 0-20;
 }

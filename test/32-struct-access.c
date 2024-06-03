@@ -1,3 +1,4 @@
+#include <stdio.h>
 struct fred {
     int x;
     char y;

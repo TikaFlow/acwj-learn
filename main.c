@@ -2,11 +2,11 @@
 // Created by tika on 24-5-19.
 //
 
-#define extern_
+#define EXTERN_
 
 #include "data.h"
 
-#undef extern_
+#undef EXTERN_
 
 #include "decl.h"
 
@@ -52,19 +52,23 @@ static char *alter_suffix(char *str, char suf) {
 }
 
 static char *do_compile(char *file) {
-    OUT_FILE_NAME = alter_suffix(file, 's');
+    char cmd[MAX_TEXT];
+    IN_FILE_NAME = file;
+    OUT_FILE_NAME = alter_suffix(IN_FILE_NAME, 's');
+
+    snprintf(cmd, MAX_TEXT, "%s %s %s", CPP_CMD, INC_DIR, IN_FILE_NAME);
 
     if (!OUT_FILE_NAME) {
-        fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", file);
+        fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", IN_FILE_NAME);
         exit(1);
     }
 
-    if (!(IN_FILE = fopen(file, "r"))) {
-        fprintf(stderr, "Unable to open %s: %s\n", file, strerror(errno));
+    if (!(IN_FILE = popen(cmd, "r"))) {
+        fprintf(stderr, "Unable to open %s: %s\n", IN_FILE_NAME, strerror(errno));
         exit(1);
     }
 
-    if ((OUT_FILE = fopen(OUT_FILE_NAME, "w")) == NULL) {
+    if (!(OUT_FILE = fopen(OUT_FILE_NAME, "w"))) {
         fprintf(stderr, "Unable to create %s: %s\n", OUT_FILE_NAME, strerror(errno));
         exit(1);
     }
@@ -73,9 +77,6 @@ static char *do_compile(char *file) {
     if (FLAG_v) {
         printf("Compiling %s\n", file);
     }
-
-    // TODO printf may not work when we check prototypes because it's a variadic function
-    add_global_sym("printf", P_INT, NULL, S_FUNCTION, 0);
 
     // start with scan the first token
     scan();
@@ -196,8 +197,7 @@ int main(int argc, char *argv[]) {
 
     while (i < argc) {
         // compile
-        IN_FILE_NAME = argv[i++];
-        asm_file = do_compile(IN_FILE_NAME);
+        asm_file = do_compile(argv[i++]);
 
         if (FLAG_c || !FLAG_S) {
             // assembly

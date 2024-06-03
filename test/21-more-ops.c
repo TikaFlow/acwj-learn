@@ -1,3 +1,4 @@
+#include <stdio.h>
 char a, b, c;
 int  d, e, f;
 long g, h, i;

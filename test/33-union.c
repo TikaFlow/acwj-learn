@@ -1,3 +1,4 @@
+#include <stdio.h>
 union foo_union {
     char w;
     int x;

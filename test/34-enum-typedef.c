@@ -1,3 +1,4 @@
+#include <stdio.h>
 // enum
 enum fred {
     apple = 1, banana, carrot, pear = 10, peach, mango, papaya,

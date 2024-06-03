@@ -22,6 +22,7 @@ int main() {
         return (1);
     }
     while ((cnt = read(zin, buf, 60)) > 0) {
+        // 1 is stdout
         write(1, buf, cnt);
     }
     close(zin);

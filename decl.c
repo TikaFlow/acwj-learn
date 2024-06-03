@@ -13,8 +13,43 @@ static int declare_typedef(Symbol **ctype);
 
 static int type_of_typedef(char *name, Symbol **ctype);
 
-int parse_type(Symbol **ctype) {
-    int type = 0, can_no_var = FALSE;
+int parse_type(Symbol **ctype, int *class) {
+    int type = 0, can_no_var = FALSE, storage_flag = TRUE;
+
+    while (storage_flag) {
+        switch (TOKEN.token_type) {
+            case T_EXTERN:
+                *class = C_EXTERN;
+                scan();
+                break;
+                // case T_CONST:
+                //     *class |= C_CONST;
+                //     scan();
+                //     break;
+                // case T_VOLATILE:
+                //     *class |= C_VOLATILE;
+                //     scan();
+                //     break;
+                // case T_AUTO:
+                //     *class |= C_AUTO;
+                //     scan();
+                //     break;
+                // case T_STATIC:
+                //     *class |= C_STATIC;
+                //     scan();
+                //     break;
+                // case T_TYPEDEF:
+                //     storage_flag = FALSE;
+                //     break;
+                // case T_REGISTER:
+                //     *class |= C_REGISTER;
+                //     scan();
+                //     break;
+            default:
+                storage_flag = FALSE;
+        }
+    }
+
     switch (TOKEN.token_type) {
         case T_VOID:
             type = P_VOID;
@@ -82,6 +117,7 @@ Symbol *declare_var(int type, Symbol *ctype, int class) {
     Symbol *sym = NULL;
 
     switch (class) {
+        case C_EXTERN:
         case C_GLOBAL:
             if (find_global_sym(TEXT)) {
                 fatals("Global variable redeclaration", TEXT);
@@ -104,8 +140,9 @@ Symbol *declare_var(int type, Symbol *ctype, int class) {
 
         if (TOKEN.token_type == T_INTLIT) {
             switch (class) {
+                case C_EXTERN:
                 case C_GLOBAL:
-                    sym = add_global_sym(TEXT, pointer_to(type), ctype, S_ARRAY, (int) TOKEN.int_value);
+                    sym = add_global_sym(TEXT, pointer_to(type), ctype, S_ARRAY, class, (int) TOKEN.int_value);
                     break;
                 case C_LOCAL:
                 case C_PARAM:
@@ -120,8 +157,9 @@ Symbol *declare_var(int type, Symbol *ctype, int class) {
         match(T_RBRACKET, "]");
     } else {
         switch (class) {
+            case C_EXTERN:
             case C_GLOBAL:
-                sym = add_global_sym(TEXT, type, ctype, S_VARIABLE, 1);
+                sym = add_global_sym(TEXT, type, ctype, S_VARIABLE, class, 1);
                 break;
             case C_LOCAL:
                 sym = add_local_sym(TEXT, type, ctype, S_VARIABLE, 1);
@@ -149,7 +187,7 @@ static int declare_var_list(Symbol *func, int class, int separate_token, int end
     }
 
     while (TOKEN.token_type != end_token) {
-        type = parse_type(&ctype);
+        type = parse_type(&ctype, &class);
         match(T_IDENT, "identifier");
 
         if (proto_ptr) {
@@ -164,7 +202,7 @@ static int declare_var_list(Symbol *func, int class, int separate_token, int end
 
         if (TOKEN.token_type == end_token) {
             // if a struct or union
-            if (!func) {
+            if (class == C_MEMBER) {
                 warning("No semicolon at end of struct or union");
             }
             break;
@@ -197,7 +235,7 @@ ASTnode *declare_func(int type) {
 
     if (!old_func) {
         end_label = gen_label();
-        new_func = add_global_sym(TEXT, type, NULL, S_FUNCTION, end_label);
+        new_func = add_global_sym(TEXT, type, NULL, S_FUNCTION, C_GLOBAL, end_label);
     }
 
     match(T_LPAREN, "(");
@@ -381,12 +419,16 @@ static void declare_enum() {
 }
 
 static int declare_typedef(Symbol **ctype) {
-    int type;
+    int type, class = C_NONE;
 
     // skip typedef keyword
     match(T_TYPEDEF, "typedef");
 
-    type = parse_type(ctype);
+    type = parse_type(ctype, &class);
+
+    if (class == C_EXTERN) {
+        fatal("Typedef type cannot be used with extern");
+    }
 
     if (TOKEN.token_type != T_IDENT) {
         fatal("Typedef type must be identifier");
@@ -417,10 +459,10 @@ static int type_of_typedef(char *name, Symbol **ctype) {
 void declare_global() {
     ASTnode *tree;
     Symbol *ctype;
-    int type;
+    int type, class = C_GLOBAL;
 
     while (TRUE) {
-        type = parse_type(&ctype);
+        type = parse_type(&ctype, &class);
 
         if (type == P_NONE) {
             match(T_SEMI, ";");
@@ -443,7 +485,7 @@ void declare_global() {
             gen_ast(tree, NO_LABEL, A_NONE);
             reset_local_syms();
         } else {
-            multi_declare_var(type, ctype, C_GLOBAL);
+            multi_declare_var(type, ctype, class);
         }
 
         if (TOKEN.token_type == T_EOF) {

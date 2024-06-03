@@ -31,6 +31,13 @@
 #define NOT_FOUND (-1)
 // default output file name
 #define A_OUT "a.out"
+// pre-processor command
+#define CPP_CMD "cpp -nostdinc -isystem"
+// need define include dir when compile
+#ifndef INC_DIR
+#warning "INC_DIR is not defined, using default value: /usr/include"
+#define INC_DIR "/usr/include"
+#endif
 // assembler command
 #define AS_CMD "as -o"
 // linker command
@@ -84,6 +91,7 @@ enum {
     T_UNION,
     T_ENUM,
     T_TYPEDEF,
+    T_EXTERN,
     // structures
     T_INTLIT,
     T_STRLIT,
@@ -169,6 +177,7 @@ enum {
     C_GLOBAL,
     C_LOCAL,
     C_PARAM,
+    C_EXTERN,
     C_STRUCT,
     C_UNION,
     C_MEMBER,

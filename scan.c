@@ -13,7 +13,7 @@ static int char_pos(char *s, int c) {
 }
 
 static int next() {
-    int c;
+    int c, l;
 
     if (PUT_BACK) {
         c = PUT_BACK;
@@ -22,6 +22,36 @@ static int next() {
     }
 
     c = fgetc(IN_FILE);
+
+    // pre-processor statements
+    while (c == '#') {
+        // skip #
+        scan();
+
+        l = TOKEN.int_value;
+        // skip line number
+        match(T_INTLIT, "pre-processor line number");
+
+        // file name
+        if (TOKEN.token_type != T_STRLIT) {
+            fatal("Expected file name");
+        }
+        if (TEXT[0] != '<') { // a real file name
+            if (strcmp(TEXT, IN_FILE_NAME)) {
+                IN_FILE_NAME = strdup(TEXT);
+            }
+
+            LINE = l;
+        }
+
+        // skip to next line
+        while ((c = fgetc(IN_FILE)) != '\n' && c != EOF);
+        if (c == EOF) {
+            return c;
+        }
+        c = fgetc(IN_FILE);
+    }
+
     if (c == '\n') {
         LINE++;
     }
@@ -207,6 +237,9 @@ static int keyword(char *s) {
             }
             if (!strcmp(s, "enum")) {
                 return T_ENUM;
+            }
+            if (!strcmp(s, "extern"))  {
+                return T_EXTERN;
             }
             break;
         case 'f':

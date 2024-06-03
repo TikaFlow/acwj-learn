@@ -1,3 +1,4 @@
+#include <stdio.h>
 int main() {
   char  a; char *b; char  c;
   int   d; int  *e; int   f;

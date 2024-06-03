@@ -1,3 +1,4 @@
+#include <stdio.h>
 long d, f;
 long *e;
 

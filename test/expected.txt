@@ -164,6 +164,7 @@ int main() {
         return (1);
     }
     while ((cnt = read(zin, buf, 60)) > 0) {
+        // 1 is stdout
         write(1, buf, cnt);
     }
     close(zin);
@@ -200,3 +201,6 @@ par is 10, pech is 9, mago is 10, sum is 29
 
 5
 17
+=================== test/35-pre-process.c ===================
+x = 56
+y = 134

@@ -90,14 +90,28 @@ static ASTnode *return_stmt() {
 
 static ASTnode *single_stmt() {
     Symbol *ctype;
-    int type;
+    int type, class = C_LOCAL;
     switch (TOKEN.token_type) {
+        case T_IDENT:
+            if (!find_typedef_sym(TEXT)) {
+                return bin_expr(0);
+            }
         case T_CHAR:
         case T_INT:
         case T_LONG:
-            type = parse_type(&ctype);
+        case T_STRUCT:
+        case T_UNION:
+        case T_ENUM:
+        case T_TYPEDEF:
+            type = parse_type(&ctype, &class);
+
+            if (type == P_NONE) {
+                match(T_SEMI, ";");
+                return NULL;
+            }
+
             match(T_IDENT, "identifier");
-            multi_declare_var(type,ctype, C_LOCAL);
+            multi_declare_var(type, ctype, class);
             return NULL;
         case T_IF:
             return if_stmt();
@@ -116,7 +130,7 @@ ASTnode *compound_stmt() {
     ASTnode *tree, *left = NULL;
     match(T_LBRACE, "{");
 
-    while (1) {
+    while (TRUE) {
         tree = single_stmt();
 
         if (tree &&

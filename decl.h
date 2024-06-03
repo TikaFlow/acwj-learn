@@ -168,7 +168,7 @@ Symbol *find_typedef_sym(char *s);
 
 Symbol *find_sym(char *s);
 
-Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int size);
 
 Symbol *add_local_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
@@ -185,7 +185,7 @@ Symbol *add_enum_sym(char *name, int class, int value);
 Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
 // decl.c
-int parse_type(Symbol **ctype);
+int parse_type(Symbol **ctype, int *class);
 
 Symbol *declare_var(int type, Symbol *ctype, int class);
 
