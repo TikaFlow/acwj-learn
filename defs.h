@@ -92,6 +92,8 @@ enum {
     T_ENUM,
     T_TYPEDEF,
     T_EXTERN,
+    T_BREAK,
+    T_CONTINUE,
     // structures
     T_INTLIT,
     T_STRLIT,
@@ -149,7 +151,9 @@ enum {
     A_NEGATE,
     A_INVERT,
     A_LOGNOT,
-    A_TOBOOL
+    A_TOBOOL,
+    A_BREAK,
+    A_CONTINUE,
 };
 
 // primitive type

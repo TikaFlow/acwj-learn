@@ -10,15 +10,19 @@ int gen_label() {
     return id++;
 }
 
-static int gen_if_ast(ASTnode *node) {
+static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
     int lend, lfalse = gen_label();
     if (node->right) {
         lend = gen_label();
     }
 
-    gen_ast(node->left, lfalse, node->op);
+    // condition statements
+    // when false, jump to lfalse
+    gen_ast(node->left, lfalse, NO_LABEL, NO_LABEL, node->op);
     gen_free_regs();
-    gen_ast(node->mid, NO_LABEL, node->op);
+    // true statements
+    // when true, no jump
+    gen_ast(node->mid, NO_LABEL, start_label, end_label, node->op);
     gen_free_regs();
 
     if (node->right) {
@@ -26,7 +30,8 @@ static int gen_if_ast(ASTnode *node) {
     }
     cg_label(lfalse);
     if (node->right) {
-        gen_ast(node->right, NO_LABEL, node->op);
+        // else statements
+        gen_ast(node->right, NO_LABEL, start_label, end_label, node->op);
         gen_free_regs();
         cg_label(lend);
     }
@@ -37,10 +42,10 @@ static int gen_while_ast(ASTnode *node) {
     int lbegin = gen_label(), lend = gen_label();
     cg_label(lbegin);
 
-    gen_ast(node->left, lend, node->op);
+    gen_ast(node->left, lend, lbegin, lend, node->op);
     gen_free_regs();
 
-    gen_ast(node->right, NO_LABEL, node->op);
+    gen_ast(node->right, NO_LABEL, lbegin, lend, node->op);
     gen_free_regs();
 
     cg_jump(lbegin);
@@ -53,8 +58,9 @@ static int gen_func_call(ASTnode *node) {
     ASTnode *glue = node;
     int reg, args_num = 0;
 
+    // walk through the arguments
     while ((glue = glue->left)) {
-        reg = gen_ast(glue->right, NO_LABEL, glue->op);
+        reg = gen_ast(glue->right, NO_LABEL, NO_LABEL, NO_LABEL, glue->op);
         cg_copy_arg(reg, glue->size);
 
         if (!args_num) {
@@ -67,34 +73,34 @@ static int gen_func_call(ASTnode *node) {
     return cg_call(node->sym, args_num);
 }
 
-int gen_ast(ASTnode *node, int label, int parent_op) {
+int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int parent_op) {
     int leftreg, rightreg;
 
     switch (node->op) {
         case A_IF:
-            return gen_if_ast(node);
+            return gen_if_ast(node, start_label, end_label);
         case A_WHILE:
             return gen_while_ast(node);
         case A_FUNCCALL:
             return gen_func_call(node);
         case A_GLUE:
-            gen_ast(node->left, NO_LABEL, node->op);
+            gen_ast(node->left, if_label, start_label, end_label, node->op);
             gen_free_regs();
-            gen_ast(node->right, NO_LABEL, node->op);
+            gen_ast(node->right, if_label, start_label, end_label, node->op);
             gen_free_regs();
             return NO_REG;
         case A_FUNCTION:
             cg_func_pre_amble(node->sym);
-            gen_ast(node->left, NO_LABEL, node->op);
+            gen_ast(node->left, NO_LABEL, NO_LABEL, NO_LABEL, node->op);
             cg_func_post_amble(node->sym);
             return NO_REG;
     }
 
     if (node->left) {
-        leftreg = gen_ast(node->left, NO_LABEL, node->op);
+        leftreg = gen_ast(node->left, NO_LABEL, NO_LABEL, NO_LABEL, node->op);
     }
     if (node->right) {
-        rightreg = gen_ast(node->right, NO_LABEL, node->op);
+        rightreg = gen_ast(node->right, NO_LABEL, NO_LABEL, NO_LABEL, node->op);
     }
 
     switch (node->op) {
@@ -123,7 +129,7 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
         case A_LE:
         case A_GE:
             if (parent_op == A_IF || parent_op == A_WHILE) {
-                return cg_compare_and_jump(node->op, leftreg, rightreg, label);
+                return cg_compare_and_jump(node->op, leftreg, rightreg, if_label);
             }
             return cg_compare_and_set(node->op, leftreg, rightreg);
         case A_INTLIT:
@@ -197,7 +203,13 @@ int gen_ast(ASTnode *node, int label, int parent_op) {
         case A_LOGNOT:
             return cg_lognot(leftreg);
         case A_TOBOOL:
-            return cg_tobool(leftreg, parent_op, label);
+            return cg_tobool(leftreg, parent_op, if_label);
+        case A_BREAK:
+            cg_jump(end_label);
+            return NO_REG;
+        case A_CONTINUE:
+            cg_jump(start_label);
+            return NO_REG;
         default:
             fatald("Unknown AST operator", node->op);
     }
@@ -230,6 +242,6 @@ int gen_type_size(int type) {
     return cg_type_size(type);
 }
 
-int gen_align(int type, int offset, int direction){
+int gen_align(int type, int offset, int direction) {
     return cg_align(type, offset, direction);
 }

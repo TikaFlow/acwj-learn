@@ -38,6 +38,8 @@ EXTERN_ Symbol *ENUM_HEAD, *ENUM_TAIL;
 EXTERN_ Symbol *TYPEDEF_HEAD, *TYPEDEF_TAIL;
 // current function pointer
 EXTERN_ Symbol *FUNC_PTR;
+// current loop level
+EXTERN_ int LOOP_LEVEL;
 
 // runtime flags
 // verbose mode

@@ -38,7 +38,9 @@ static ASTnode *while_stmt() {
     }
     match(T_RPAREN, ")");
 
+    LOOP_LEVEL++;
     body_node = compound_stmt();
+    LOOP_LEVEL--;
 
     return make_ast_node(A_WHILE, P_NONE, cond_node, NULL, body_node, NULL, 0);
 }
@@ -61,7 +63,9 @@ static ASTnode *for_stmt() {
     post_node = single_stmt();
     match(T_RPAREN, ")");
 
+    LOOP_LEVEL++;
     body_node = compound_stmt();
+    LOOP_LEVEL--;
 
     tree = make_ast_node(A_GLUE, P_NONE, body_node, NULL, post_node, NULL, 0);
     tree = make_ast_node(A_WHILE, P_NONE, cond_node, NULL, tree, NULL, 0);
@@ -86,6 +90,16 @@ static ASTnode *return_stmt() {
 
     tree = make_ast_unary(A_RETURN, P_NONE, tree, NULL, 0);
     return tree;
+}
+
+static ASTnode *goto_stmt(int goto_type) {
+    if (!LOOP_LEVEL) {
+        fatal("No loop to jump out of");
+    }
+
+    // skip the break keyword
+    scan();
+    return make_ast_leaf(goto_type, P_NONE, NULL, 0);
 }
 
 static ASTnode *single_stmt() {
@@ -121,6 +135,10 @@ static ASTnode *single_stmt() {
             return for_stmt();
         case T_RETURN:
             return return_stmt();
+        case T_BREAK:
+            return goto_stmt(A_BREAK);
+        case T_CONTINUE:
+            return goto_stmt(A_CONTINUE);
         default:
             return bin_expr(0);
     }
@@ -133,11 +151,17 @@ ASTnode *compound_stmt() {
     while (TRUE) {
         tree = single_stmt();
 
-        if (tree &&
-            (tree->op == A_ASSIGN
-             || tree->op == A_RETURN
-             || tree->op == A_FUNCCALL)) {
-            match(T_SEMI, ";");
+        if (tree) {
+            switch (tree->op) {
+                case A_ASSIGN:
+                case A_RETURN:
+                case A_FUNCCALL:
+                case A_BREAK:
+                case A_CONTINUE:
+                    match(T_SEMI, ";");
+                default:
+                    break;
+            }
         }
 
         if (tree) {

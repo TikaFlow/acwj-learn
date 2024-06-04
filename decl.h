@@ -25,7 +25,7 @@ void dump_ast(ASTnode *n, int label, int level);
 // gen.c
 int gen_label();
 
-int gen_ast(ASTnode *node, int reg, int parent_op);
+int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int parent_op);
 
 void gen_pre_amble();
 

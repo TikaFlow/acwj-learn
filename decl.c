@@ -255,7 +255,7 @@ ASTnode *declare_func(int type) {
     }
 
     FUNC_PTR = old_func;
-
+    LOOP_LEVEL = 0;
     tree = compound_stmt();
 
     if (type != P_VOID) {
@@ -482,7 +482,7 @@ void declare_global() {
                 fprintf(stdout, "\n\n");
             }
 
-            gen_ast(tree, NO_LABEL, A_NONE);
+            gen_ast(tree, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
             reset_local_syms();
         } else {
             multi_declare_var(type, ctype, class);
