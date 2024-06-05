@@ -49,6 +49,13 @@ typedef struct Symbol Symbol;
 typedef struct ASTnode ASTnode;
 typedef struct Token Token;
 
+// value type, used to get name
+enum {
+    V_TOKEN,
+    V_OP,
+    V_PTYPE,
+};
+
 // token type
 enum {
     T_EOF,
@@ -83,6 +90,7 @@ enum {
     A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC, A_NEGATE, A_INVERT,
     A_LOGNOT, A_TOBOOL,
     A_BREAK, A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT,
+    A_NOP,
 };
 
 // primitive type

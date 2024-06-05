@@ -145,6 +145,6 @@ void dump_ast(ASTnode *node, int label, int level) {
             fprintf(stdout, "A_SCALE %d\n", node->size);
             return;
         default:
-            fatald("Unknown dump_ast operator", node->op);
+            fatals("Unknown dump_ast operator", get_name(V_PTYPE, node->op));
     }
 }

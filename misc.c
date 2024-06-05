@@ -26,16 +26,56 @@ static char *TOKEN_NAMES[] = {
         ",", ".", "->", ":",
 };
 
+// op name
+char *OP_NAMES[] = {
+        "NONE",
+        "ASSIGN", "LOGOR", "LOGAND", "OR", "XOR", "AND",
+        "EQ", "NE", "LT", "GT", "LE", "GE",
+        "LSHIFT", "RSHIFT",
+        "ADD", "SUBTRACT", "MULTIPLY", "DIVIDE",
+        "INTLIT", "STRLIT", "IDENT", "GLUE",
+        "IF", "WHILE", "FUNCTION", "WIDEN", "RETURN", "FUNCCALL",
+        "DEREF", "ADDR", "SCALE",
+        "PREINC", "PREDEC", "POSTINC", "POSTDEC", "NEGATE", "INVERT",
+        "LOGNOT", "TOBOOL",
+        "BREAK", "CONTINUE", "SWITCH", "CASE", "DEFAULT",
+};
+
+// ptpye name
+char *PTYPE_NAMES[] = {
+        "NONE", "VOID", "CHAR", "INT", "LONG", "STRUCT", "UNION"
+};
+
+char *get_name(int value_type, int value) {
+    int div, mod, len = 0;
+    char *desc = "multiple pointers to STRUCT....";
+    switch (value_type) {
+        case V_TOKEN:
+            return TOKEN_NAMES[value];
+        case V_OP:
+            return OP_NAMES[value];
+        case V_PTYPE:
+            div = value / 0x10;
+            mod = value % 0x10;
+            if (mod) {
+                if (mod > 1) {
+                    len = snprintf(desc, 0x20 - len, "%s", "multiple ");
+                }
+                len = snprintf(desc, 0x20 - len, "%s", "pointers to ");
+            }
+            snprintf(desc, 0x20 - len, "%s", PTYPE_NAMES[div]);
+            return desc;
+        default:
+            return "UNKNOWN";
+    }
+}
+
 void match(int token_type, char *what) {
     if (TOKEN.token_type == token_type) {
         scan();
         return;
     }
     fatals("expected", what);
-}
-
-char *get_token_name(int token_type) {
-    return TOKEN_NAMES[token_type];
 }
 
 void warning(char *s) {

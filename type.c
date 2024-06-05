@@ -15,7 +15,7 @@ int is_ptr(int type) {
 
 int pointer_to(int type) {
     if ((type & 0xf) == 0xf) {
-        fatald("The pointer is too deep at pointer_to(), type", type);
+        fatals("The pointer is too deep at pointer_to(), type", get_name(V_PTYPE, type));
     }
 
     return type + 1;
@@ -23,7 +23,7 @@ int pointer_to(int type) {
 
 int value_at(int type) {
     if (!(type & 0xf)) {
-        fatald("Unable to dereference a non-pointer at value_at(), type", type);
+        fatals("Unable to dereference a non-pointer at value_at(), type", get_name(V_PTYPE, type));
     }
 
     return type - 1;

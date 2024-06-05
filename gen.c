@@ -113,6 +113,10 @@ static int gen_func_call(ASTnode *node) {
 int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int parent_op) {
     int leftreg, rightreg;
 
+    if (!node) {
+        return NO_REG;
+    }
+
     switch (node->op) {
         case A_IF:
             return gen_if_ast(node, start_label, end_label);
@@ -143,6 +147,8 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
     }
 
     switch (node->op) {
+        case A_NOP:
+            return cg_nop();
         case A_ADD:
             return cg_add(leftreg, rightreg);
         case A_SUBTRACT:
@@ -195,13 +201,12 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
                 case A_DEREF:
                     return cg_store_deref(leftreg, rightreg, node->right->type);
                 default:
-                    fatald("Can't A_ASSIGN in gen_ast, op", node->op);
+                    fatals("Can't A_ASSIGN in gen_ast, op", get_name(V_PTYPE, node->op));
             }
         case A_WIDEN:
             return cg_widen(leftreg, node->left->type, node->type);
         case A_RETURN:
-            cg_return(leftreg, FUNC_PTR);
-            return NO_REG;
+            return cg_return(leftreg, FUNC_PTR);
         case A_ADDR:
             return cg_address(node->sym);
         case A_DEREF:
@@ -244,13 +249,11 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         case A_TOBOOL:
             return cg_tobool(leftreg, parent_op, if_label);
         case A_BREAK:
-            cg_jump(end_label);
-            return NO_REG;
+            return cg_jump(end_label);
         case A_CONTINUE:
-            cg_jump(start_label);
-            return NO_REG;
+            return cg_jump(start_label);
         default:
-            fatald("Unknown AST operator", node->op);
+            fatals("Unknown AST operator", get_name(V_PTYPE, node->op));
     }
     return NO_REG;
 }

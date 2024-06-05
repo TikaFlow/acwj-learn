@@ -7,6 +7,10 @@
 
 static ASTnode *single_stmt();
 
+static ASTnode *nop_stmt() {
+    return make_ast_leaf(A_NOP, P_NONE, NULL, 0);
+}
+
 static ASTnode *if_stmt() {
     ASTnode *cond_node, *true_node, *false_node = NULL;
 
@@ -17,10 +21,10 @@ static ASTnode *if_stmt() {
         cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node, NULL, 0);
     }
     match(T_RPAREN, ")");
-    true_node = compound_stmt();
+    true_node = compound_stmt(FALSE);
     if (TOKEN.token_type == T_ELSE) {
         scan();
-        false_node = compound_stmt();
+        false_node = compound_stmt(FALSE);
     }
 
     return make_ast_node(A_IF, P_NONE, cond_node, true_node, false_node, NULL, 0);
@@ -39,7 +43,7 @@ static ASTnode *while_stmt() {
     match(T_RPAREN, ")");
 
     LOOP_LEVEL++;
-    body_node = compound_stmt();
+    body_node = compound_stmt(FALSE);
     LOOP_LEVEL--;
 
     return make_ast_node(A_WHILE, P_NONE, cond_node, NULL, body_node, NULL, 0);
@@ -51,8 +55,8 @@ static ASTnode *for_stmt() {
     scan();
     match(T_LPAREN, "(");
 
-    pre_node = single_stmt();
-    match(T_SEMI, ";");
+    pre_node = expression_list(T_SEMI);
+    scan();
 
     cond_node = bin_expr(0);
     if (cond_node->op < A_EQ || cond_node->op > A_GE) {
@@ -60,11 +64,11 @@ static ASTnode *for_stmt() {
     }
     match(T_SEMI, ";");
 
-    post_node = single_stmt();
-    match(T_RPAREN, ")");
+    post_node = expression_list(T_RPAREN);
+    scan();
 
     LOOP_LEVEL++;
-    body_node = compound_stmt();
+    body_node = compound_stmt(FALSE);
     LOOP_LEVEL--;
 
     tree = make_ast_node(A_GLUE, P_NONE, body_node, NULL, post_node, NULL, 0);
@@ -151,8 +155,19 @@ static ASTnode *switch_stmt() {
                     }
                 }
                 match(T_COLON, ":");
-                left = compound_stmt();
                 case_cnt++;
+                switch (TOKEN.token_type) {
+                    case T_CASE:
+                    case T_DEFAULT:
+                        left = nop_stmt();
+                        break;
+                    case T_LBRACE:
+                        left = compound_stmt(FALSE);
+                        break;
+                    default:
+                        left = compound_stmt(TRUE);
+                        break;
+                }
 
                 if (case_tree) {
                     case_tail->right = make_ast_unary(op, P_NONE, left, NULL, case_val);
@@ -169,7 +184,7 @@ static ASTnode *switch_stmt() {
                 in_loop = FALSE;
                 break;
             default:
-                fatals("Unexpected token in switch statement", get_token_name(TOKEN.token_type));
+                fatals("Unexpected token in switch statement", get_name(V_TOKEN, TOKEN.token_type));
         }
     }
 
@@ -226,9 +241,26 @@ static ASTnode *single_stmt() {
     }
 }
 
-ASTnode *compound_stmt() {
+/*
+ * is_switch:
+ * - TRUE if this is a case statement from switch
+ * - which starts without a left brace,
+ * - otherwise, case statement should call this
+ * - function with is_switch == FALSE
+ */
+ASTnode *compound_stmt(int is_switch) {
     ASTnode *tree, *left = NULL;
-    match(T_LBRACE, "{");
+    int single_mode = FALSE;
+
+    if (!is_switch) {
+        // single statement mode
+        if (TOKEN.token_type != T_LBRACE) {
+            single_mode = TRUE;
+        } else {
+            // otherwise, must start with a left brace
+            match(T_LBRACE, "{");
+        }
+    }
 
     while (TRUE) {
         tree = single_stmt();
@@ -246,6 +278,10 @@ ASTnode *compound_stmt() {
             }
         }
 
+        if (single_mode) {
+            return tree;
+        }
+
         if (tree) {
             if (left) {
                 left = make_ast_node(A_GLUE, P_NONE, left, NULL, tree, NULL, 0);
@@ -254,6 +290,10 @@ ASTnode *compound_stmt() {
             }
         }
 
+        if (is_switch &&
+            (TOKEN.token_type == T_CASE || TOKEN.token_type == T_DEFAULT || TOKEN.token_type == T_RBRACE)) {
+            return left;
+        }
         if (TOKEN.token_type == T_RBRACE) {
             scan();
             return left;

@@ -237,7 +237,7 @@ int cg_load_global_sym(Symbol *sym, int op) {
                 }
                 break;
             default:
-                fatald("Bad type in cg_load_global_sym()", sym->ptype);
+                fatals("Bad type in cg_load_global_sym()", get_name(V_PTYPE, sym->ptype));
         }
     }
     return reg;
@@ -294,7 +294,7 @@ int cg_load_local_sym(Symbol *sym, int op) {
                 }
                 break;
             default:
-                fatald("Bad type in cg_load_local_sym()", sym->ptype);
+                fatals("Bad type in cg_load_local_sym()", get_name(V_PTYPE, sym->ptype));
         }
     }
     return reg;
@@ -304,6 +304,11 @@ int cg_load_str(int label) {
     int reg = alloc_register();
     fprintf(OUT_FILE, "\tleaq\tL%d(%%rip), %s\n", label, reglist[reg]);
     return reg;
+}
+
+int cg_nop() {
+    fprintf(OUT_FILE, "\tnop\n");
+    return NO_REG;
 }
 
 int cg_add(int r1, int r2) {
@@ -435,7 +440,7 @@ int cg_store_global_sym(int reg, Symbol *sym) {
                 fprintf(OUT_FILE, "\tmovl\t%s, %s(%%rip)\n", dreglist[reg], sym->name);
                 break;
             default:
-                fatald("Bad type in cg_store_global_sym()", sym->ptype);
+                fatals("Bad type in cg_store_global_sym()", get_name(V_PTYPE, sym->ptype));
         }
     }
     return reg;
@@ -453,7 +458,7 @@ int cg_store_local_sym(int reg, Symbol *sym) {
                 fprintf(OUT_FILE, "\tmovl\t%s, %d(%%rbp)\n", dreglist[reg], sym->posn);
                 break;
             default:
-                fatald("Bad type in cg_store_local_sym()", sym->ptype);
+                fatals("Bad type in cg_store_local_sym()", get_name(V_PTYPE, sym->ptype));
         }
     }
     return reg;
@@ -471,7 +476,7 @@ int cg_type_size(int type) {
         case P_LONG:
             return 8;
         default:
-            fatald("Bad type in cg_type_size()", type);
+            fatals("Bad type in cg_type_size()", get_name(V_PTYPE, type));
     }
 
     return 0; // keep -Wall happy
@@ -532,8 +537,10 @@ void cg_label(int l) {
     fprintf(OUT_FILE, "L%d:\n", l);
 }
 
-void cg_jump(int l) {
+int cg_jump(int l) {
     fprintf(OUT_FILE, "\tjmp\tL%d\n", l);
+
+    return NO_REG;
 }
 
 int cg_compare_and_set(int ASTop, int r1, int r2) {
@@ -565,7 +572,7 @@ int cg_widen(int r, int old_type, int new_type) {
     return r;
 }
 
-void cg_return(int reg, Symbol *sym) {
+int cg_return(int reg, Symbol *sym) {
     switch (sym->ptype) {
         case P_CHAR:
             fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
@@ -577,9 +584,11 @@ void cg_return(int reg, Symbol *sym) {
             fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
             break;
         default:
-            fatald("Bad function type in cg_return()", sym->ptype);
+            fatals("Bad function type in cg_return()", get_name(V_PTYPE, sym->ptype));
     }
     cg_jump(sym->end_label);
+
+    return NO_REG;
 }
 
 int cg_address(Symbol *sym) {
@@ -628,7 +637,7 @@ int cg_store_deref(int r1, int r2, int type) {
             fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[r1]);
             break;
         default:
-            fatald("Bad type in cg_store_deref()", type);
+            fatals("Bad type in cg_store_deref()", get_name(V_PTYPE, type));
     }
 
     fprintf(OUT_FILE, "\tmovq\t%%rax, (%s)\n", reglist[r2]);
@@ -646,9 +655,9 @@ void cg_switch(int reg, int case_cnt, int *case_label, int *case_val, int dft_la
             reglist[reg], tab_label);
 
     cg_label(tab_label);
-        fprintf(OUT_FILE, "\t.quad\t%d\n", case_cnt);
-        for (i = 0; i < case_cnt; i++) {
-            fprintf(OUT_FILE, "\t.quad\t%d, L%d\n", case_val[i], case_label[i]);
-        }
+    fprintf(OUT_FILE, "\t.quad\t%d\n", case_cnt);
+    for (i = 0; i < case_cnt; i++) {
+        fprintf(OUT_FILE, "\t.quad\t%d, L%d\n", case_val[i], case_label[i]);
+    }
     fprintf(OUT_FILE, "\t.quad\tL%d\n", dft_label);
 }

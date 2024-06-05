@@ -60,6 +60,8 @@ int cg_load_local_sym(Symbol *sym, int op);
 
 int cg_load_str(int label);
 
+int cg_nop();
+
 int cg_add(int r1, int r2);
 
 int cg_sub(int r1, int r2);
@@ -88,13 +90,13 @@ int cg_compare_and_jump(int ASTop, int r1, int r2, int label);
 
 void cg_label(int l);
 
-void cg_jump(int l);
+int cg_jump(int l);
 
 int cg_widen(int r, int old_type, int new_type);
 
 int cg_type_size(int type);
 
-void cg_return(int reg, Symbol *sym);
+int cg_return(int reg, Symbol *sym);
 
 int cg_address(Symbol *sym);
 
@@ -125,17 +127,19 @@ int cg_align(int type, int offset, int direction);
 void cg_switch(int reg, int case_cnt, int *case_label, int *case_val, int dft_label);
 
 // expr.c
+ASTnode *expression_list(int end_token);
+
 ASTnode *func_call();
 
 ASTnode *bin_expr(int ptp);
 
 // stmt.c
-ASTnode *compound_stmt();
+ASTnode *compound_stmt(int is_switch);
 
 // misc.c
 void match(int token_type, char *what);
 
-char *get_token_name(int token_type);
+char *get_name(int value_type, int value);
 
 void warning(char *s);
 

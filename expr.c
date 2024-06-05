@@ -15,22 +15,18 @@ static int op_prec[] = {
         110, 110                      // T_STAR, T_SLASH
 };
 
-static ASTnode *param_list() {
+ASTnode *expression_list(int end_token) {
     ASTnode *node = NULL, *param_node = NULL;
     int param_cnt = 0;
 
-    while (TOKEN.token_type != T_RPAREN) {
+    while (TOKEN.token_type != end_token) {
         param_node = bin_expr(0);
         node = make_ast_node(A_GLUE, P_NONE, node, NULL, param_node, NULL, param_cnt++);
 
-        switch (TOKEN.token_type) {
-            case T_COMMA:
-                scan();
-            case T_RPAREN:
-                break;
-            default:
-                fatals("Unexpected token in param list", get_token_name(TOKEN.token_type));
+        if (TOKEN.token_type == end_token) {
+            break;
         }
+        match(T_COMMA, ",");
     }
 
     return node;
@@ -43,10 +39,10 @@ ASTnode *func_call() {
         fatals("Undeclared function", TEXT);
     }
     scan();
-    ASTnode *node = param_list();
+    ASTnode *node = expression_list(T_RPAREN);
+    scan();
     // TODO check params against prototype
     node = make_ast_unary(A_FUNCCALL, func->ptype, node, func, 0);
-    match(T_RPAREN, ")");
     return node;
 }
 
@@ -188,7 +184,7 @@ static ASTnode *primary() {
             return node;
         default:
             node = NULL;
-            fatals("syntax error, token", get_token_name(TOKEN.token_type));
+            fatals("syntax error, token", get_name(V_TOKEN, TOKEN.token_type));
     }
 
     scan();
@@ -199,7 +195,7 @@ static int token_to_op(int tk) {
     if (tk > T_EOF && tk < T_SLASH) {
         return tk;
     }
-    fatals("Unknown token", get_token_name(TOKEN.token_type));
+    fatals("Unknown token", get_name(V_TOKEN, TOKEN.token_type));
     return 0;
 }
 
@@ -212,12 +208,12 @@ static int stick_right(int token_type) {
 
 static int op_precedence(int token_type) {
     if (token_type == T_VOID) {
-        fatals("Token with no precendence", get_token_name(token_type));
+        fatals("Token with no precendence", get_name(V_TOKEN, token_type));
     }
 
     int prec = op_prec[token_type];
     if (prec == 0) {
-        fatals("Syntax error, token type", get_token_name(token_type));
+        fatals("Syntax error, token type", get_name(V_TOKEN, token_type));
     }
     return prec;
 }

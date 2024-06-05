@@ -88,7 +88,7 @@ int parse_type(Symbol **ctype, int *class) {
             type = type_of_typedef(TEXT, ctype);
             break;
         default:
-            fatals("Illegal type, token", get_token_name(TOKEN.token_type));
+            fatals("Illegal type, token", get_name(V_TOKEN, TOKEN.token_type));
     }
 
     while (TRUE) {
@@ -250,6 +250,7 @@ ASTnode *declare_func(int type) {
     }
     PARAM_HEAD = PARAM_TAIL = NULL;
 
+    // only a prototype
     if (TOKEN.token_type == T_SEMI) {
         scan();
         return NULL;
@@ -259,7 +260,7 @@ ASTnode *declare_func(int type) {
 
     SWITCH_LEVEL = 0;
     LOOP_LEVEL = 0;
-    tree = compound_stmt();
+    tree = compound_stmt(FALSE);
 
     if (type != P_VOID) {
         if (!tree) {
