@@ -25,11 +25,11 @@ static ASTnode *param_list() {
 
         switch (TOKEN.token_type) {
             case T_COMMA:
-                match(T_COMMA, ",");
+                scan();
             case T_RPAREN:
                 break;
             default:
-                fatald("Unexpected token in param list", TOKEN.token_type);
+                fatals("Unexpected token in param list", get_token_name(TOKEN.token_type));
         }
     }
 
@@ -42,7 +42,7 @@ ASTnode *func_call() {
     if (!(func = find_global_sym(TEXT)) || func->stype != S_FUNCTION) {
         fatals("Undeclared function", TEXT);
     }
-    match(T_LPAREN, "(");
+    scan();
     ASTnode *node = param_list();
     // TODO check params against prototype
     node = make_ast_unary(A_FUNCCALL, func->ptype, node, func, 0);
@@ -59,7 +59,7 @@ static ASTnode *access_array() {
     }
 
     left = make_ast_leaf(A_ADDR, arr->ptype, arr, 0);
-    match(T_LBRACKET, "[");
+    scan();
     right = bin_expr(0);
     match(T_RBRACKET, "]");
 
@@ -126,7 +126,7 @@ static ASTnode *postfix() {
     Symbol *var;
 
     if ((var = find_enum_val_sym(TEXT))) {
-        match(T_IDENT, "identifier");
+        scan();
         return make_ast_leaf(A_INTLIT, P_INT, NULL, var->posn);
     }
 
@@ -149,11 +149,11 @@ static ASTnode *postfix() {
 
     switch (TOKEN.token_type) {
         case T_INC:
-            match(T_INC, "++");
+            scan();
             node = make_ast_leaf(A_POSTINC, var->ptype, var, 0);
             break;
         case T_DEC:
-            match(T_DEC, "--");
+            scan();
             node = make_ast_leaf(A_POSTDEC, var->ptype, var, 0);
             break;
         default:
@@ -182,13 +182,13 @@ static ASTnode *primary() {
         case T_IDENT:
             return postfix();
         case T_LPAREN:
-            match(T_LPAREN, "(");
+            scan();
             node = bin_expr(0);
             match(T_RPAREN, ")");
             return node;
         default:
             node = NULL;
-            fatald("syntax error, token", TOKEN.token_type);
+            fatals("syntax error, token", get_token_name(TOKEN.token_type));
     }
 
     scan();
@@ -199,7 +199,7 @@ static int token_to_op(int tk) {
     if (tk > T_EOF && tk < T_SLASH) {
         return tk;
     }
-    fatald("Unknown token", TOKEN.token_type);
+    fatals("Unknown token", get_token_name(TOKEN.token_type));
     return 0;
 }
 
@@ -212,12 +212,12 @@ static int stick_right(int token_type) {
 
 static int op_precedence(int token_type) {
     if (token_type == T_VOID) {
-        fatald("Token with no precendence", token_type);
+        fatals("Token with no precendence", get_token_name(token_type));
     }
 
     int prec = op_prec[token_type];
     if (prec == 0) {
-        fatald("Syntax error, token type", token_type);
+        fatals("Syntax error, token type", get_token_name(token_type));
     }
     return prec;
 }
@@ -227,7 +227,7 @@ static ASTnode *prefix() {
 
     switch (TOKEN.token_type) {
         case T_AND:
-            match(T_AND, "&");
+            scan();
             tree = prefix();
 
             if (tree->op != A_IDENT) {
@@ -238,7 +238,7 @@ static ASTnode *prefix() {
             tree->type = pointer_to(tree->type);
             break;
         case T_STAR:
-            match(T_STAR, "*");
+            scan();
             tree = prefix();
 
             if (tree->op != A_IDENT && tree->op != A_DEREF) {
@@ -248,7 +248,7 @@ static ASTnode *prefix() {
             tree = make_ast_unary(A_DEREF, value_at(tree->type), tree, NULL, 0);
             break;
         case T_MINUS:
-            match(T_MINUS, "-");
+            scan();
             tree = prefix();
 
             tree->rvalue = TRUE;
@@ -256,21 +256,21 @@ static ASTnode *prefix() {
             tree = make_ast_unary(A_NEGATE, tree->type, tree, NULL, 0);
             break;
         case T_INVERT:
-            match(T_INVERT, "~");
+            scan();
             tree = prefix();
 
             tree->rvalue = TRUE;
             tree = make_ast_unary(A_INVERT, tree->type, tree, NULL, 0);
             break;
         case T_LOGNOT:
-            match(T_LOGNOT, "!");
+            scan();
             tree = prefix();
 
             tree->rvalue = TRUE;
             tree = make_ast_unary(A_LOGNOT, tree->type, tree, NULL, 0);
             break;
         case T_INC:
-            match(T_INC, "++");
+            scan();
             tree = prefix();
 
             if (tree->op != A_IDENT) {
@@ -279,7 +279,7 @@ static ASTnode *prefix() {
             tree = make_ast_unary(A_PREINC, tree->type, tree, NULL, 0);
             break;
         case T_DEC:
-            match(T_DEC, "--");
+            scan();
             tree = prefix();
 
             if (tree->op != A_IDENT) {
@@ -288,7 +288,7 @@ static ASTnode *prefix() {
             tree = make_ast_unary(A_PREDEC, tree->type, tree, NULL, 0);
             break;
         case T_PLUS:
-            match(T_PLUS, "+");
+            scan();
         default:
             tree = primary();
     }
@@ -308,6 +308,7 @@ ASTnode *bin_expr(int ptp) {
         case T_RPAREN:
         case T_RBRACKET:
         case T_COMMA:
+        case T_COLON:
             left->rvalue = TRUE;
             return left;
         default:
@@ -358,6 +359,7 @@ ASTnode *bin_expr(int ptp) {
             case T_RPAREN:
             case T_RBRACKET:
             case T_COMMA:
+            case T_COLON:
                 left->rvalue = TRUE;
                 return left;
             default:

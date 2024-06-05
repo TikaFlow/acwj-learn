@@ -40,6 +40,8 @@ EXTERN_ Symbol *TYPEDEF_HEAD, *TYPEDEF_TAIL;
 EXTERN_ Symbol *FUNC_PTR;
 // current loop level
 EXTERN_ int LOOP_LEVEL;
+// current switch level
+EXTERN_ int SWITCH_LEVEL;
 
 // runtime flags
 // verbose mode

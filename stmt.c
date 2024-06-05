@@ -10,7 +10,7 @@ static ASTnode *single_stmt();
 static ASTnode *if_stmt() {
     ASTnode *cond_node, *true_node, *false_node = NULL;
 
-    match(T_IF, "if");
+    scan();
     match(T_LPAREN, "(");
     cond_node = bin_expr(0);
     if (cond_node->op < A_EQ || cond_node->op > A_GE) {
@@ -19,7 +19,7 @@ static ASTnode *if_stmt() {
     match(T_RPAREN, ")");
     true_node = compound_stmt();
     if (TOKEN.token_type == T_ELSE) {
-        match(T_ELSE, "else");
+        scan();
         false_node = compound_stmt();
     }
 
@@ -29,7 +29,7 @@ static ASTnode *if_stmt() {
 static ASTnode *while_stmt() {
     ASTnode *cond_node, *body_node;
 
-    match(T_WHILE, "while");
+    scan();
     match(T_LPAREN, "(");
 
     cond_node = bin_expr(0);
@@ -48,7 +48,7 @@ static ASTnode *while_stmt() {
 static ASTnode *for_stmt() {
     ASTnode *cond_node, *body_node, *pre_node, *post_node, *tree;
 
-    match(T_FOR, "for");
+    scan();
     match(T_LPAREN, "(");
 
     pre_node = single_stmt();
@@ -80,7 +80,7 @@ static ASTnode *return_stmt() {
         fatal("Can't return from a void function");
     }
 
-    match(T_RETURN, "return");
+    scan();
 
     tree = bin_expr(0);
     tree = modify_type(tree, FUNC_PTR->ptype, P_NONE);
@@ -93,13 +93,93 @@ static ASTnode *return_stmt() {
 }
 
 static ASTnode *goto_stmt(int goto_type) {
-    if (!LOOP_LEVEL) {
-        fatal("No loop to jump out of");
+    if (!(LOOP_LEVEL || SWITCH_LEVEL)) {
+        fatal("No loop or switch to jump out of");
     }
 
-    // skip the break keyword
+    // skip the break/continue keyword
     scan();
     return make_ast_leaf(goto_type, P_NONE, NULL, 0);
+}
+
+static ASTnode *switch_stmt() {
+    ASTnode *tree, *case_node, *left, *case_tree = NULL, *case_tail;
+    int in_loop = TRUE, seen_dft = FALSE, case_cnt = 0, op, case_val;
+
+    // skip the switch keyword
+    scan();
+
+    match(T_LPAREN, "(");
+    left = bin_expr(0);
+    match(T_RPAREN, ")");
+    match(T_LBRACE, "{");
+    if (!is_int(left->type)) {
+        fatal("Switch expression must be an integer");
+    }
+
+    tree = make_ast_unary(A_SWITCH, P_NONE, left, NULL, 0);
+    SWITCH_LEVEL++;
+
+    while (in_loop) {
+        switch (TOKEN.token_type) {
+            case T_CASE:
+            case T_DEFAULT:
+                if (seen_dft) {
+                    fatal("case or default after existing default");
+                }
+                if (TOKEN.token_type == T_DEFAULT) {
+                    op = A_DEFAULT;
+                    seen_dft = TRUE;
+                    // skip the default keyword
+                    scan();
+                    case_val = 0;
+                } else {
+                    op = A_CASE;
+                    // skip the case keyword
+                    scan();
+                    left = bin_expr(0);
+                    if (left->op != A_INTLIT) {
+                        fatal("Case expression must be an integer");
+                    }
+                    case_val = (int) left->int_value;
+
+                    // check if there are duplicate case values
+                    for (case_node = case_tree; case_node; case_node = case_node->right) {
+                        if (case_val == (int) case_node->int_value) {
+                            fatal("Duplicate case value");
+                        }
+                    }
+                }
+                match(T_COLON, ":");
+                left = compound_stmt();
+                case_cnt++;
+
+                if (case_tree) {
+                    case_tail->right = make_ast_unary(op, P_NONE, left, NULL, case_val);
+                    case_tail = case_tail->right;
+                } else {
+                    case_tree = case_tail = make_ast_unary(op, P_NONE, left, NULL, case_val);
+                }
+
+                break;
+            case T_RBRACE:
+                if (!case_cnt && !seen_dft) {
+                    fatal("Switch statement has no cases or default");
+                }
+                in_loop = FALSE;
+                break;
+            default:
+                fatals("Unexpected token in switch statement", get_token_name(TOKEN.token_type));
+        }
+    }
+
+    SWITCH_LEVEL--;
+    match(T_RBRACE, "}");
+
+    tree->right = case_tree;
+    tree->int_value = case_cnt;
+
+    return tree;
 }
 
 static ASTnode *single_stmt() {
@@ -120,7 +200,7 @@ static ASTnode *single_stmt() {
             type = parse_type(&ctype, &class);
 
             if (type == P_NONE) {
-                match(T_SEMI, ";");
+                scan();
                 return NULL;
             }
 
@@ -139,6 +219,8 @@ static ASTnode *single_stmt() {
             return goto_stmt(A_BREAK);
         case T_CONTINUE:
             return goto_stmt(A_CONTINUE);
+        case T_SWITCH:
+            return switch_stmt();
         default:
             return bin_expr(0);
     }
@@ -173,7 +255,7 @@ ASTnode *compound_stmt() {
         }
 
         if (TOKEN.token_type == T_RBRACE) {
-            match(T_RBRACE, "}");
+            scan();
             return left;
         }
     }

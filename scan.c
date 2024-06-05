@@ -28,7 +28,7 @@ static int next() {
         // skip #
         scan();
 
-        l = TOKEN.int_value;
+        l = (int)TOKEN.int_value;
         // skip line number
         match(T_INTLIT, "pre-processor line number");
 
@@ -232,11 +232,19 @@ static int keyword(char *s) {
             }
             break;
         case 'c':
+            if (!strcmp(s, "case")) {
+                return T_CASE;
+            }
             if (!strcmp(s, "char")) {
                 return T_CHAR;
             }
             if (!strcmp(s, "continue")) {
                 return T_CONTINUE;
+            }
+            break;
+        case 'd':
+            if (!strcmp(s, "default")) {
+                return T_DEFAULT;
             }
             break;
         case 'e':
@@ -276,6 +284,9 @@ static int keyword(char *s) {
         case 's':
             if (!strcmp(s, "struct")) {
                 return T_STRUCT;
+            }
+            if (!strcmp(s, "switch")) {
+                return T_SWITCH;
             }
             break;
         case 't':
@@ -374,6 +385,9 @@ int scan() {
             break;
         case '.':
             TOKEN.token_type = T_DOT;
+            break;
+        case ':':
+            TOKEN.token_type = T_COLON;
             break;
         case '~':
             TOKEN.token_type = T_INVERT;

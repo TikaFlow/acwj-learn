@@ -122,6 +122,8 @@ int cg_sar(int r1, int r2);
 
 int cg_align(int type, int offset, int direction);
 
+void cg_switch(int reg, int case_cnt, int *case_label, int *case_val, int dft_label);
+
 // expr.c
 ASTnode *func_call();
 
@@ -132,6 +134,8 @@ ASTnode *compound_stmt();
 
 // misc.c
 void match(int token_type, char *what);
+
+char *get_token_name(int token_type);
 
 void warning(char *s);
 

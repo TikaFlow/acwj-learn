@@ -53,19 +53,19 @@ int parse_type(Symbol **ctype, int *class) {
     switch (TOKEN.token_type) {
         case T_VOID:
             type = P_VOID;
-            match(T_VOID, "void");
+            scan();
             break;
         case T_CHAR:
             type = P_CHAR;
-            match(T_CHAR, "char");
+            scan();
             break;
         case T_INT:
             type = P_INT;
-            match(T_INT, "int");
+            scan();
             break;
         case T_LONG:
             type = P_LONG;
-            match(T_LONG, "long");
+            scan();
             break;
         case T_STRUCT:
             type = P_STRUCT;
@@ -88,7 +88,7 @@ int parse_type(Symbol **ctype, int *class) {
             type = type_of_typedef(TEXT, ctype);
             break;
         default:
-            fatald("Illegal type, token", TOKEN.token_type);
+            fatals("Illegal type, token", get_token_name(TOKEN.token_type));
     }
 
     while (TRUE) {
@@ -136,7 +136,7 @@ Symbol *declare_var(int type, Symbol *ctype, int class) {
     }
 
     if (TOKEN.token_type == T_LBRACKET) {
-        match(T_LBRACKET, "[");
+        scan();
 
         if (TOKEN.token_type == T_INTLIT) {
             switch (class) {
@@ -153,6 +153,7 @@ Symbol *declare_var(int type, Symbol *ctype, int class) {
             }
         }
 
+        // TODO should be a expression?
         scan();
         match(T_RBRACKET, "]");
     } else {
@@ -250,11 +251,13 @@ ASTnode *declare_func(int type) {
     PARAM_HEAD = PARAM_TAIL = NULL;
 
     if (TOKEN.token_type == T_SEMI) {
-        match(T_SEMI, ";");
+        scan();
         return NULL;
     }
 
     FUNC_PTR = old_func;
+
+    SWITCH_LEVEL = 0;
     LOOP_LEVEL = 0;
     tree = compound_stmt();
 
@@ -277,7 +280,7 @@ void multi_declare_var(int type, Symbol *ctype, int class) {
         declare_var(type, ctype, class);
 
         if (TOKEN.token_type == T_SEMI) {
-            match(T_SEMI, ";");
+            scan();
             break;
         }
 
@@ -300,7 +303,7 @@ static Symbol *declare_composite(int ptype) {
         } else {
             ctype = find_union_sym(TEXT);
         }
-        match(T_IDENT, "identifier");
+        scan();
     }
 
     if (TOKEN.token_type != T_LBRACE) {
@@ -367,7 +370,7 @@ static void declare_enum() {
     if (TOKEN.token_type == T_IDENT) {
         enum_sym = find_enum_type_sym(TEXT);
         name = strdup(TEXT);
-        match(T_IDENT, "identifier");
+        scan();
     }
 
     if (TOKEN.token_type != T_LBRACE) {
@@ -379,7 +382,7 @@ static void declare_enum() {
 
     // then must be {
     // we are declare a new enum type
-    match(T_LBRACE, "{");
+    scan();
     if (enum_sym) {
         fatals("Enum type already defined", enum_sym->name);
     }
@@ -395,7 +398,7 @@ static void declare_enum() {
         }
 
         if (TOKEN.token_type == T_ASSIGN) {
-            match(T_ASSIGN, "=");
+            scan();
             if (TOKEN.token_type != T_INTLIT) {
                 fatal("Enum value must be integer literal");
             }
@@ -422,7 +425,7 @@ static int declare_typedef(Symbol **ctype) {
     int type, class = C_NONE;
 
     // skip typedef keyword
-    match(T_TYPEDEF, "typedef");
+    scan();
 
     type = parse_type(ctype, &class);
 
@@ -438,6 +441,7 @@ static int declare_typedef(Symbol **ctype) {
     }
 
     add_typedef_sym(TEXT, type, *ctype, S_NONE, 0);
+    scan();
 
     return type;
 }
@@ -465,7 +469,7 @@ void declare_global() {
         type = parse_type(&ctype, &class);
 
         if (type == P_NONE) {
-            match(T_SEMI, ";");
+            scan();
             continue;
         }
 

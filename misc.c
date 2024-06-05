@@ -5,12 +5,37 @@
 #include "data.h"
 #include "decl.h"
 
+// token name
+static char *TOKEN_NAMES[] = {
+        "EOF",
+        // binary operators
+        "=", "||", "&&", "|", "^", "&",
+        "==", "!=", "<", ">", "<=", ">=",
+        "<<", ">>", "+", "-", "*", "/",
+        // unary operators
+        "++", "--", "~", "!",
+        // types
+        "void", "char", "int", "long",
+        // keywords
+        "if", "else", "while", "for", "return",
+        "struct", "union", "enum", "typedef", "extern",
+        "break", "continue", "switch", "case", "default",
+        // structures
+        "int literal", "string literal", ";", "identifier",
+        "{", "}", "(", ")", "[", "]",
+        ",", ".", "->", ":",
+};
+
 void match(int token_type, char *what) {
     if (TOKEN.token_type == token_type) {
         scan();
         return;
     }
     fatals("expected", what);
+}
+
+char *get_token_name(int token_type) {
+    return TOKEN_NAMES[token_type];
 }
 
 void warning(char *s) {

@@ -82,6 +82,56 @@ static void free_register(int reg) {
 
 void cg_pre_amble() {
     cg_free_regs();
+/*
+# internal switch(expr) routine
+# %rsi = switch table, %rax = expr
+
+switch:
+        pushq   %rsi            # Save %rsi
+        movq    %rdx,%rsi       # Base of jump table -> %rsi
+        movq    %rax,%rbx       # Switch value -> %rbx
+        cld                     # Clear direction flag
+        lodsq                   # Load count of cases into %rcx,
+        movq    %rax,%rcx       # incrementing %rsi in the process
+next:
+        lodsq                   # Get the case value into %rdx
+        movq    %rax,%rdx
+        lodsq                   # and the label address into %rax
+        cmpq    %rdx,%rbx       # Does switch value matches the case?
+        jnz     no              # No, jump over this code
+        popq    %rsi            # Restore %rsi
+        jmp     *%rax           # and jump to the chosen case
+no:
+        loop    next            # Loop for the number of cases
+        lodsq                   # Out of loop, load default label address
+        popq    %rsi            # Restore %rsi
+        jmp     *%rax           # and jump to the default case
+ */
+    fprintf(OUT_FILE,
+            "# internal switch(expr) routine\n"
+            "# %%rsi = switch table, %%rax = expr\n"
+            "# from SubC: http://www.t3x.org/subc/\n"
+            "\n"
+            "switch:\n"
+            "\tpushq\t%%rsi\n"
+            "\tmovq\t%%rdx, %%rsi\n"
+            "\tmovq\t%%rax, %%rbx\n"
+            "\tcld\n"
+            "\tlodsq\n"
+            "\tmovq\t%%rax, %%rcx\n"
+            "next:\n"
+            "\tlodsq\n"
+            "\tmovq\t%%rax, %%rdx\n"
+            "\tlodsq\n"
+            "\tcmpq\t%%rdx, %%rbx\n"
+            "\tjnz\tno\n"
+            "\tpopq\t%%rsi\n"
+            "\tjmp\t*%%rax\n"
+            "no:\n"
+            "\tloop\tnext\n"
+            "\tlodsq\n"
+            "\tpopq\t%%rsi\n"
+            "\tjmp\t*%%rax\n\n");
 }
 
 // Nothing to do
@@ -584,4 +634,21 @@ int cg_store_deref(int r1, int r2, int type) {
     fprintf(OUT_FILE, "\tmovq\t%%rax, (%s)\n", reglist[r2]);
 
     return r1;
+}
+
+void cg_switch(int reg, int case_cnt, int *case_label, int *case_val, int dft_label) {
+    int i, tab_label = gen_label();
+
+    fprintf(OUT_FILE,
+            "\tmovq\t%s, %%rax\n"
+            "\tleaq\tL%d(%%rip), %%rdx\n"
+            "\tjmp\tswitch\n",
+            reglist[reg], tab_label);
+
+    cg_label(tab_label);
+        fprintf(OUT_FILE, "\t.quad\t%d\n", case_cnt);
+        for (i = 0; i < case_cnt; i++) {
+            fprintf(OUT_FILE, "\t.quad\t%d, L%d\n", case_val[i], case_label[i]);
+        }
+    fprintf(OUT_FILE, "\t.quad\tL%d\n", dft_label);
 }

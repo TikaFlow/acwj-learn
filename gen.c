@@ -54,6 +54,43 @@ static int gen_while_ast(ASTnode *node) {
     return NO_REG;
 }
 
+static int gen_switch_ast(ASTnode *node) {
+    ASTnode *case_node;
+    int *case_val, *case_label, end_label, i, reg, dft_label;
+    case_val = (int *) malloc((node->int_value) * sizeof(int));
+    case_label = (int *) malloc((node->int_value) * sizeof(int));
+
+    end_label = gen_label();
+    dft_label = end_label;
+
+    // parse case statements
+    for (i = 0, case_node = node->right; case_node; i++, case_node = case_node->right) {
+        case_val[i] = (int) case_node->int_value;
+        case_label[i] = gen_label();
+
+        if (case_node->op == A_DEFAULT) {
+            dft_label = case_label[i];
+        }
+    }
+
+    // gen condition statements
+    reg = gen_ast(node->left, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
+    // gen switch table
+    cg_switch(reg, (int) node->int_value, case_label, case_val, dft_label);
+    gen_free_regs();
+
+    // gen case statements
+    for (i = 0, case_node = node->right; case_node; i++, case_node = case_node->right) {
+        cg_label(case_label[i]);
+        gen_ast(case_node->left, NO_LABEL, NO_LABEL, end_label, A_NONE);
+        gen_free_regs();
+    }
+
+    cg_label(end_label);
+
+    return NO_REG;
+}
+
 static int gen_func_call(ASTnode *node) {
     ASTnode *glue = node;
     int reg, args_num = 0;
@@ -81,6 +118,8 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return gen_if_ast(node, start_label, end_label);
         case A_WHILE:
             return gen_while_ast(node);
+        case A_SWITCH:
+            return gen_switch_ast(node);
         case A_FUNCCALL:
             return gen_func_call(node);
         case A_GLUE:
