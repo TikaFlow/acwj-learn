@@ -60,8 +60,6 @@ int cg_load_local_sym(Symbol *sym, int op);
 
 int cg_load_str(int label);
 
-int cg_nop();
-
 int cg_add(int r1, int r2);
 
 int cg_sub(int r1, int r2);
@@ -192,14 +190,7 @@ Symbol *add_enum_sym(char *name, int class, int value);
 
 Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
-// decl.c
-int parse_type(Symbol **ctype, int *class);
-
-Symbol *declare_var(int type, Symbol *ctype, int class);
-
-void multi_declare_var(int type, Symbol *ctype, int class);
-
-ASTnode *declare_func(int type);
+int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2);
 
 void declare_global();
 

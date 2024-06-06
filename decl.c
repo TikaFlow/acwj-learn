@@ -13,7 +13,7 @@ static int declare_typedef(Symbol **ctype);
 
 static int type_of_typedef(char *name, Symbol **ctype);
 
-int parse_type(Symbol **ctype, int *class) {
+static int parse_type(Symbol **ctype, int *class) {
     int type = 0, can_no_var = FALSE, storage_flag = TRUE;
 
     while (storage_flag) {
@@ -91,20 +91,12 @@ int parse_type(Symbol **ctype, int *class) {
             fatals("Illegal type, token", get_name(V_TOKEN, TOKEN.token_type));
     }
 
-    while (TRUE) {
-        if (TOKEN.token_type != T_STAR) {
-            break;
-        }
-        type = pointer_to(type);
-        can_no_var = FALSE;
-        scan();
-    }
-
     // No variable name follows
     if (TOKEN.token_type == T_SEMI) {
         // not a variable declaration, but only a struct/union/enum/typedef definition
         if (type == P_STRUCT || type == P_UNION || can_no_var) {
             type = P_NONE;
+            scan();
         } else {
             fatal("Variable name expected");
         }
@@ -113,134 +105,117 @@ int parse_type(Symbol **ctype, int *class) {
     return type;
 }
 
-Symbol *declare_var(int type, Symbol *ctype, int class) {
-    Symbol *sym = NULL;
-
-    switch (class) {
-        case C_EXTERN:
-        case C_GLOBAL:
-            if (find_global_sym(TEXT)) {
-                fatals("Global variable redeclaration", TEXT);
-            }
-        case C_LOCAL:
-        case C_PARAM:
-            if (find_local_sym(TEXT)) {
-                fatals("Local variable redeclaration", TEXT);
-            }
-        case C_MEMBER:
-            if (find_member_sym(TEXT)) {
-                fatals("Struct/Union redeclaration", TEXT);
-            }
-        default:
+static int parse_stars(int type) {
+    while (TRUE) {
+        if (TOKEN.token_type != T_STAR) {
             break;
+        }
+        type = pointer_to(type);
+        scan();
     }
 
-    if (TOKEN.token_type == T_LBRACKET) {
-        scan();
+    return type;
+}
 
-        if (TOKEN.token_type == T_INTLIT) {
-            switch (class) {
-                case C_EXTERN:
-                case C_GLOBAL:
-                    sym = add_global_sym(TEXT, pointer_to(type), ctype, S_ARRAY, class, (int) TOKEN.int_value);
-                    break;
-                case C_LOCAL:
-                case C_PARAM:
-                case C_MEMBER:
-                    fatal("For now, declaration of non-global arrays is not implemented");
-                default:
-                    break;
-            }
-        }
+static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
+    Symbol *sym = NULL;
 
-        // TODO should be a expression?
-        scan();
-        match(T_RBRACKET, "]");
-    } else {
+    // skip '['
+    scan();
+
+    if (TOKEN.token_type == T_INTLIT) {
+        //treat arr name as a pointer th its elements' type
         switch (class) {
             case C_EXTERN:
             case C_GLOBAL:
-                sym = add_global_sym(TEXT, type, ctype, S_VARIABLE, class, 1);
+                sym = add_global_sym(name, pointer_to(type), ctype, S_ARRAY, class, (int) TOKEN.int_value);
+                scan();
                 break;
             case C_LOCAL:
-                sym = add_local_sym(TEXT, type, ctype, S_VARIABLE, 1);
-                break;
             case C_PARAM:
-                sym = add_param_sym(TEXT, type, ctype, S_VARIABLE, 1);
-                break;
             case C_MEMBER:
-                sym = add_member_sym(TEXT, type, ctype, S_VARIABLE, 1);
+                fatal("TODO: declare_array for non-global");
                 break;
             default:
-                break;
+                break; // keep compiler happy
         }
     }
+
+    // check ']'
+    match(T_RBRACKET, "]");
 
     return sym;
 }
 
-static int declare_var_list(Symbol *func, int class, int separate_token, int end_token) {
+static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class) {
+    switch (class) {
+        case C_EXTERN:
+        case C_GLOBAL:
+            return add_global_sym(name, type, ctype, S_VARIABLE, class, 1);
+        case C_LOCAL:
+            return add_local_sym(name, type, ctype, S_VARIABLE, 1);
+        case C_PARAM:
+            return add_param_sym(name, type, ctype, S_VARIABLE, 1);
+        case C_MEMBER:
+            return add_member_sym(name, type, ctype, S_VARIABLE, 1);
+        default:
+            break; // keep compiler happy
+    }
+
+    return NULL;
+}
+
+static int declare_param_list(Symbol *old_func, Symbol *new_func) {
     int type, param_cnt = 0;
     Symbol *ctype, *proto_ptr = NULL;
 
-    if (func) {
-        proto_ptr = func->first;
+    if (old_func) {
+        proto_ptr = old_func->first;
     }
 
-    while (TOKEN.token_type != end_token) {
-        type = parse_type(&ctype, &class);
-        match(T_IDENT, "identifier");
+    while (TOKEN.token_type != T_RPAREN) {
+        type = declare_list(&ctype, C_PARAM, T_COMMA, T_RPAREN);
+        if (type == P_NONE) {
+            fatal("Bad type in parameter list");
+        }
 
         if (proto_ptr) {
             if (type != proto_ptr->ptype) {
                 fatald("Type mismatch of parameter", param_cnt);
             }
-        } else {
-            declare_var(type, ctype, class);
         }
 
         param_cnt++;
 
-        if (TOKEN.token_type == end_token) {
-            // if a struct or union
-            if (class == C_MEMBER) {
-                warning("No semicolon at end of struct or union");
-            }
+        if (TOKEN.token_type == T_RPAREN) {
             break;
         }
-        match(separate_token, "separator");
-        if (TOKEN.token_type == end_token) {
-            break;
-        }
+        match(T_COMMA, ",");
     }
 
-    if (func && param_cnt != func->n_param) {
-        fatals("Parameter count mismatch for function", func->name);
+    if (old_func && param_cnt != old_func->n_param) {
+        fatals("Parameter count mismatch for function", old_func->name);
     }
 
     return param_cnt;
 }
 
-static int declare_params(Symbol *func) {
-    return declare_var_list(func, C_PARAM, T_COMMA, T_RPAREN);
-}
-
-ASTnode *declare_func(int type) {
+static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
     ASTnode *tree, *final_stmt;
     Symbol *old_func, *new_func = NULL;
     int end_label, param_cnt;
 
-    if ((old_func = find_global_sym(TEXT)) && old_func->stype != S_FUNCTION) {
+    if ((old_func = find_global_sym(name)) && old_func->stype != S_FUNCTION) {
         old_func = NULL;
     }
 
     if (!old_func) {
         end_label = gen_label();
-        new_func = add_global_sym(TEXT, type, NULL, S_FUNCTION, C_GLOBAL, end_label);
+        new_func = add_global_sym(name, type, NULL, S_FUNCTION, C_GLOBAL, end_label);
     }
 
     match(T_LPAREN, "(");
-    param_cnt = declare_params(old_func);
+    param_cnt = declare_param_list(old_func, new_func);
     match(T_RPAREN, ")");
 
     if (new_func) {
@@ -252,14 +227,18 @@ ASTnode *declare_func(int type) {
 
     // only a prototype
     if (TOKEN.token_type == T_SEMI) {
-        scan();
-        return NULL;
+        return old_func;
     }
 
     FUNC_PTR = old_func;
 
     SWITCH_LEVEL = 0;
     LOOP_LEVEL = 0;
+
+    // function body must start with {
+    if (TOKEN.token_type!=T_LBRACE){
+        fatal("No '{' in function body");
+    }
     tree = compound_stmt(FALSE);
 
     if (type != P_VOID) {
@@ -273,26 +252,22 @@ ASTnode *declare_func(int type) {
         }
     }
 
-    return make_ast_unary(A_FUNCTION, type, tree, old_func, end_label);
-}
+    tree = make_ast_unary(A_FUNCTION, type, tree, old_func, end_label);
 
-void multi_declare_var(int type, Symbol *ctype, int class) {
-    while (TRUE) {
-        declare_var(type, ctype, class);
-
-        if (TOKEN.token_type == T_SEMI) {
-            scan();
-            break;
-        }
-
-        match(T_COMMA, ",");
-        match(T_IDENT, "identifier");
+    if (FLAG_T) {
+        dump_ast(tree, NO_LABEL, 0); // SHOW_AST
+        fprintf(stdout, "\n\n");
     }
+
+    gen_ast(tree, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
+    reset_local_syms();
+
+    return old_func;
 }
 
 static Symbol *declare_composite(int ptype) {
     Symbol *member, *ctype = NULL;
-    int offset = 0;
+    int offset = 0, type;
 
     // skip struct/union keyword
     scan();
@@ -323,9 +298,29 @@ static Symbol *declare_composite(int ptype) {
     } else {
         ctype = add_union_sym(TEXT, P_UNION, NULL, S_NONE, 0);
     }
-    match(T_LBRACE, "{");
-    declare_var_list(NULL, C_MEMBER, T_SEMI, T_RBRACE);
+
+    scan();
+    // parse member list
+    while (TRUE) {
+        type = declare_list(&member, C_MEMBER, T_SEMI, T_RBRACE);
+        if (type == P_NONE) {
+            fatal("Declaration does not declare anything");
+        }
+
+        if (TOKEN.token_type == T_RBRACE) {
+            warning("No semicolon at end of struct or union");
+            break;
+        }
+        match(T_SEMI, "separator");
+        if (TOKEN.token_type == T_RBRACE) {
+            break;
+        }
+    }
     match(T_RBRACE, "}");
+
+    if (!MEMBER_HEAD) {
+        fatal("No member in struct/union");
+    }
 
     ctype->first = MEMBER_HEAD;
     MEMBER_HEAD = MEMBER_TAIL = NULL;
@@ -429,6 +424,7 @@ static int declare_typedef(Symbol **ctype) {
     scan();
 
     type = parse_type(ctype, &class);
+    type = parse_stars(type);
 
     if (class == C_EXTERN) {
         fatal("Typedef type cannot be used with extern");
@@ -461,40 +457,113 @@ static int type_of_typedef(char *name, Symbol **ctype) {
     return type->ptype;
 }
 
-void declare_global() {
-    ASTnode *tree;
-    Symbol *ctype;
-    int type, class = C_GLOBAL;
+static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
+    fatal("TODO: init_array()");
+}
+
+static Symbol *declare_sym(int type, Symbol *ctype, int class) {
+    Symbol *sym = NULL;
+    char *name = strdup(TEXT);
+    int stype = S_VARIABLE;
+
+    // should have a variable name
+    match(T_IDENT, "identifier");
+
+    // if a function
+    if (TOKEN.token_type == T_LPAREN) {
+        return declare_func(name, type, ctype, class);
+    }
+
+    // check if has been declared
+    switch (class) {
+        case C_EXTERN:
+        case C_GLOBAL:
+            if (find_global_sym(name)) {
+                fatals("Global variable already defined", name);
+            }
+        case C_LOCAL:
+        case C_PARAM:
+            if (find_local_sym(name)) {
+                fatals("Local variable already defined", name);
+            }
+        case C_MEMBER:
+            if (find_member_sym(name)) {
+                fatals("Struct/Union member already defined", name);
+            }
+        default:
+            break; // keep compiler happy
+    }
+
+    // add to symbol table
+    if (TOKEN.token_type == T_LBRACKET) {
+        sym = declare_array(name, type, ctype, class);
+        stype = S_ARRAY;
+    } else {
+        sym = declare_scalar(name, type, ctype, class);
+    }
+
+    // check if has a initial value
+    if (TOKEN.token_type == T_ASSIGN) {
+        // parameter or member has no initial value
+        if (class == C_PARAM || class == C_MEMBER) {
+            fatals("Parameter or member initialisation permitted", name);
+        }
+
+        // skip '='
+        scan();
+
+        // parse the initial value
+        if (stype == S_ARRAY) {
+            init_array(sym, type, ctype, class);
+        } else {
+            fatal("TODO: init_scalar()");
+        }
+    }
+
+    return sym;
+}
+
+int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2) {
+    int init_type, type;
+    Symbol *sym;
+
+    if ((init_type = parse_type(ctype, &class)) == P_NONE) {
+        return P_NONE;
+    }
 
     while (TRUE) {
-        type = parse_type(&ctype, &class);
+        // see if this symbol is a pointer
+        type = parse_stars(init_type);
 
-        if (type == P_NONE) {
+        // parse this symbol
+        sym = declare_sym(type, *ctype, class);
+
+        // if a func, no list, so leave
+        if (sym->stype == S_FUNCTION) {
+            if (class != C_GLOBAL) {
+                fatal("Function definition not at global scope");
+            }
+            return type;
+        }
+
+        // if this is the end of the list, return the type
+        if (TOKEN.token_type == end_tk1 || TOKEN.token_type == end_tk2) {
+            return type;
+        }
+
+        // if this is a comma, continue
+        match(T_COMMA, ",");
+    }
+}
+
+void declare_global() {
+    Symbol *ctype;
+
+    while (TOKEN.token_type != T_EOF) {
+        declare_list(&ctype, C_GLOBAL, T_SEMI, T_EOF);
+
+        if (TOKEN.token_type == T_SEMI) {
             scan();
-            continue;
-        }
-
-        match(T_IDENT, "identifier");
-
-        if (TOKEN.token_type == T_LPAREN) {
-            tree = declare_func(type);
-            if (!tree) {
-                continue; // for prototype, no code to generate
-            }
-
-            if (FLAG_T) {
-                dump_ast(tree, NO_LABEL, 0); // SHOW_AST
-                fprintf(stdout, "\n\n");
-            }
-
-            gen_ast(tree, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
-            reset_local_syms();
-        } else {
-            multi_declare_var(type, ctype, class);
-        }
-
-        if (TOKEN.token_type == T_EOF) {
-            break;
         }
     }
 }

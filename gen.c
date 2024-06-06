@@ -148,7 +148,7 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
 
     switch (node->op) {
         case A_NOP:
-            return cg_nop();
+            return NO_REG;
         case A_ADD:
             return cg_add(leftreg, rightreg);
         case A_SUBTRACT:

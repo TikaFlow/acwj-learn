@@ -253,3 +253,6 @@ for now, a = 20
 a = 20
 a = 21
 a = 22
+=================== test/39-declare-list.c ===================
+b = 6
+so in fred, x = 10 and y = 20

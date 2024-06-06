@@ -93,6 +93,7 @@ static ASTnode *return_stmt() {
     }
 
     tree = make_ast_unary(A_RETURN, P_NONE, tree, NULL, 0);
+    match(T_SEMI, ";");
     return tree;
 }
 
@@ -103,6 +104,7 @@ static ASTnode *goto_stmt(int goto_type) {
 
     // skip the break/continue keyword
     scan();
+    match(T_SEMI, ";");
     return make_ast_leaf(goto_type, P_NONE, NULL, 0);
 }
 
@@ -199,7 +201,6 @@ static ASTnode *switch_stmt() {
 
 static ASTnode *single_stmt() {
     Symbol *ctype;
-    int type, class = C_LOCAL;
     switch (TOKEN.token_type) {
         case T_IDENT:
             if (!find_typedef_sym(TEXT)) {
@@ -212,15 +213,8 @@ static ASTnode *single_stmt() {
         case T_UNION:
         case T_ENUM:
         case T_TYPEDEF:
-            type = parse_type(&ctype, &class);
-
-            if (type == P_NONE) {
-                scan();
-                return NULL;
-            }
-
-            match(T_IDENT, "identifier");
-            multi_declare_var(type, ctype, class);
+            declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF);
+            match(T_SEMI, ";");
             return NULL;
         case T_IF:
             return if_stmt();
@@ -268,10 +262,7 @@ ASTnode *compound_stmt(int is_switch) {
         if (tree) {
             switch (tree->op) {
                 case A_ASSIGN:
-                case A_RETURN:
                 case A_FUNCCALL:
-                case A_BREAK:
-                case A_CONTINUE:
                     match(T_SEMI, ";");
                 default:
                     break;

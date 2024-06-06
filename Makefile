@@ -3,7 +3,7 @@ INC_DIR=/tmp/include
 SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
 EXEC=tcc
 
-NEW=test/38-dangling-else.c
+NEW=test/39-declare-list.c
 ASM=$(NEW:.c=.s)
 
 .PHONY: all test clean inc

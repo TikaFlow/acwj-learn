@@ -306,11 +306,6 @@ int cg_load_str(int label) {
     return reg;
 }
 
-int cg_nop() {
-    fprintf(OUT_FILE, "\tnop\n");
-    return NO_REG;
-}
-
 int cg_add(int r1, int r2) {
     fprintf(OUT_FILE, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
     free_register(r2);
@@ -479,7 +474,7 @@ int cg_type_size(int type) {
             fatals("Bad type in cg_type_size()", get_name(V_PTYPE, type));
     }
 
-    return 0; // keep -Wall happy
+    return 0; // keep compiler happy
 }
 
 void cg_new_sym(Symbol *sym) {
