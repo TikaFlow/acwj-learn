@@ -117,32 +117,64 @@ static int parse_stars(int type) {
     return type;
 }
 
+static long parse_literal(int type) {
+    if (type == pointer_to(P_CHAR) && TOKEN.token_type == T_STRLIT) {
+        return gen_new_str(TEXT);
+    }
+
+    if (TOKEN.token_type == T_INTLIT) {
+        switch (type) {
+            case P_CHAR:
+                if (TOKEN.int_value < 0 || TOKEN.int_value > 255) {
+                    fatal("Char literal out of range");
+                }
+            case P_INT:
+            case P_LONG:
+                break;
+            default:
+                fatal("Type mismatch");
+        }
+    } else {
+        fatal("Integer literal expected");
+    }
+
+    return TOKEN.int_value;
+}
+
 static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
     Symbol *sym = NULL;
+    int n_elem = -1;
 
     // skip '['
     scan();
 
     if (TOKEN.token_type == T_INTLIT) {
-        //treat arr name as a pointer th its elements' type
-        switch (class) {
-            case C_EXTERN:
-            case C_GLOBAL:
-                sym = add_global_sym(name, pointer_to(type), ctype, S_ARRAY, class, (int) TOKEN.int_value);
-                scan();
-                break;
-            case C_LOCAL:
-            case C_PARAM:
-            case C_MEMBER:
-                fatal("TODO: declare_array for non-global");
-                break;
-            default:
-                break; // keep compiler happy
+        if (TOKEN.int_value < 0 || TOKEN.int_value > MAX_INT) {
+            fatald("Illegal array size", (int) TOKEN.int_value);
         }
+
+        // save array size
+        n_elem = (int) TOKEN.int_value;
+        scan();
     }
 
     // check ']'
     match(T_RBRACKET, "]");
+
+    //treat arr name as a pointer th its elements' type
+    switch (class) {
+        case C_EXTERN:
+        case C_GLOBAL:
+            sym = add_global_sym(name, pointer_to(type), ctype, S_ARRAY, class, n_elem, 0);
+            break;
+        case C_LOCAL:
+        case C_PARAM:
+        case C_MEMBER:
+            fatal("TODO: declare_array for non-global");
+            break;
+        default:
+            break; // keep compiler happy
+    }
 
     return sym;
 }
@@ -151,11 +183,11 @@ static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class) {
     switch (class) {
         case C_EXTERN:
         case C_GLOBAL:
-            return add_global_sym(name, type, ctype, S_VARIABLE, class, 1);
+            return add_global_sym(name, type, ctype, S_VARIABLE, class, 1, 0);
         case C_LOCAL:
             return add_local_sym(name, type, ctype, S_VARIABLE, 1);
         case C_PARAM:
-            return add_param_sym(name, type, ctype, S_VARIABLE, 1);
+            return add_param_sym(name, type, ctype, S_VARIABLE);
         case C_MEMBER:
             return add_member_sym(name, type, ctype, S_VARIABLE, 1);
         default:
@@ -193,7 +225,7 @@ static int declare_param_list(Symbol *old_func, Symbol *new_func) {
         match(T_COMMA, ",");
     }
 
-    if (old_func && param_cnt != old_func->n_param) {
+    if (old_func && param_cnt != old_func->n_elem) {
         fatals("Parameter count mismatch for function", old_func->name);
     }
 
@@ -211,7 +243,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 
     if (!old_func) {
         end_label = gen_label();
-        new_func = add_global_sym(name, type, NULL, S_FUNCTION, C_GLOBAL, end_label);
+        new_func = add_global_sym(name, type, NULL, S_FUNCTION, C_GLOBAL, 0, end_label);
     }
 
     match(T_LPAREN, "(");
@@ -219,7 +251,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
     match(T_RPAREN, ")");
 
     if (new_func) {
-        new_func->n_param = param_cnt;
+        new_func->n_elem = param_cnt;
         new_func->first = PARAM_HEAD;
         old_func = new_func;
     }
@@ -236,7 +268,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
     LOOP_LEVEL = 0;
 
     // function body must start with {
-    if (TOKEN.token_type!=T_LBRACE){
+    if (TOKEN.token_type != T_LBRACE) {
         fatal("No '{' in function body");
     }
     tree = compound_stmt(FALSE);
@@ -294,9 +326,9 @@ static Symbol *declare_composite(int ptype) {
         fatals("Struct type already defined", TEXT);
     }
     if (ptype == P_STRUCT) {
-        ctype = add_struct_sym(TEXT, P_STRUCT, NULL, S_NONE, 0);
+        ctype = add_struct_sym(TEXT);
     } else {
-        ctype = add_union_sym(TEXT, P_UNION, NULL, S_NONE, 0);
+        ctype = add_union_sym(TEXT);
     }
 
     scan();
@@ -437,7 +469,7 @@ static int declare_typedef(Symbol **ctype) {
         fatals("Typedef type already defined", TEXT);
     }
 
-    add_typedef_sym(TEXT, type, *ctype, S_NONE, 0);
+    add_typedef_sym(TEXT, type, *ctype);
     scan();
 
     return type;
@@ -458,7 +490,70 @@ static int type_of_typedef(char *name, Symbol **ctype) {
 }
 
 static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
-    fatal("TODO: init_array()");
+    int n_elem = sym->n_elem, max_elem, i = 0, j;
+    long *init_list;
+
+    if (class == C_EXTERN || class == C_GLOBAL) {
+        // array init with {
+        match(T_LBRACE, "{");
+
+        if (n_elem == -1) {
+            max_elem = DEFAULT_ARRAY_SIZE;
+        } else {
+            max_elem = n_elem;
+        }
+        init_list = (long *) malloc(sizeof(long) * max_elem);
+
+        while (TRUE) {
+            if (i >= max_elem) {
+                if (n_elem == -1) {
+                    max_elem += DEFAULT_ARRAY_SIZE;
+                    init_list = (long *) realloc(init_list, sizeof(long) * max_elem);
+                } else {
+                    fatals("Array initialization too long", NULL);
+                }
+            }
+
+            init_list[i++] = parse_literal(type);
+            scan();
+
+            if (TOKEN.token_type == T_RBRACE) {
+                break;
+            }
+            match(T_COMMA, ",");
+            if (TOKEN.token_type == T_RBRACE) {
+                break;
+            }
+        }
+        if (n_elem == -1) {
+            n_elem = i;
+            init_list = (long *) realloc(init_list, sizeof(long) * i);
+        }
+
+        match(T_RBRACE, "}");
+
+        // zero unused elements
+        for (j = i; j < n_elem; j++) {
+            init_list[j] = 0;
+        }
+
+        sym->init_list = init_list;
+        sym->n_elem = n_elem;
+        sym->size = n_elem * size_of_type(type, ctype);
+    } else {
+        // TODO: initialize local array
+    }
+}
+
+static void init_var(Symbol *sym, int type, Symbol *ctype, int class) {
+    if (class == C_EXTERN || class == C_GLOBAL) {
+        sym->init_list = (long *) malloc(sizeof(long));
+        sym->init_list[0] = parse_literal(type);
+        sym->n_elem = 1;
+        scan(); // skip literal
+    } else {
+        // TODO: initialize local variable
+    }
 }
 
 static Symbol *declare_sym(int type, Symbol *ctype, int class) {
@@ -516,8 +611,13 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class) {
         if (stype == S_ARRAY) {
             init_array(sym, type, ctype, class);
         } else {
-            fatal("TODO: init_scalar()");
+            init_var(sym, type, ctype, class);
         }
+    }
+
+    // generate space if is a GLOBAL symbol
+    if (class == C_GLOBAL) {
+        gen_new_sym(sym);
     }
 
     return sym;

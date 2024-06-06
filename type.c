@@ -6,7 +6,7 @@
 #include "decl.h"
 
 int is_int(int type) {
-    return !(type & 0xf) && type <= P_LONG;
+    return !(type & 0xf) && type >= P_CHAR && type <= P_LONG;
 }
 
 int is_ptr(int type) {

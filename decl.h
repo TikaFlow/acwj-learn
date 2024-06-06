@@ -174,21 +174,21 @@ Symbol *find_typedef_sym(char *s);
 
 Symbol *find_sym(char *s);
 
-Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int size);
+Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int n_elem, int posn);
 
-Symbol *add_local_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+Symbol *add_local_sym(char *name, int ptype, Symbol *ctype, int stype, int n_elem);
 
-Symbol *add_param_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+Symbol *add_param_sym(char *name, int ptype, Symbol *ctype, int stype);
 
-Symbol *add_struct_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+Symbol *add_struct_sym(char *name);
 
-Symbol *add_union_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+Symbol *add_union_sym(char *name);
 
 Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
 
 Symbol *add_enum_sym(char *name, int class, int value);
 
-Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype);
 
 int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2);
 

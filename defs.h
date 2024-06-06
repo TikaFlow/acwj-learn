@@ -13,6 +13,9 @@
 #include <errno.h>
 #include <unistd.h>
 
+// constants
+#define MAX_INT 0x7fffffff
+#define DEFAULT_ARRAY_SIZE 0X10
 // symbol length
 #define MAX_TEXT 1024
 // max number of obj files
@@ -156,12 +159,11 @@ struct Symbol {
     int stype;
     Symbol *ctype; // for struct/union, pointer to it's type
     int class; // global/local/param/struct/union/member
+    int size; // total byte size
+    int n_elem; // for function, number of parameters, for array, number of elements
+    long *init_list; // init value list
     union {
-        int end_label;
-        int size;
-    }; // element number of symbol/array
-    union {
-        int n_param; // for function, number of parameters
+        int end_label; // function end label
         int posn; // for param, positive position from stack base pointer/RBP
     };
     Symbol *next;

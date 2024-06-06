@@ -478,39 +478,52 @@ int cg_type_size(int type) {
 }
 
 void cg_new_sym(Symbol *sym) {
+    int size, type, i, j;
+    long init_value;
+
     if (!sym || sym->stype == S_FUNCTION) {
         return;
     }
 
     cg_data_section();
-
     fprintf(OUT_FILE,
             "\t.globl\t%s\n"
-            "%s:",
+            "%s:\n",
             sym->name,
             sym->name);
 
-    int size = size_of_type(sym->ptype, sym->ctype);
     if (sym->stype == S_ARRAY) {
         size = size_of_type(value_at(sym->ptype), sym->ctype); // howto? if a struct array
+        type = value_at(sym->ptype);
+    } else {
+        size = sym->size;
+        type = sym->ptype;
     }
 
-    for (int i = 0; i < sym->size; i++) {
+    for (i = 0; i < sym->n_elem; i++) {
+        init_value = 0;
+        if (sym->init_list) {
+            init_value = sym->init_list[i];
+        }
         switch (size) {
             case 1:
-                fprintf(OUT_FILE, "\t.byte\t0\n");
+                fprintf(OUT_FILE, "\t.byte\t%d\n", (char) init_value);
                 break;
             case 2:
-                fprintf(OUT_FILE, "\t.short\t0\n"); // or .word
+                fprintf(OUT_FILE, "\t.short\t%d\n", (short) init_value); // or .word
                 break;
             case 4:
-                fprintf(OUT_FILE, "\t.int\t0\n"); // or .long
+                fprintf(OUT_FILE, "\t.int\t%d\n", (int) init_value); // or .long
                 break;
             case 8:
-                fprintf(OUT_FILE, "\t.quad\t0\n");
+                if (sym->init_list && type == pointer_to(P_CHAR)) {
+                    fprintf(OUT_FILE, "\t.quad\tL%d\n", (int) init_value);
+                    break;
+                }
+                fprintf(OUT_FILE, "\t.quad\t%ld\n", init_value);
                 break;
             default:
-                for (int i = 0; i < size; ++i) {
+                for (j = 0; j < size; j++) {
                     fprintf(OUT_FILE, "\t.byte\t0\n");
                 }
         }

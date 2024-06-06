@@ -27,7 +27,7 @@ void reset_sym_table() {
     reset_local_syms();
 }
 
-static Symbol *new_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int size, int posn) {
+static Symbol *new_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int n_elem, int posn) {
     Symbol *sym = (Symbol *) malloc(sizeof(Symbol));
 
     if (!sym) {
@@ -39,56 +39,66 @@ static Symbol *new_sym(char *name, int ptype, Symbol *ctype, int stype, int clas
     sym->ctype = ctype;
     sym->stype = stype;
     sym->class = class;
-    sym->size = size;
+    sym->n_elem = n_elem;
     sym->posn = posn;
     sym->next = NULL;
     sym->first = NULL;
+    sym->init_list = NULL;
 
-    // generate space if is a GLOBAL symbol
-    if (class == C_GLOBAL) {
-        gen_new_sym(sym);
+    if (is_int(ptype) || is_ptr(ptype)) {
+        sym->size = n_elem * size_of_type(ptype, ctype);
     }
 
     return sym;
 }
 
-Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int size) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, class, size, 0);
+Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int n_elem, int posn) {
+    Symbol *sym = new_sym(name, ptype, ctype, stype, class, n_elem, posn);
+    if (ptype == P_STRUCT || ptype == P_UNION) {
+        sym->size = ctype->size;
+    }
     add_sym(&GLOBAL_HEAD, &GLOBAL_TAIL, sym);
 
     return sym;
 }
 
-Symbol *add_param_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_PARAM, size, 0);
+Symbol *add_param_sym(char *name, int ptype, Symbol *ctype, int stype) {
+    Symbol *sym = new_sym(name, ptype, ctype, stype, C_PARAM, 1, 0);
     add_sym(&PARAM_HEAD, &PARAM_TAIL, sym);
 
     return sym;
 }
 
-Symbol *add_local_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_LOCAL, size, 0);
+Symbol *add_local_sym(char *name, int ptype, Symbol *ctype, int stype, int n_elem) {
+    Symbol *sym = new_sym(name, ptype, ctype, stype, C_LOCAL, n_elem, 0);
+    if (ptype == P_STRUCT || ptype == P_UNION) {
+        sym->size = ctype->size;
+    }
     add_sym(&LOCAL_HEAD, &LOCAL_TAIL, sym);
 
     return sym;
 }
 
-Symbol *add_struct_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_STRUCT, size, 0);
+Symbol *add_struct_sym(char *name) {
+    Symbol *sym = new_sym(name, P_STRUCT, NULL, S_NONE, C_STRUCT, 0, 0);
+
     add_sym(&STRUCT_HEAD, &STRUCT_TAIL, sym);
 
     return sym;
 }
 
-Symbol *add_union_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_UNION, size, 0);
+Symbol *add_union_sym(char *name) {
+    Symbol *sym = new_sym(name, P_UNION, NULL, S_NONE, C_UNION, 0, 0);
     add_sym(&UNION_HEAD, &UNION_TAIL, sym);
 
     return sym;
 }
 
-Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_MEMBER, size, 0);
+Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int n_elem) {
+    Symbol *sym = new_sym(name, ptype, ctype, stype, C_MEMBER, n_elem, 0);
+    if (ptype == P_STRUCT || ptype == P_UNION) {
+        sym->size = ctype->size;
+    }
     add_sym(&MEMBER_HEAD, &MEMBER_TAIL, sym);
 
     return sym;
@@ -101,8 +111,8 @@ Symbol *add_enum_sym(char *name, int class, int value) {
     return sym;
 }
 
-Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype, int stype, int size) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_TYPEDEF, size, 0);
+Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype) {
+    Symbol *sym = new_sym(name, ptype, ctype, S_NONE, C_TYPEDEF, 0, 0);
     add_sym(&TYPEDEF_HEAD, &TYPEDEF_TAIL, sym);
 
     return sym;
