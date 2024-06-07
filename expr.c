@@ -160,7 +160,7 @@ static ASTnode *postfix() {
 }
 
 static ASTnode *primary() {
-    ASTnode *node;
+    ASTnode *node = NULL;
     int label;
 
     switch (TOKEN.token_type) {
@@ -183,7 +183,6 @@ static ASTnode *primary() {
             match(T_RPAREN, ")");
             return node;
         default:
-            node = NULL;
             fatals("syntax error, token", get_name(V_TOKEN, TOKEN.token_type));
     }
 
@@ -347,7 +346,7 @@ ASTnode *bin_expr(int ptp) {
             }
         }
 
-        left = make_ast_node(token_to_op(token_type), left->type, left, NULL, right, NULL, 0);
+        left = make_ast_node(ast_op, left->type, left, NULL, right, NULL, 0);
 
         token_type = TOKEN.token_type;
         switch (token_type) {

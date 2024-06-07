@@ -256,4 +256,6 @@ a = 22
 =================== test/39-declare-list.c ===================
 b = 6
 so in fred, x = 10 and y = 20
-=================== test/40-global-var-init.c ===================
+=================== test/40-global-var-array-init.c ===================
+=================== test/41-local-var-init.c ===================
+str = Hello world, x = 3, y = 5, z = 11

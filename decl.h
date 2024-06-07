@@ -190,7 +190,8 @@ Symbol *add_enum_sym(char *name, int class, int value);
 
 Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype);
 
-int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2);
+// decl.c
+int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **glue_tree);
 
 void declare_global();
 

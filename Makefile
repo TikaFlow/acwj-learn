@@ -1,9 +1,9 @@
 HEADER=defs.h data.h decl.h
 INC_DIR=/tmp/include
-SRCS=main.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
+SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
 EXEC=tcc
 
-NEW=test/40-global-var-init.c
+NEW=test/41-local-var-init.c
 ASM=$(NEW:.c=.s)
 
 .PHONY: all test clean inc
@@ -33,4 +33,4 @@ test: $(EXEC) inc
 	@echo "All Tests passed!"
 
 clean:
-	rm -f $(EXEC) main out* *.out *.o *.s test/output.txt test/*.s test/*.o
+	rm -f $(EXEC) out* *.out *.o *.s test/output.txt test/*.s test/*.o

@@ -201,6 +201,7 @@ static ASTnode *switch_stmt() {
 
 static ASTnode *single_stmt() {
     Symbol *ctype;
+    ASTnode *stmt;
     switch (TOKEN.token_type) {
         case T_IDENT:
             if (!find_typedef_sym(TEXT)) {
@@ -213,9 +214,12 @@ static ASTnode *single_stmt() {
         case T_UNION:
         case T_ENUM:
         case T_TYPEDEF:
-            declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF);
-            match(T_SEMI, ";");
-            return NULL;
+            declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt);
+            if (stmt && stmt->op == A_ASSIGN) { // A_ASSIGN will be handled behind
+            } else {
+                match(T_SEMI, ";");
+            }
+            return stmt;
         case T_IF:
             return if_stmt();
         case T_WHILE:

@@ -200,13 +200,14 @@ static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class) {
 static int declare_param_list(Symbol *old_func, Symbol *new_func) {
     int type, param_cnt = 0;
     Symbol *ctype, *proto_ptr = NULL;
+    ASTnode *unused;
 
     if (old_func) {
         proto_ptr = old_func->first;
     }
 
     while (TOKEN.token_type != T_RPAREN) {
-        type = declare_list(&ctype, C_PARAM, T_COMMA, T_RPAREN);
+        type = declare_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, &unused);
         if (type == P_NONE) {
             fatal("Bad type in parameter list");
         }
@@ -299,6 +300,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 
 static Symbol *declare_composite(int ptype) {
     Symbol *member, *ctype = NULL;
+    ASTnode *unused;
     int offset = 0, type;
 
     // skip struct/union keyword
@@ -334,7 +336,7 @@ static Symbol *declare_composite(int ptype) {
     scan();
     // parse member list
     while (TRUE) {
-        type = declare_list(&member, C_MEMBER, T_SEMI, T_RBRACE);
+        type = declare_list(&member, C_MEMBER, T_SEMI, T_RBRACE, &unused);
         if (type == P_NONE) {
             fatal("Declaration does not declare anything");
         }
@@ -545,18 +547,28 @@ static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
     }
 }
 
-static void init_var(Symbol *sym, int type, Symbol *ctype, int class) {
+static void init_var(Symbol *sym, int type, Symbol *ctype, int class, ASTnode **glue_tree) {
+    ASTnode *var, *expr;
+    *glue_tree = NULL;
     if (class == C_EXTERN || class == C_GLOBAL) {
         sym->init_list = (long *) malloc(sizeof(long));
         sym->init_list[0] = parse_literal(type);
         sym->n_elem = 1;
         scan(); // skip literal
-    } else {
-        // TODO: initialize local variable
+    } else if (class == C_LOCAL) {
+        var = make_ast_leaf(A_IDENT, sym->ptype, sym, 0);
+        expr = bin_expr(0);
+        expr->rvalue = TRUE;
+
+        expr = modify_type(expr, var->type, P_NONE);
+        if (!expr) {
+            fatal("Incompatible types in initialization");
+        }
+        *glue_tree = make_ast_node(A_ASSIGN, expr->type, expr, NULL, var, NULL, 0);
     }
 }
 
-static Symbol *declare_sym(int type, Symbol *ctype, int class) {
+static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tree) {
     Symbol *sym = NULL;
     char *name = strdup(TEXT);
     int stype = S_VARIABLE;
@@ -611,7 +623,7 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class) {
         if (stype == S_ARRAY) {
             init_array(sym, type, ctype, class);
         } else {
-            init_var(sym, type, ctype, class);
+            init_var(sym, type, ctype, class, glue_tree);
         }
     }
 
@@ -623,9 +635,11 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class) {
     return sym;
 }
 
-int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2) {
+int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **glue_tree) {
     int init_type, type;
     Symbol *sym;
+    ASTnode *tree = NULL;
+    *glue_tree = NULL;
 
     if ((init_type = parse_type(ctype, &class)) == P_NONE) {
         return P_NONE;
@@ -636,7 +650,15 @@ int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2) {
         type = parse_stars(init_type);
 
         // parse this symbol
-        sym = declare_sym(type, *ctype, class);
+        sym = declare_sym(type, *ctype, class, &tree);
+
+        if (tree) { // avoid unnecessary nesting
+            if (*glue_tree) {
+                *glue_tree = make_ast_node(A_GLUE, P_NONE, *glue_tree, NULL, tree, NULL, 0);
+            } else {
+                *glue_tree = tree;
+            }
+        }
 
         // if a func, no list, so leave
         if (sym->stype == S_FUNCTION) {
@@ -658,9 +680,10 @@ int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2) {
 
 void declare_global() {
     Symbol *ctype;
+    ASTnode *unused;
 
     while (TOKEN.token_type != T_EOF) {
-        declare_list(&ctype, C_GLOBAL, T_SEMI, T_EOF);
+        declare_list(&ctype, C_GLOBAL, T_SEMI, T_EOF, &unused);
 
         if (TOKEN.token_type == T_SEMI) {
             scan();
