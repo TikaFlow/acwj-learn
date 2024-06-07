@@ -195,6 +195,8 @@ int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **
 
 void declare_global();
 
+int parse_cast();
+
 // type.c
 int is_int(int type);
 

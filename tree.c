@@ -40,11 +40,12 @@ static int gendumplabel() {
 void dump_ast(ASTnode *node, int label, int level) {
     int Lfalse, Lstart, Lend;
 
-
     switch (node->op) {
         case A_IF:
             Lfalse = gendumplabel();
-            for (int i = 0; i < level; i++) fprintf(stdout, " ");
+            for (int i = 0; i < level; i++) {
+                fprintf(stdout, " ");
+            }
             fprintf(stdout, "A_IF");
             if (node->right) {
                 Lend = gendumplabel();
@@ -53,11 +54,15 @@ void dump_ast(ASTnode *node, int label, int level) {
             fprintf(stdout, "\n");
             dump_ast(node->left, Lfalse, level + 2);
             dump_ast(node->mid, NO_LABEL, level + 2);
-            if (node->right) dump_ast(node->right, NO_LABEL, level + 2);
+            if (node->right) {
+                dump_ast(node->right, NO_LABEL, level + 2);
+            }
             return;
         case A_WHILE:
             Lstart = gendumplabel();
-            for (int i = 0; i < level; i++) fprintf(stdout, " ");
+            for (int i = 0; i < level; i++) {
+                fprintf(stdout, " ");
+            }
             fprintf(stdout, "A_WHILE, start L%d\n", Lstart);
             Lend = gendumplabel();
             dump_ast(node->left, Lend, level + 2);
@@ -66,14 +71,22 @@ void dump_ast(ASTnode *node, int label, int level) {
     }
 
     // Reset level to -2 for A_GLUE
-    if (node->op == A_GLUE) level = -2;
+    if (node->op == A_GLUE) {
+        level = -2;
+    }
 
     // General AST node handling
-    if (node->left) dump_ast(node->left, NO_LABEL, level + 2);
-    if (node->right) dump_ast(node->right, NO_LABEL, level + 2);
+    if (node->left) {
+        dump_ast(node->left, NO_LABEL, level + 2);
+    }
+    if (node->right) {
+        dump_ast(node->right, NO_LABEL, level + 2);
+    }
 
 
-    for (int i = 0; i < level; i++) fprintf(stdout, " ");
+    for (int i = 0; i < level; i++) {
+        fprintf(stdout, " ");
+    }
     switch (node->op) {
         case A_GLUE:
             fprintf(stdout, "\n\n");
@@ -114,6 +127,9 @@ void dump_ast(ASTnode *node, int label, int level) {
         case A_INTLIT:
             fprintf(stdout, "A_INTLIT %ld\n", node->int_value);
             return;
+        case A_STRLIT:
+            fprintf(stdout, "A_STRLIT rval label L%d\n", (int) node->int_value);
+            return;
         case A_IDENT:
             if (node->rvalue)
                 fprintf(stdout, "A_IDENT rval %s\n", node->sym->name);
@@ -143,6 +159,39 @@ void dump_ast(ASTnode *node, int label, int level) {
             return;
         case A_SCALE:
             fprintf(stdout, "A_SCALE %d\n", node->size);
+            return;
+        case A_PREINC:
+            fprintf(stdout, "A_PREINC %s\n", node->sym->name);
+            return;
+        case A_PREDEC:
+            fprintf(stdout, "A_PREDEC %s\n", node->sym->name);
+            return;
+        case A_POSTINC:
+            fprintf(stdout, "A_POSTINC\n");
+            return;
+        case A_POSTDEC:
+            fprintf(stdout, "A_POSTDEC\n");
+            return;
+        case A_NEGATE:
+            fprintf(stdout, "A_NEGATE\n");
+            return;
+        case A_BREAK:
+            fprintf(stdout, "A_BREAK\n");
+            return;
+        case A_CONTINUE:
+            fprintf(stdout, "A_CONTINUE\n");
+            return;
+        case A_CASE:
+            fprintf(stdout, "A_CASE %d\n", (int) node->int_value);
+            return;
+        case A_DEFAULT:
+            fprintf(stdout, "A_DEFAULT\n");
+            return;
+        case A_SWITCH:
+            fprintf(stdout, "A_SWITCH\n");
+            return;
+        case A_CAST:
+            fprintf(stdout, "A_CAST %d\n", node->type);
             return;
         default:
             fatals("Unknown dump_ast operator", get_name(V_PTYPE, node->op));

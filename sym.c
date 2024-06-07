@@ -34,7 +34,11 @@ static Symbol *new_sym(char *name, int ptype, Symbol *ctype, int stype, int clas
         fatal("Unable to malloc symbol in new_sym()");
     }
 
-    sym->name = strdup(name);
+    if (name) {
+        sym->name = strdup(name);
+    } else {
+        sym->name = name;
+    }
     sym->ptype = ptype;
     sym->ctype = ctype;
     sym->stype = stype;

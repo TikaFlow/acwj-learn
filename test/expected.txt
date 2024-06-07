@@ -259,3 +259,7 @@ so in fred, x = 10 and y = 20
 =================== test/40-global-var-array-init.c ===================
 =================== test/41-local-var-init.c ===================
 str = Hello world, x = 3, y = 5, z = 11
+=================== test/42-casting-nullptr.c ===================
+d = 255
+e = -16
+str f's value = 404048

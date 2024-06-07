@@ -161,7 +161,7 @@ static ASTnode *postfix() {
 
 static ASTnode *primary() {
     ASTnode *node = NULL;
-    int label;
+    int label, type = P_NONE;
 
     switch (TOKEN.token_type) {
         case T_INTLIT:
@@ -179,8 +179,32 @@ static ASTnode *primary() {
             return postfix();
         case T_LPAREN:
             scan();
-            node = bin_expr(0);
-            match(T_RPAREN, ")");
+
+            switch (TOKEN.token_type) {
+                case T_IDENT:
+                    if (!find_typedef_sym(TEXT)) {
+                        node = bin_expr(0);
+                        break;
+                    }
+                case T_VOID:
+                case T_CHAR:
+                case T_INT:
+                case T_LONG:
+                case T_STRUCT:
+                case T_UNION:
+                case T_ENUM:
+                    type = parse_cast();
+                    match(T_RPAREN, ")");
+                default:
+                    node = bin_expr(0);
+            }
+
+            if (type == P_NONE) {
+                match(T_RPAREN, ")");
+            } else {
+                node = make_ast_unary(A_CAST, type, node, NULL, 0);
+            }
+
             return node;
         default:
             fatals("syntax error, token", get_name(V_TOKEN, TOKEN.token_type));

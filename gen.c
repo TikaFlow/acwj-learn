@@ -252,6 +252,8 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return cg_jump(end_label);
         case A_CONTINUE:
             return cg_jump(start_label);
+        case A_CAST:
+            return leftreg;
         default:
             fatals("Unknown AST operator", get_name(V_PTYPE, node->op));
     }

@@ -117,8 +117,26 @@ static int parse_stars(int type) {
     return type;
 }
 
+int parse_cast() {
+    int type, class;
+    Symbol *ctype;
+
+    type = parse_type(&ctype, &class);
+    if (type == P_NONE) {
+        return type;
+    }
+
+    type = parse_stars(type);
+
+    if (type == P_STRUCT || type == P_UNION || type == P_VOID) {
+        fatal("Cannot cast to struct, union or void type");
+    }
+
+    return type;
+}
+
 static long parse_literal(int type) {
-    if (type == pointer_to(P_CHAR) && TOKEN.token_type == T_STRLIT) {
+    if (TOKEN.token_type == T_STRLIT) {
         return gen_new_str(TEXT);
     }
 
@@ -128,6 +146,7 @@ static long parse_literal(int type) {
                 if (TOKEN.int_value < 0 || TOKEN.int_value > 255) {
                     fatal("Char literal out of range");
                 }
+            case P_NONE:
             case P_INT:
             case P_LONG:
                 break;
@@ -391,7 +410,7 @@ static Symbol *declare_composite(int ptype) {
 
 static void declare_enum() {
     Symbol *enum_sym = NULL;
-    char *name;
+    char *name = NULL;
     int val = 0;
 
     // skip enum keyword
@@ -492,7 +511,7 @@ static int type_of_typedef(char *name, Symbol **ctype) {
 }
 
 static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
-    int n_elem = sym->n_elem, max_elem, i = 0, j;
+    int n_elem = sym->n_elem, max_elem, i = 0, j, cast_type;
     long *init_list;
 
     if (class == C_EXTERN || class == C_GLOBAL) {
@@ -513,6 +532,18 @@ static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
                     init_list = (long *) realloc(init_list, sizeof(long) * max_elem);
                 } else {
                     fatals("Array initialization too long", NULL);
+                }
+            }
+
+            if (TOKEN.token_type == T_LPAREN) {
+                scan();
+                cast_type = parse_cast();
+                match(T_RPAREN, ")");
+
+                if (cast_type == type || (is_ptr(type) && cast_type == pointer_to(P_VOID))) {
+                    type = P_NONE;
+                } else {
+                    fatal("Incompatible types in initialization");
                 }
             }
 
@@ -550,7 +581,21 @@ static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
 static void init_var(Symbol *sym, int type, Symbol *ctype, int class, ASTnode **glue_tree) {
     ASTnode *var, *expr;
     *glue_tree = NULL;
+    int cast_type;
+
     if (class == C_EXTERN || class == C_GLOBAL) {
+        if (TOKEN.token_type == T_LPAREN) {
+            scan();
+            cast_type = parse_cast();
+            match(T_RPAREN, ")");
+
+            if (cast_type == type || (is_ptr(type) && cast_type == pointer_to(P_VOID))) {
+                type = P_NONE;
+            } else {
+                fatal("Incompatible types in initialization");
+            }
+        }
+
         sym->init_list = (long *) malloc(sizeof(long));
         sym->init_list[0] = parse_literal(type);
         sym->n_elem = 1;

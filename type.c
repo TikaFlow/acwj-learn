@@ -45,7 +45,7 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
             return tree;
         }
 
-        lsize = size_of_type(ltype, NULL); // TODO need fix this
+        lsize = size_of_type(ltype, NULL);
         rsize = size_of_type(rtype, NULL);
 
         if (lsize > rsize) {
@@ -57,8 +57,8 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
         }
     }
 
-    if (is_ptr(ltype)) {
-        if (!op && ltype == rtype) {
+    if (is_ptr(ltype) && is_ptr(rtype)) {
+        if (op == P_NONE && (ltype == rtype || ltype == pointer_to(P_VOID))) {
             return tree;
         }
     }

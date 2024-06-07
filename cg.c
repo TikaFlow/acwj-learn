@@ -516,7 +516,7 @@ void cg_new_sym(Symbol *sym) {
                 fprintf(OUT_FILE, "\t.int\t%d\n", (int) init_value); // or .long
                 break;
             case 8:
-                if (sym->init_list && type == pointer_to(P_CHAR)) {
+                if (sym->init_list && type == pointer_to(P_CHAR) && init_value != 0) {
                     fprintf(OUT_FILE, "\t.quad\tL%d\n", (int) init_value);
                     break;
                 }
