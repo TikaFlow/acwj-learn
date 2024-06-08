@@ -9,7 +9,7 @@
 #include "defs.h"
 
 // scan.c
-void reject_token();
+Token peek_token();
 
 int scan();
 

@@ -227,6 +227,15 @@ static int declare_param_list(Symbol *old_func, Symbol *new_func) {
     }
 
     while (TOKEN.token_type != T_RPAREN) {
+        // check (void)
+        if (TOKEN.token_type == T_VOID) {
+            if (peek_token().token_type == T_RPAREN) {
+                param_cnt = 0;
+                scan();
+                break;
+            }
+        }
+
         type = declare_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, &unused);
         if (type == P_NONE) {
             fatal("Bad type in parameter list");

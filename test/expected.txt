@@ -273,3 +273,7 @@ str f's value = 404048
 =================== test/45-global-init2.c ===================
 array fred[3] = 16
 enum a = 10, b = 12, c = -1
+=================== test/46-void-func.c ===================
+x = 74
+ascii code: c = 34, d = 66
+char code: c = ", d = B

@@ -127,22 +127,25 @@ static ASTnode *postfix() {
         return make_ast_leaf(A_INTLIT, P_INT, NULL, var->posn);
     }
 
-    scan();
-    switch (TOKEN.token_type) {
+    switch (peek_token().token_type) {
         case T_LPAREN:
+            scan();
             return func_call();
         case T_LBRACKET:
+            scan();
             return access_array();
         case T_DOT:
+            scan();
             return access_member(FALSE);
         case T_ARROW:
+            scan();
             return access_member(TRUE);
     }
-    // reject_token();
 
     if (!(var = find_sym(TEXT)) || var->stype != S_VARIABLE) {
         fatals("Unknown variable", TEXT);
     }
+    scan();
 
     switch (TOKEN.token_type) {
         case T_INC:

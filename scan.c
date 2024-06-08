@@ -119,8 +119,28 @@ static int skip() {
     return c;
 }
 
-static char scan_char(char *esc) {
-    char c = next();
+static int hex_char() {
+    int c, i, val = 0, seen = FALSE;
+
+    while (isxdigit(c = next())) {
+        seen = TRUE;
+        i = char_pos("0123456789abcdef", tolower(c));
+        val = (val << 4) + i;
+    }
+
+    put_back(c);
+    if (!seen) {
+        fatal("missing hex digit after \\x");
+    }
+    if (val > 255) {
+        fatal("hex escape value out of range");
+    }
+
+    return val;
+}
+
+static int scan_char(char *esc) {
+    int i, oct, c = next();
 
     if (c == '\\') {
         switch (c = next()) {
@@ -147,6 +167,24 @@ static char scan_char(char *esc) {
                 return '\'';
             case '\\':
                 return '\\';
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+                for (oct = i = 0; c >= '0' && c <= '7'; c = next()) {
+                    if (++i > 3) {
+                        break;
+                    }
+                    oct = oct * 8 + (c - '0');
+                }
+                put_back(c);
+                return (char) oct;
+            case 'x':
+                return hex_char();
             default:
                 fatalc("Invalid escape sequence \\", c);
         }
@@ -156,34 +194,29 @@ static char scan_char(char *esc) {
 }
 
 static long scan_int(int c) {
-    int k;
+    int k, radix = 10;
     long val = 0;
 
     if (c == '0') {
         c = next();
         if (c == 'x' || c == 'X') { // hexadecimal
             c = next();
-            while ((k = char_pos("0123456789abcdefABCDEF", c)) >= 0) {
-                val = (val << 4) + (k > 0xf ? k - 6 : k);
-                c = next();
-            }
+            radix = 16;
         } else if (c == 'b' || c == 'B') { // binary
             c = next();
-            while ((k = char_pos("01", c)) >= 0) {
-                val = (val << 1) + k;
-                c = next();
-            }
+            radix = 2;
         } else { // octal
-            while ((k = char_pos("01234567", c)) >= 0) {
-                val = (val << 3) + k;
-                c = next();
-            }
+            radix = 8;
         }
-    } else { // decimal
-        while ((k = char_pos("0123456789", c)) >= 0) {
-            val = val * 10 + k;
-            c = next();
+    }
+
+    while ((k = char_pos("0123456789abcdef", tolower(c))) >= 0) {
+        if (k >= radix) {
+            fatald("Invalid digit of radix", radix);
         }
+
+        val = val * radix + k;
+        c = next();
     }
 
     put_back(c);
@@ -191,8 +224,7 @@ static long scan_int(int c) {
 }
 
 static int scan_string() {
-    int i;
-    char c;
+    int i, c;
     char esc = 0;
 
     for (i = 0; i < MAX_TEXT - 1; i++) {
@@ -216,7 +248,7 @@ static int scan_ident(int c) {
         if (len >= MAX_TEXT - 1) {
             fatal("Identifier too long");
         }
-        TEXT[len++] = c;
+        TEXT[len++] = (char) c;
         c = next();
     }
     put_back(c);
@@ -313,16 +345,32 @@ static int keyword(char *s) {
     return 0;
 }
 
-void reject_token() {
+Token peek_token() {
     if (TOKEN_BACK.token_type) {
-        fatal("Can't reject token twice");
+        return TOKEN_BACK;
     }
+
+    Token t_tk;
+    char t_text[MAX_TEXT + 1];
+
+    // store current one
+    t_tk = TOKEN;
+    memcpy(t_text, TEXT, sizeof(TEXT));
+    // get next one
+    scan();
     TOKEN_BACK = TOKEN;
+    memcpy(TEXT_BACK, TEXT, sizeof(TEXT));
+    // restore current one
+    TOKEN = t_tk;
+    memcpy(TEXT, t_text, sizeof(TEXT));
+
+    return TOKEN_BACK;
 }
 
 int scan() {
     if (TOKEN_BACK.token_type) {
-        // TOKEN = TOKEN_BACK;
+        TOKEN = TOKEN_BACK;
+        memcpy(TEXT, TEXT_BACK, sizeof(TEXT));
         // reset token_back
         TOKEN_BACK.token_type = T_EOF;
         return TRUE;

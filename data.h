@@ -23,10 +23,12 @@ EXTERN_ FILE *OUT_FILE;
 EXTERN_ char *OUT_FILE_NAME;
 // last token
 EXTERN_ Token TOKEN;
-// reject token
+// putback token
 EXTERN_ Token TOKEN_BACK;
 // last symbol
 EXTERN_ char TEXT[MAX_TEXT + 1];
+// putback symbol
+EXTERN_ char TEXT_BACK[MAX_TEXT + 1];
 // symbol table of global/local/param/composite
 EXTERN_ Symbol *GLOBAL_HEAD, *GLOBAL_TAIL;
 EXTERN_ Symbol *LOCAL_HEAD, *LOCAL_TAIL;
