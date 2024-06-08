@@ -306,6 +306,9 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 
     tree = make_ast_unary(A_FUNCTION, type, tree, old_func, end_label);
 
+    // optimize
+    tree = optimize(tree);
+
     if (FLAG_T) {
         dump_ast(tree, NO_LABEL, 0); // SHOW_AST
         fprintf(stdout, "\n\n");

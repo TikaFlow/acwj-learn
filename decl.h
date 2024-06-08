@@ -210,4 +210,7 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op);
 
 int size_of_type(int type, Symbol *ctype);
 
+// opt.c
+ASTnode *optimize(ASTnode *tree);
+
 #endif //ACWJ_LEARN_DEL_H

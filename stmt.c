@@ -215,10 +215,8 @@ static ASTnode *single_stmt() {
         case T_ENUM:
         case T_TYPEDEF:
             declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt);
-            if (stmt && stmt->op >= A_ASSIGN && stmt->op <= A_ASSLASH) { // A_ASSIGN will be handled behind
-                printf("1111111111111");
+            if (stmt && stmt->op == A_ASSIGN) { // A_ASSIGN will be handled behind
             } else {
-                printf("22222222222222222222");
                 match(T_SEMI, ";");
             }
             return stmt;

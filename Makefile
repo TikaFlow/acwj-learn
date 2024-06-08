@@ -1,9 +1,9 @@
 HEADER=defs.h data.h decl.h
 INC_DIR=/tmp/include
-SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c
+SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
 EXEC=tcc
 
-NEW=test/43-more-operators.c
+NEW=test/44-fold-optimize.c
 ASM=$(NEW:.c=.s)
 
 .PHONY: all test clean inc
