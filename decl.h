@@ -195,6 +195,10 @@ int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **
 
 void declare_global();
 
+int parse_type(Symbol **ctype, int *class);
+
+int parse_stars(int type);
+
 int parse_cast();
 
 // type.c

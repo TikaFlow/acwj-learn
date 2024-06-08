@@ -165,12 +165,30 @@ static ASTnode *postfix() {
 
 static ASTnode *primary() {
     ASTnode *node = NULL;
-    int label, type = P_NONE;
+    int label, size, class, type = P_NONE;
+    Symbol *ctype, *sym;
 
     switch (TOKEN.token_type) {
+        case T_SIZEOF:
+            scan();
+            match(T_LPAREN, "( after sizeof");
+
+            if ((sym = find_sym(TEXT))) {
+                scan();
+                size = sym->size;
+            } else {
+                type = parse_type(&ctype, &class);
+                type = parse_stars(type);
+                size = size_of_type(type, ctype);
+            }
+
+            match(T_RPAREN, "closed ) sizeof");
+            return make_ast_leaf(A_INTLIT, P_INT, NULL, size);
         case T_INTLIT:
-            if (TOKEN.int_value >= 0 && TOKEN.int_value <= 255) {
+            if (TOKEN.int_value >= 0 && TOKEN.int_value <= 0xff) {
                 node = make_ast_leaf(A_INTLIT, P_CHAR, NULL, TOKEN.int_value);
+            } else if (TOKEN.int_value <= 0xffff) {
+                node = make_ast_leaf(A_INTLIT, P_SHORT, NULL, TOKEN.int_value);
             } else {
                 node = make_ast_leaf(A_INTLIT, P_INT, NULL, TOKEN.int_value);
             }
@@ -192,6 +210,7 @@ static ASTnode *primary() {
                     }
                 case T_VOID:
                 case T_CHAR:
+                case T_SHORT:
                 case T_INT:
                 case T_LONG:
                 case T_STRUCT:

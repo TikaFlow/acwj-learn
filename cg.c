@@ -221,6 +221,21 @@ int cg_load_global_sym(Symbol *sym, int op) {
                     fprintf(OUT_FILE, "\tdecb\t%s\n", sym->name);
                 }
                 break;
+            case P_SHORT:
+                if (op == A_PREINC) {
+                    fprintf(OUT_FILE, "\tincw\t%s\n", sym->name);
+                }
+                if (op == A_PREDEC) {
+                    fprintf(OUT_FILE, "\tdecw\t%s\n", sym->name);
+                }
+                fprintf(OUT_FILE, "\tmovswq\t%s(%%rip), %s\n", sym->name, reglist[reg]);
+                if (op == A_POSTINC) {
+                    fprintf(OUT_FILE, "\tincw\t%s\n", sym->name);
+                }
+                if (op == A_POSTDEC) {
+                    fprintf(OUT_FILE, "\tdecw\t%s\n", sym->name);
+                }
+                break;
             case P_INT:
                 if (op == A_PREINC) {
                     fprintf(OUT_FILE, "\tincl\t%s\n", sym->name);
@@ -276,6 +291,21 @@ int cg_load_local_sym(Symbol *sym, int op) {
                 }
                 if (op == A_POSTDEC) {
                     fprintf(OUT_FILE, "\tdecb\t%d(%%rbp)\n", sym->posn);
+                }
+                break;
+            case P_SHORT:
+                if (op == A_PREINC) {
+                    fprintf(OUT_FILE, "\tincw\t%d(%%rbp)\n", sym->posn);
+                }
+                if (op == A_PREDEC) {
+                    fprintf(OUT_FILE, "\tdecw\t%d(%%rbp)\n", sym->posn);
+                }
+                fprintf(OUT_FILE, "\tmovswq\t%d(%%rbp), %s\n", sym->posn, reglist[reg]);
+                if (op == A_POSTINC) {
+                    fprintf(OUT_FILE, "\tincw\t%d(%%rbp)\n", sym->posn);
+                }
+                if (op == A_POSTDEC) {
+                    fprintf(OUT_FILE, "\tdecw\t%d(%%rbp)\n", sym->posn);
                 }
                 break;
             case P_INT:
@@ -431,6 +461,7 @@ int cg_store_global_sym(int reg, Symbol *sym) {
             case P_CHAR:
                 fprintf(OUT_FILE, "\tmovb\t%s, %s(%%rip)\n", breglist[reg], sym->name);
                 break;
+            case P_SHORT:
             case P_INT:
                 fprintf(OUT_FILE, "\tmovl\t%s, %s(%%rip)\n", dreglist[reg], sym->name);
                 break;
@@ -449,6 +480,7 @@ int cg_store_local_sym(int reg, Symbol *sym) {
             case P_CHAR:
                 fprintf(OUT_FILE, "\tmovb\t%s, %d(%%rbp)\n", breglist[reg], sym->posn);
                 break;
+            case P_SHORT:
             case P_INT:
                 fprintf(OUT_FILE, "\tmovl\t%s, %d(%%rbp)\n", dreglist[reg], sym->posn);
                 break;
@@ -466,6 +498,8 @@ int cg_type_size(int type) {
     switch (type) {
         case P_CHAR:
             return 1;
+        case P_SHORT:
+            return 2;
         case P_INT:
             return 4;
         case P_LONG:
@@ -584,6 +618,9 @@ int cg_return(int reg, Symbol *sym) {
     switch (sym->ptype) {
         case P_CHAR:
             fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
+            break;
+        case P_SHORT:
+            fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", dreglist[reg]);
             break;
         case P_INT:
             fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[reg]);

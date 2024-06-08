@@ -13,7 +13,7 @@ static int declare_typedef(Symbol **ctype);
 
 static int type_of_typedef(char *name, Symbol **ctype);
 
-static int parse_type(Symbol **ctype, int *class) {
+int parse_type(Symbol **ctype, int *class) {
     int type = 0, can_no_var = FALSE, storage_flag = TRUE;
 
     while (storage_flag) {
@@ -57,6 +57,10 @@ static int parse_type(Symbol **ctype, int *class) {
             break;
         case T_CHAR:
             type = P_CHAR;
+            scan();
+            break;
+        case T_SHORT:
+            type = P_SHORT;
             scan();
             break;
         case T_INT:
@@ -105,7 +109,7 @@ static int parse_type(Symbol **ctype, int *class) {
     return type;
 }
 
-static int parse_stars(int type) {
+int parse_stars(int type) {
     while (TRUE) {
         if (TOKEN.token_type != T_STAR) {
             break;

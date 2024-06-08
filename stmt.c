@@ -208,6 +208,7 @@ static ASTnode *single_stmt() {
                 return bin_expr(0);
             }
         case T_CHAR:
+        case T_SHORT:
         case T_INT:
         case T_LONG:
         case T_STRUCT:

@@ -70,9 +70,9 @@ enum {
     // unary operators
     T_INC, T_DEC, T_INVERT, T_LOGNOT,
     // types
-    T_VOID, T_CHAR, T_INT, T_LONG,
+    T_VOID, T_CHAR, T_SHORT, T_INT, T_LONG,
     // keywords
-    T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
+    T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN, T_SIZEOF,
     T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF, T_EXTERN,
     T_BREAK, T_CONTINUE, T_SWITCH, T_CASE, T_DEFAULT,
     // structures
@@ -103,10 +103,11 @@ enum {
     P_NONE = 0x00,
     P_VOID = 0x10,
     P_CHAR = 0x20,
-    P_INT = 0x30,
-    P_LONG = 0x40,
-    P_STRUCT = 0x50,
-    P_UNION = 0x60
+    P_SHORT = 0x30,
+    P_INT = 0x40,
+    P_LONG = 0x50,
+    P_STRUCT = 0x60,
+    P_UNION = 0x70
 };
 
 // struct type

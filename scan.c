@@ -314,6 +314,12 @@ static int keyword(char *s) {
             }
             break;
         case 's':
+            if (!strcmp(s, "sizeof")) {
+                return T_SIZEOF;
+            }
+            if (!strcmp(s, "short")) {
+                return T_SHORT;
+            }
             if (!strcmp(s, "struct")) {
                 return T_STRUCT;
             }

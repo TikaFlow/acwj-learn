@@ -277,3 +277,12 @@ enum a = 10, b = 12, c = -1
 x = 74
 ascii code: c = 34, d = 66
 char code: c = ", d = B
+=================== test/47-sizeof.c ===================
+short x is -32768
+char y is 128
+size of char: 1
+size of short: 2
+size of int: 4
+size of foo: 13
+size of alias of foo: 13
+size of baz(type is bar): 13
