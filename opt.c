@@ -17,6 +17,9 @@ static ASTnode *fold1(ASTnode *tree) {
         case A_LOGNOT:
             val = !val;
             break;
+        case A_NEGATE:
+            val = -val;
+            break;
         default:
             return tree;
     }

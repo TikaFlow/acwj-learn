@@ -329,6 +329,7 @@ ASTnode *bin_expr(int ptp) {
         case T_RBRACKET:
         case T_COMMA:
         case T_COLON:
+        case T_RBRACE:
             left->rvalue = TRUE;
             return left;
         default:
@@ -380,6 +381,7 @@ ASTnode *bin_expr(int ptp) {
             case T_RBRACKET:
             case T_COMMA:
             case T_COLON:
+            case T_RBRACE:
                 left->rvalue = TRUE;
                 return left;
             default:

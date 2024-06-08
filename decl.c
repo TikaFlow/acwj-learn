@@ -136,28 +136,32 @@ int parse_cast() {
 }
 
 static long parse_literal(int type) {
-    if (TOKEN.token_type == T_STRLIT) {
-        return gen_new_str(TEXT);
+    ASTnode *tree = optimize(bin_expr(0));
+
+    if (tree->op == A_CAST) {
+        tree->left->type = tree->type;
+        tree = tree->left;
     }
 
-    if (TOKEN.token_type == T_INTLIT) {
-        switch (type) {
-            case P_CHAR:
-                if (TOKEN.int_value < 0 || TOKEN.int_value > 255) {
-                    fatal("Char literal out of range");
-                }
-            case P_NONE:
-            case P_INT:
-            case P_LONG:
-                break;
-            default:
-                fatal("Type mismatch");
+    if (tree->op != A_INTLIT && tree->op != A_STRLIT) {
+        fatal("Cannot initialize globals with a generic expression");
+    }
+
+    if (type == pointer_to(P_CHAR)) {
+        if (tree->op == A_STRLIT) {
+            return tree->int_value;
         }
-    } else {
-        fatal("Integer literal expected");
+        if (tree->op == A_INTLIT && tree->int_value == 0) {
+            return 0;
+        }
     }
 
-    return TOKEN.int_value;
+    if (is_int(type) && size_of_type(type, NULL) >= size_of_type(tree->type, NULL)) {
+        return tree->int_value;
+    }
+
+    fatal("Type mismatch in initializer");
+    return 0; // keep compiler happy
 }
 
 static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
@@ -167,14 +171,11 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
     // skip '['
     scan();
 
-    if (TOKEN.token_type == T_INTLIT) {
-        if (TOKEN.int_value < 0 || TOKEN.int_value > MAX_INT) {
-            fatald("Illegal array size", (int) TOKEN.int_value);
+    if (TOKEN.token_type != T_RBRACKET) {
+        n_elem = parse_literal(P_INT);
+        if (n_elem <= 0) {
+            fatald("Array size must be positive, but get", n_elem);
         }
-
-        // save array size
-        n_elem = (int) TOKEN.int_value;
-        scan();
     }
 
     // check ']'
@@ -451,12 +452,7 @@ static void declare_enum() {
 
         if (TOKEN.token_type == T_ASSIGN) {
             scan();
-            if (TOKEN.token_type != T_INTLIT) {
-                fatal("Enum value must be integer literal");
-            }
-
-            val = (int) TOKEN.int_value;
-            match(T_INTLIT, "integer literal");
+            val = (int) parse_literal(P_INT);
         }
 
         add_enum_sym(name, C_ENUMVAL, val++);
@@ -514,7 +510,7 @@ static int type_of_typedef(char *name, Symbol **ctype) {
 }
 
 static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
-    int n_elem = sym->n_elem, max_elem, i = 0, j, cast_type;
+    int n_elem = sym->n_elem, max_elem, i = 0, j;
     long *init_list;
 
     if (class == C_EXTERN || class == C_GLOBAL) {
@@ -538,20 +534,7 @@ static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
                 }
             }
 
-            if (TOKEN.token_type == T_LPAREN) {
-                scan();
-                cast_type = parse_cast();
-                match(T_RPAREN, ")");
-
-                if (cast_type == type || (is_ptr(type) && cast_type == pointer_to(P_VOID))) {
-                    type = P_NONE;
-                } else {
-                    fatal("Incompatible types in initialization");
-                }
-            }
-
             init_list[i++] = parse_literal(type);
-            scan();
 
             if (TOKEN.token_type == T_RBRACE) {
                 break;
@@ -584,25 +567,11 @@ static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
 static void init_var(Symbol *sym, int type, Symbol *ctype, int class, ASTnode **glue_tree) {
     ASTnode *var, *expr;
     *glue_tree = NULL;
-    int cast_type;
 
     if (class == C_EXTERN || class == C_GLOBAL) {
-        if (TOKEN.token_type == T_LPAREN) {
-            scan();
-            cast_type = parse_cast();
-            match(T_RPAREN, ")");
-
-            if (cast_type == type || (is_ptr(type) && cast_type == pointer_to(P_VOID))) {
-                type = P_NONE;
-            } else {
-                fatal("Incompatible types in initialization");
-            }
-        }
-
         sym->init_list = (long *) malloc(sizeof(long));
         sym->init_list[0] = parse_literal(type);
         sym->n_elem = 1;
-        scan(); // skip literal
     } else if (class == C_LOCAL) {
         var = make_ast_leaf(A_IDENT, sym->ptype, sym, 0);
         expr = bin_expr(0);

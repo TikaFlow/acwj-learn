@@ -89,7 +89,7 @@ void dump_ast(ASTnode *node, int label, int level) {
     }
     switch (node->op) {
         case A_GLUE:
-            fprintf(stdout, "\n\n");
+            fprintf(stdout, "\n");
             return;
         case A_FUNCTION:
             fprintf(stdout, "A_FUNCTION %s\n", node->sym->name);
