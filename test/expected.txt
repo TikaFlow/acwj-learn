@@ -263,3 +263,8 @@ str = Hello world, x = 3, y = 5, z = 11
 d = 255
 e = -16
 str f's value = 404048
+=================== test/43-more-operators.c ===================
+18
+12
+45
+5

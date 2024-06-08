@@ -6,13 +6,14 @@
 #include "decl.h"
 
 static int op_prec[] = {
-        0, 10, 20, 30,                // T_EOF, T_ASSIGN, T_LOGOR, T_LOGAND
-        40, 50, 60,                   // T_OR, T_XOR, T_AND
-        70, 70,                       // T_EQ, T_NE
-        80, 80, 80, 80,               // T_LT, T_GT, T_LE, T_GE
-        90, 90,                       // T_LSHIFT, T_RSHIFT
-        100, 100,                     // T_PLUS, T_MINUS
-        110, 110                      // T_STAR, T_SLASH
+        0, 10, 10, 10, 10, 10,  // T_EOF, T_ASSIGN, T_ASPLUS, T_ASMINUS, T_ASPSTAR, T_ASPFSLASH
+        20, 30,                 // T_LOGOR, T_LOGAND
+        40, 50, 60,             // T_OR, T_XOR, T_AND
+        70, 70,                 // T_EQ, T_NE
+        80, 80, 80, 80,         // T_LT, T_GT, T_LE, T_GE
+        90, 90,                 // T_LSHIFT, T_RSHIFT
+        100, 100,               // T_PLUS, T_MINUS
+        110, 110,               // T_STAR, T_SLASH
 };
 
 ASTnode *expression_list(int end_token) {
@@ -223,7 +224,7 @@ static int token_to_op(int tk) {
 }
 
 static int stick_right(int token_type) {
-    if (token_type == T_ASSIGN) {
+    if (token_type >= T_ASSIGN && token_type <= T_ASSLASH) {
         return TRUE;
     }
     return FALSE;

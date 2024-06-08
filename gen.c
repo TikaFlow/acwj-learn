@@ -190,6 +190,25 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
                 }
             }
             return NO_REG;
+        case A_ASPLUS:
+        case A_ASMINUS:
+        case A_ASSTAR:
+        case A_ASSLASH:
+            switch (node->op) {
+                case A_ASPLUS:
+                    leftreg = cg_add(leftreg, rightreg);
+                    break;
+                case A_ASMINUS:
+                    leftreg = cg_sub(leftreg, rightreg);
+                    break;
+                case A_ASSTAR:
+                    leftreg = cg_mul(leftreg, rightreg);
+                    break;
+                case A_ASSLASH:
+                    leftreg = cg_div(leftreg, rightreg);
+                    break;
+            }
+            node->right = node->left;
         case A_ASSIGN:
             switch (node->right->op) {
                 case A_IDENT:

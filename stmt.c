@@ -215,8 +215,10 @@ static ASTnode *single_stmt() {
         case T_ENUM:
         case T_TYPEDEF:
             declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt);
-            if (stmt && stmt->op == A_ASSIGN) { // A_ASSIGN will be handled behind
+            if (stmt && stmt->op >= A_ASSIGN && stmt->op <= A_ASSLASH) { // A_ASSIGN will be handled behind
+                printf("1111111111111");
             } else {
+                printf("22222222222222222222");
                 match(T_SEMI, ";");
             }
             return stmt;
@@ -265,6 +267,10 @@ ASTnode *compound_stmt(int is_switch) {
 
         if (tree) {
             switch (tree->op) {
+                case A_ASPLUS:
+                case A_ASMINUS:
+                case A_ASSTAR:
+                case A_ASSLASH:
                 case A_ASSIGN:
                 case A_FUNCCALL:
                     match(T_SEMI, ";");

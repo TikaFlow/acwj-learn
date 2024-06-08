@@ -188,8 +188,6 @@ int main(int argc, char *argv[]) {
     char *obj_list[MAX_OBJ];
     int i, obj_cnt = 0;
 
-    // TODO maybe need preprocess here later
-
     // parse the options and get the output file name
     if (!(o_file = parse_options(argc, argv, &i))) {
         o_file = A_OUT;

@@ -28,7 +28,7 @@ static int next() {
         // skip #
         scan();
 
-        l = (int)TOKEN.int_value;
+        l = (int) TOKEN.int_value;
         // skip line number
         match(T_INTLIT, "pre-processor line number");
 
@@ -338,6 +338,9 @@ int scan() {
             if ((c = next()) == '+') {
                 TOKEN.token_type = T_INC;
                 break;
+            } else if (c == '=') {
+                TOKEN.token_type = T_ASPLUS;
+                break;
             }
             put_back(c);
             TOKEN.token_type = T_PLUS;
@@ -349,14 +352,27 @@ int scan() {
             } else if (c == '>') {
                 TOKEN.token_type = T_ARROW;
                 break;
+            } else if (c == '=') {
+                TOKEN.token_type = T_ASMINUS;
+                break;
             }
             put_back(c);
             TOKEN.token_type = T_MINUS;
             break;
         case '*':
+            if ((c = next()) == '=') {
+                TOKEN.token_type = T_ASSTAR;
+                break;
+            }
+            put_back(c);
             TOKEN.token_type = T_STAR;
             break;
         case '/':
+            if ((c = next()) == '=') {
+                TOKEN.token_type = T_ASSLASH;
+                break;
+            }
+            put_back(c);
             TOKEN.token_type = T_SLASH;
             break;
         case ';':

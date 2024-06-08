@@ -9,7 +9,8 @@
 static char *TOKEN_NAMES[] = {
         "EOF",
         // binary operators
-        "=", "||", "&&", "|", "^", "&",
+        "=", "+=", "-=", "*=", "/=",
+        "||", "&&", "|", "^", "&",
         "==", "!=", "<", ">", "<=", ">=",
         "<<", ">>", "+", "-", "*", "/",
         // unary operators
@@ -29,7 +30,8 @@ static char *TOKEN_NAMES[] = {
 // op name
 char *OP_NAMES[] = {
         "NONE",
-        "ASSIGN", "LOGOR", "LOGAND", "OR", "XOR", "AND",
+        "ASSIGN", "ADDASSIGN", "SUBASSIGN", "MULASSIGN", "DIVASSIGN",
+        "LOGOR", "LOGAND", "OR", "XOR", "AND",
         "EQ", "NE", "LT", "GT", "LE", "GE",
         "LSHIFT", "RSHIFT",
         "ADD", "SUBTRACT", "MULTIPLY", "DIVIDE",

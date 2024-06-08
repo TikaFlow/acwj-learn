@@ -193,6 +193,18 @@ void dump_ast(ASTnode *node, int label, int level) {
         case A_CAST:
             fprintf(stdout, "A_CAST %d\n", node->type);
             return;
+        case A_ASPLUS:
+            fprintf(stdout, "A_ASPLUS\n");
+            return;
+        case A_ASMINUS:
+            fprintf(stdout, "A_ASMINUS\n");
+            return;
+        case A_ASSTAR:
+            fprintf(stdout, "A_ASSTAR\n");
+            return;
+        case A_ASSLASH:
+            fprintf(stdout, "A_ASSLASH\n");
+            return;
         default:
             fatals("Unknown dump_ast operator", get_name(V_PTYPE, node->op));
     }

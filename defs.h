@@ -63,7 +63,8 @@ enum {
 enum {
     T_EOF,
     // binary operators
-    T_ASSIGN, T_LOGOR, T_LOGAND, T_OR, T_XOR, T_AND,
+    T_ASSIGN, T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
+    T_LOGOR, T_LOGAND, T_OR, T_XOR, T_AND,
     T_EQ, T_NE, T_LT, T_GT, T_LE, T_GE,
     T_LSHIFT, T_RSHIFT, T_PLUS, T_MINUS, T_STAR, T_SLASH,
     // unary operators
@@ -83,7 +84,8 @@ enum {
 // AST node type
 enum {
     A_NONE,
-    A_ASSIGN, A_LOGOR, A_LOGAND, A_OR, A_XOR, A_AND,
+    A_ASSIGN, A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH,
+    A_LOGOR, A_LOGAND, A_OR, A_XOR, A_AND,
     A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE,
     A_LSHIFT, A_RSHIFT,
     A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE,
