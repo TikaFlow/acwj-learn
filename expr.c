@@ -7,6 +7,7 @@
 
 static int op_prec[] = {
         0, 10, 10, 10, 10, 10,  // T_EOF, T_ASSIGN, T_ASPLUS, T_ASMINUS, T_ASPSTAR, T_ASPFSLASH
+        15,                     // T_QUESTION
         20, 30,                 // T_LOGOR, T_LOGAND
         40, 50, 60,             // T_OR, T_XOR, T_AND
         70, 70,                 // T_EQ, T_NE
@@ -368,33 +369,40 @@ ASTnode *bin_expr(int ptp) {
         right = bin_expr(op_prec[token_type]);
 
         ast_op = token_to_op(token_type);
-        if (ast_op == A_ASSIGN) {
-            right->rvalue = TRUE;
+        switch (ast_op) {
+            case A_ASSIGN:
+                right->rvalue = TRUE;
 
-            right = modify_type(right, left->type, P_NONE);
-            if (!right) {
-                fatal("Incompatible expression in assignment");
-            }
-            // swap left and right
-            ltemp = left;
-            left = right;
-            right = ltemp;
-        } else {
-            left->rvalue = TRUE;
-            right->rvalue = TRUE;
+                right = modify_type(right, left->type, P_NONE);
+                if (!right) {
+                    fatal("Incompatible expression in assignment");
+                }
+                // swap left and right
+                ltemp = left;
+                left = right;
+                right = ltemp;
+                break;
+            case A_TERNARY:
+                match(T_COLON, "':' after conditional expression");
+                ltemp = bin_expr(0);
 
-            ltemp = modify_type(left, right->type, ast_op);
-            rtemp = modify_type(right, left->type, ast_op);
-            if (!ltemp && !rtemp) {
-                fatal("Incompatible types in arithmetic expression");
-            }
+                return make_ast_node(ast_op, right->type, left, right, ltemp, NULL, 0);
+            default:
+                left->rvalue = TRUE;
+                right->rvalue = TRUE;
 
-            if (ltemp) {
-                left = ltemp;
-            }
-            if (rtemp) {
-                right = rtemp;
-            }
+                ltemp = modify_type(left, right->type, ast_op);
+                rtemp = modify_type(right, left->type, ast_op);
+                if (!ltemp && !rtemp) {
+                    fatal("Incompatible types in arithmetic expression");
+                }
+
+                if (ltemp) {
+                    left = ltemp;
+                }
+                if (rtemp) {
+                    right = rtemp;
+                }
         }
 
         left = make_ast_node(ast_op, left->type, left, NULL, right, NULL, 0);

@@ -3,7 +3,7 @@ INC_DIR=/tmp/include
 SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
 EXEC=tcc
 
-NEW=test/48-static.c
+NEW=test/49-ternary.c
 ASM=$(NEW:.c=.s)
 
 .PHONY: all test clean inc

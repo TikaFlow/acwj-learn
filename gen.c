@@ -12,6 +12,7 @@ int gen_label() {
 
 static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
     int lend, lfalse = gen_label();
+    int exp_reg, reg = cg_alloc_register();
     if (node->right) {
         lend = gen_label();
     }
@@ -19,11 +20,15 @@ static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
     // condition statements
     // when false, jump to lfalse
     gen_ast(node->left, lfalse, NO_LABEL, NO_LABEL, node->op);
-    gen_free_regs();
+    gen_free_regs(NO_REG);
     // true statements
     // when true, no jump
-    gen_ast(node->mid, NO_LABEL, start_label, end_label, node->op);
-    gen_free_regs();
+    exp_reg = gen_ast(node->mid, NO_LABEL, start_label, end_label, node->op);
+    // when is if node, exp_reg is NO_REG(-1), so DO NOT need to move to reg
+    if (node->op == A_TERNARY) {
+        cg_mov_reg(exp_reg, reg);
+    }
+    gen_free_regs(reg);
 
     if (node->right) {
         cg_jump(lend);
@@ -31,11 +36,15 @@ static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
     cg_label(lfalse);
     if (node->right) {
         // else statements
-        gen_ast(node->right, NO_LABEL, start_label, end_label, node->op);
-        gen_free_regs();
+        exp_reg = gen_ast(node->right, NO_LABEL, start_label, end_label, node->op);
+        if (node->op == A_TERNARY) {
+            cg_mov_reg(exp_reg, reg);
+        }
+        gen_free_regs(reg);
         cg_label(lend);
     }
-    return NO_REG;
+
+    return reg;
 }
 
 static int gen_while_ast(ASTnode *node) {
@@ -43,10 +52,10 @@ static int gen_while_ast(ASTnode *node) {
     cg_label(lbegin);
 
     gen_ast(node->left, lend, lbegin, lend, node->op);
-    gen_free_regs();
+    gen_free_regs(NO_REG);
 
     gen_ast(node->right, NO_LABEL, lbegin, lend, node->op);
-    gen_free_regs();
+    gen_free_regs(NO_REG);
 
     cg_jump(lbegin);
     cg_label(lend);
@@ -77,13 +86,13 @@ static int gen_switch_ast(ASTnode *node) {
     reg = gen_ast(node->left, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
     // gen switch table
     cg_switch(reg, (int) node->int_value, case_label, case_val, dft_label);
-    gen_free_regs();
+    gen_free_regs(NO_REG);
 
     // gen case statements
     for (i = 0, case_node = node->right; case_node; i++, case_node = case_node->right) {
         cg_label(case_label[i]);
         gen_ast(case_node->left, NO_LABEL, NO_LABEL, end_label, A_NONE);
-        gen_free_regs();
+        gen_free_regs(NO_REG);
     }
 
     cg_label(end_label);
@@ -104,7 +113,7 @@ static int gen_func_call(ASTnode *node) {
             args_num = glue->size + 1;
         }
 
-        gen_free_regs();
+        gen_free_regs(NO_REG);
     }
 
     return cg_call(node->sym, args_num);
@@ -126,11 +135,13 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return gen_switch_ast(node);
         case A_FUNCCALL:
             return gen_func_call(node);
+        case A_TERNARY:
+            return gen_if_ast(node, NO_LABEL, NO_LABEL);
         case A_GLUE:
             gen_ast(node->left, if_label, start_label, end_label, node->op);
-            gen_free_regs();
+            gen_free_regs(NO_REG);
             gen_ast(node->right, if_label, start_label, end_label, node->op);
-            gen_free_regs();
+            gen_free_regs(NO_REG);
             return NO_REG;
         case A_FUNCTION:
             cg_func_pre_amble(node->sym);
@@ -173,7 +184,7 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         case A_GT:
         case A_LE:
         case A_GE:
-            if (parent_op == A_IF || parent_op == A_WHILE) {
+            if (parent_op == A_IF || parent_op == A_WHILE || parent_op == A_TERNARY) {
                 return cg_compare_and_jump(node->op, leftreg, rightreg, if_label);
             }
             return cg_compare_and_set(node->op, leftreg, rightreg);
@@ -287,8 +298,8 @@ void gen_post_amble() {
     cg_post_amble();
 }
 
-void gen_free_regs() {
-    cg_free_regs();
+void gen_free_regs(int keep_reg) {
+    cg_free_regs(keep_reg);
 }
 
 void gen_new_sym(Symbol *sym) {

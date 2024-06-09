@@ -55,13 +55,15 @@ int cg_align(int type, int offset, int direction) {
     return type == P_CHAR ? offset : (offset + ALIGN * direction) & ~ALIGN;
 }
 
-void cg_free_regs() {
-    for (int i = 0; i < 4; i++) {
-        freereg[i] = 1;
+void cg_free_regs(int keep_reg) {
+    for (int i = 0; i < FREE_REG_NUM; i++) {
+        if (i != keep_reg) {
+            freereg[i] = TRUE;
+        }
     }
 }
 
-static int alloc_register() {
+int cg_alloc_register() {
     for (int i = 0; i < 4; i++) {
         if (freereg[i]) {
             freereg[i] = FALSE;
@@ -81,7 +83,7 @@ static void free_register(int reg) {
 }
 
 void cg_pre_amble() {
-    cg_free_regs();
+    cg_free_regs(NO_REG);
 /*
 # internal switch(expr) routine
 # %rsi = switch table, %rax = expr
@@ -185,14 +187,14 @@ void cg_func_post_amble(Symbol *sym) {
 }
 
 int cg_load_int(long value) {
-    int reg = alloc_register();
+    int reg = cg_alloc_register();
 
     fprintf(OUT_FILE, "\tmovq\t$%ld, %s\n", value, reglist[reg]);
     return reg;
 }
 
 int cg_load_global_sym(Symbol *sym, int op) {
-    int reg = alloc_register();
+    int reg = cg_alloc_register();
     if (cg_type_size(sym->ptype) == 8) {
         if (op == A_PREINC) {
             fprintf(OUT_FILE, "\tincq\t%s\n", sym->name);
@@ -262,7 +264,7 @@ int cg_load_global_sym(Symbol *sym, int op) {
 }
 
 int cg_load_local_sym(Symbol *sym, int op) {
-    int reg = alloc_register();
+    int reg = cg_alloc_register();
 
     if (cg_type_size(sym->ptype) == 8) {
 
@@ -334,7 +336,7 @@ int cg_load_local_sym(Symbol *sym, int op) {
 }
 
 int cg_load_str(int label) {
-    int reg = alloc_register();
+    int reg = cg_alloc_register();
     fprintf(OUT_FILE, "\tleaq\tL%d(%%rip), %s\n", label, reglist[reg]);
     return reg;
 }
@@ -435,7 +437,7 @@ int cg_sal_n(int reg, int n) {
 }
 
 int cg_call(Symbol *sym, int args_num) {
-    int out_reg = alloc_register();
+    int out_reg = cg_alloc_register();
 
     fprintf(OUT_FILE, "\tcall\t%s@PLT\n", sym->name);
 
@@ -607,7 +609,7 @@ int cg_compare_and_jump(int ASTop, int r1, int r2, int l) {
 
     fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
     fprintf(OUT_FILE, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], l);
-    cg_free_regs();
+    cg_free_regs(NO_REG);
 
     return NO_REG;
 }
@@ -643,7 +645,7 @@ int cg_return(int reg, Symbol *sym) {
 }
 
 int cg_address(Symbol *sym) {
-    int reg = alloc_register();
+    int reg = cg_alloc_register();
 
     if (sym->class == C_GLOBAL || sym->class == C_STATIC) {
         fprintf(OUT_FILE, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[reg]);
@@ -716,4 +718,8 @@ void cg_switch(int reg, int case_cnt, int *case_label, int *case_val, int dft_la
         fprintf(OUT_FILE, "\t.quad\t%d, L%d\n", case_val[i], case_label[i]);
     }
     fprintf(OUT_FILE, "\t.quad\tL%d\n", dft_label);
+}
+
+void cg_mov_reg(int r1, int r2) {
+    fprintf(OUT_FILE, "\tmovq\t%s, %s\n", reglist[r1], reglist[r2]);
 }

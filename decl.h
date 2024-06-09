@@ -31,7 +31,7 @@ void gen_pre_amble();
 
 void gen_post_amble();
 
-void gen_free_regs();
+void gen_free_regs(int keep_reg);
 
 void gen_new_sym(Symbol *sym);
 
@@ -42,7 +42,8 @@ int gen_type_size(int type);
 int gen_align(int type, int offset, int direction);
 
 // cg.c
-void cg_free_regs();
+void cg_free_regs(int keep_reg);
+int cg_alloc_register();
 
 void cg_pre_amble();
 
@@ -123,6 +124,8 @@ int cg_sar(int r1, int r2);
 int cg_align(int type, int offset, int direction);
 
 void cg_switch(int reg, int case_cnt, int *case_label, int *case_val, int dft_label);
+
+void cg_mov_reg(int r1, int r2);
 
 // expr.c
 ASTnode *expression_list(int end_token);

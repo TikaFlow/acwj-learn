@@ -459,6 +459,9 @@ int scan() {
         case '.':
             TOKEN.token_type = T_DOT;
             break;
+        case '?':
+            TOKEN.token_type = T_QUESTION;
+            break;
         case ':':
             TOKEN.token_type = T_COLON;
             break;
