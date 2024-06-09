@@ -278,6 +278,10 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return cg_lognot(leftreg);
         case A_TOBOOL:
             return cg_tobool(leftreg, parent_op, if_label);
+        case A_LOGOR:
+            return cg_logor(leftreg, rightreg);
+        case A_LOGAND:
+            return cg_logand(leftreg, rightreg);
         case A_BREAK:
             return cg_jump(end_label);
         case A_CONTINUE:

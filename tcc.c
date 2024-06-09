@@ -22,11 +22,12 @@ static void init() {
 }
 
 static void usage(char *prog) {
-    printf("Usage: %s [-vcST] [-o outfile] file [file ...]\n", prog);
+    printf("Usage: %s [-vcTSM] [-o outfile] file [file ...]\n", prog);
     printf("\t-v give verbose output of the compilation stages\n");
     printf("\t-c generate object files but don't link them\n");
-    printf("\t-S generate assembly files but don't link them\n");
     printf("\t-T dump the AST trees for each input file\n");
+    printf("\t-S generate assembly files but don't link them\n");
+    printf("\t-M dump the symbol table for each input file\n");
     printf("\t-o outfile, produce the outfile executable file\n");
 }
 
@@ -84,9 +85,15 @@ static char *do_compile(char *file) {
     declare_global();
     gen_post_amble();
 
+    if (FLAG_M) {
+        printf("Symbols for %s\n", file);
+        dump_sym_tables();
+    }
+    printf("Release static symbols for %s\n", file);
+    reset_static_syms();
+
     fclose(OUT_FILE);
     fclose(IN_FILE);
-    reset_static_syms();
 
     return OUT_FILE_NAME;
 }
@@ -152,11 +159,14 @@ static char *parse_options(int argc, char *argv[], int *i_ptr) {
                 case 'c':
                     FLAG_c = TRUE;
                     break;
+                case 'T':
+                    FLAG_T = TRUE;
+                    break;
                 case 'S':
                     FLAG_S = TRUE;
                     break;
-                case 'T':
-                    FLAG_T = TRUE;
+                case 'M':
+                    FLAG_M = TRUE;
                     break;
                 case 'o':
                     // -o option must have a file name after it
@@ -182,8 +192,9 @@ int main(int argc, char *argv[]) {
 
     FLAG_v = FALSE;
     FLAG_c = FALSE;
-    FLAG_S = FALSE;
     FLAG_T = FALSE;
+    FLAG_S = FALSE;
+    FLAG_M = FALSE;
 
     char *asm_file, *obj_file, *o_file;
     char *obj_list[MAX_OBJ];

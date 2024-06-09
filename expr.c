@@ -143,7 +143,7 @@ static ASTnode *postfix() {
             return access_member(TRUE);
     }
 
-    if (!(var = find_sym(TEXT)) || var->stype != S_VARIABLE) {
+    if (!(var = find_sym(TEXT)) || (var->stype != S_VARIABLE && var->stype != S_ARRAY)) {
         fatals("Unknown variable", TEXT);
     }
     scan();

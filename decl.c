@@ -329,16 +329,18 @@ static Symbol *declare_composite(int ptype) {
     Symbol *member, *ctype = NULL;
     ASTnode *unused;
     int offset = 0, type;
+    char *name = NULL;
 
     // skip struct/union keyword
     scan();
 
     // if a named composite
     if (TOKEN.token_type == T_IDENT) {
+        name = strdup(TEXT);
         if (ptype == P_STRUCT) {
-            ctype = find_struct_sym(TEXT);
+            ctype = find_struct_sym(name);
         } else {
-            ctype = find_union_sym(TEXT);
+            ctype = find_union_sym(name);
         }
         scan();
     }
@@ -355,9 +357,9 @@ static Symbol *declare_composite(int ptype) {
         fatals("Struct type already defined", TEXT);
     }
     if (ptype == P_STRUCT) {
-        ctype = add_struct_sym(TEXT);
+        ctype = add_struct_sym(name);
     } else {
-        ctype = add_union_sym(TEXT);
+        ctype = add_union_sym(name);
     }
 
     scan();

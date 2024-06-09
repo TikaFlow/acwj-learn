@@ -116,7 +116,8 @@ enum {
     S_NONE,
     S_VARIABLE,
     S_FUNCTION,
-    S_ARRAY
+    S_ARRAY,
+    S_TYPE,
 };
 
 // storage class: global or local

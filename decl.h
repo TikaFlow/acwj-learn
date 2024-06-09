@@ -43,6 +43,7 @@ int gen_align(int type, int offset, int direction);
 
 // cg.c
 void cg_free_regs(int keep_reg);
+
 int cg_alloc_register();
 
 void cg_pre_amble();
@@ -110,6 +111,10 @@ int cg_invert(int r);
 int cg_lognot(int r);
 
 int cg_tobool(int r, int op, int label);
+
+int cg_logor(int r1, int r2);
+
+int cg_logand(int r1, int r2);
 
 int cg_and(int r1, int r2);
 
@@ -194,6 +199,8 @@ Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int size
 Symbol *add_enum_sym(char *name, int class, int value);
 
 Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype);
+
+void dump_sym_tables();
 
 // decl.c
 int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **glue_tree);

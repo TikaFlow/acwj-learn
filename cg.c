@@ -398,6 +398,52 @@ int cg_tobool(int r, int op, int label) {
     return r;
 }
 
+int cg_logor(int r1, int r2) {
+    int ltrue = gen_label(), lend = gen_label();
+
+    // test r1 and jump to ltrue if true
+    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r1], reglist[r1]);
+    fprintf(OUT_FILE, "\tjne\tL%d\n", ltrue);
+
+    // test r2 and jump to ltrue if true
+    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r2], reglist[r2]);
+    fprintf(OUT_FILE, "\tjne\tL%d\n", ltrue);
+
+    // didn't jump, so result is false
+    fprintf(OUT_FILE, "\tmovq\t$0, %s\n", reglist[r1]);
+    fprintf(OUT_FILE, "\tjmp\tL%d\n", lend);
+
+    // someone jump to here, so r1 is true
+    cg_label(ltrue);
+    fprintf(OUT_FILE, "\tmovq\t$1, %s\n", reglist[r1]);
+    cg_label(lend);
+
+    return r1;
+}
+
+int cg_logand(int r1, int r2){
+    int lfalse = gen_label(), lend = gen_label();
+
+    // test r1 and jump to lfalse if false
+    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r1], reglist[r1]);
+    fprintf(OUT_FILE, "\tje\tL%d\n", lfalse);
+
+    // test r2 and jump to lfalse if false
+    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r2], reglist[r2]);
+    fprintf(OUT_FILE, "\tje\tL%d\n", lfalse);
+
+    // didn't jump, so result is true
+    fprintf(OUT_FILE, "\tmovq\t$1, %s\n", reglist[r1]);
+    fprintf(OUT_FILE, "\tjmp\tL%d\n", lend);
+
+    // someone jump to here, so r1 is false
+    cg_label(lfalse);
+    fprintf(OUT_FILE, "\tmovq\t$0, %s\n", reglist[r1]);
+    cg_label(lend);
+
+    return r1;
+}
+
 int cg_and(int r1, int r2) {
     fprintf(OUT_FILE, "\tand\t%s, %s\n", reglist[r2], reglist[r1]);
     free_register(r2);

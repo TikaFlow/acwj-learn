@@ -50,9 +50,11 @@ EXTERN_ int SWITCH_LEVEL;
 EXTERN_ int FLAG_v;
 // keep object file
 EXTERN_ int FLAG_c;
-// keep assembler file
-EXTERN_ int FLAG_S;
 // dump AST tree
 EXTERN_ int FLAG_T;
+// keep assembler file
+EXTERN_ int FLAG_S;
+// dump symbol table
+EXTERN_ int FLAG_M;
 
 #endif //ACWJ_LEARN_DATA_H
