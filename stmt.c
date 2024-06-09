@@ -271,6 +271,10 @@ ASTnode *compound_stmt(int is_switch) {
                 case A_ASSTAR:
                 case A_ASSLASH:
                 case A_ASSIGN:
+                case A_PREINC:
+                case A_PREDEC:
+                case A_POSTINC:
+                case A_POSTDEC:
                 case A_FUNCCALL:
                     match(T_SEMI, ";");
                 default:

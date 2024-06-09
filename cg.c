@@ -195,19 +195,23 @@ int cg_load_int(long value) {
 
 int cg_load_global_sym(Symbol *sym, int op) {
     int reg = cg_alloc_register();
+    int size = 1;
     if (cg_type_size(sym->ptype) == 8) {
+        if (is_ptr(sym->ptype)) {
+            size = size_of_type(value_at(sym->ptype), sym->ctype);
+        }
         if (op == A_PREINC) {
-            fprintf(OUT_FILE, "\tincq\t%s\n", sym->name);
+            fprintf(OUT_FILE, "\taddq\t$%d, %s\n", size, sym->name);
         }
         if (op == A_PREDEC) {
-            fprintf(OUT_FILE, "\tdecq\t%s\n", sym->name);
+            fprintf(OUT_FILE, "\tsubq\t$%d, %s\n", size, sym->name);
         }
         fprintf(OUT_FILE, "\tmovq\t%s(%%rip), %s\n", sym->name, reglist[reg]);
         if (op == A_POSTINC) {
-            fprintf(OUT_FILE, "\tincq\t%s\n", sym->name);
+            fprintf(OUT_FILE, "\taddq\t$%d, %s\n", size, sym->name);
         }
         if (op == A_POSTDEC) {
-            fprintf(OUT_FILE, "\tdecq\t%s\n", sym->name);
+            fprintf(OUT_FILE, "\tsubq\t$%d, %s\n", size, sym->name);
         }
     } else {
         switch (sym->ptype) {
@@ -421,7 +425,7 @@ int cg_logor(int r1, int r2) {
     return r1;
 }
 
-int cg_logand(int r1, int r2){
+int cg_logand(int r1, int r2) {
     int lfalse = gen_label(), lend = gen_label();
 
     // test r1 and jump to lfalse if false

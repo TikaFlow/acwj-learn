@@ -52,11 +52,20 @@ static ASTnode *access_array() {
     ASTnode *left, *right;
     Symbol *arr;
 
-    if (!(arr = find_sym(TEXT)) || arr->stype != S_ARRAY) {
+    if (!(arr = find_sym(TEXT))) {
         fatals("Undeclared array", TEXT);
     }
+    if (arr->stype != S_ARRAY && (arr->stype == S_VARIABLE && !is_ptr(arr->ptype))) {
+        fatals("Not an array or pointer", TEXT);
+    }
 
-    left = make_ast_leaf(A_ADDR, arr->ptype, arr, 0);
+    if (arr->stype == S_ARRAY) {
+        left = make_ast_leaf(A_ADDR, arr->ptype, arr, 0);
+    } else {
+        left = make_ast_leaf(A_IDENT, arr->ptype, arr, 0);
+        left->rvalue = TRUE;
+    }
+
     scan();
     right = bin_expr(0);
     match(T_RBRACKET, "]");
@@ -122,6 +131,7 @@ static ASTnode *access_member(int with_pointer) {
 static ASTnode *postfix() {
     ASTnode *node;
     Symbol *var;
+    int rvalue = FALSE;
 
     if ((var = find_enum_val_sym(TEXT))) {
         scan();
@@ -143,22 +153,43 @@ static ASTnode *postfix() {
             return access_member(TRUE);
     }
 
-    if (!(var = find_sym(TEXT)) || (var->stype != S_VARIABLE && var->stype != S_ARRAY)) {
+    if (!(var = find_sym(TEXT))) {
         fatals("Unknown variable", TEXT);
     }
+    switch (var->stype) {
+        case S_VARIABLE:
+            break;
+        case S_ARRAY:
+            rvalue = TRUE;
+            break;
+        default:
+            fatals("Not a variable", TEXT);
+    }
+
     scan();
 
     switch (TOKEN.token_type) {
         case T_INC:
+            if (rvalue) {
+                fatals("Can't increment rvalue", TEXT);
+            }
             scan();
             node = make_ast_leaf(A_POSTINC, var->ptype, var, 0);
             break;
         case T_DEC:
+            if (rvalue) {
+                fatals("Can't decrement rvalue", TEXT);
+            }
             scan();
             node = make_ast_leaf(A_POSTDEC, var->ptype, var, 0);
             break;
         default:
-            node = make_ast_leaf(A_IDENT, var->ptype, var, 0);
+            if (rvalue) {
+                node = make_ast_leaf(A_ADDR, var->ptype, var, 0);
+                node->rvalue = TRUE;
+            } else {
+                node = make_ast_leaf(A_IDENT, var->ptype, var, 0);
+            }
     }
 
     return node;
@@ -276,12 +307,14 @@ static ASTnode *prefix() {
             scan();
             tree = prefix();
 
-            if (tree->op != A_IDENT) {
-                fatal("& operator must be followed by a variable");
-            }
+            // if (tree->op != A_IDENT) {
+            //     fatal("& operator must be followed by a variable");
+            // }
 
-            tree->op = A_ADDR;
-            tree->type = pointer_to(tree->type);
+            if (tree->op == A_IDENT) {
+                tree->op = A_ADDR;
+                tree->type = pointer_to(tree->type);
+            }
             break;
         case T_STAR:
             scan();

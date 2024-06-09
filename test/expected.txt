@@ -313,3 +313,11 @@ x = 1, y = 2, x || y = 1, x && y = 1
 x = 2, y = 0, x || y = 1, x && y = 0
 x = 2, y = 1, x || y = 1, x && y = 1
 x = 2, y = 2, x || y = 1, x && y = 1
+=================== test/51-array2.c ===================
+ptr(ary) is 0x404020
+ptr(&ary) is 0x404020
+ary[3] = 4
+ptr[3] = 4
+result of function receive a pointer: 4
+after ptr++, ptr is 0x404024
+value of ptr points: 2
