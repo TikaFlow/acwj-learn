@@ -6,7 +6,7 @@
 #include "decl.h"
 
 int gen_label() {
-    static int id = 0;
+    static int id = 0; // TODO support closures later
     return id++;
 }
 
@@ -183,10 +183,10 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return cg_load_str(node->id);
         case A_IDENT:
             if (node->rvalue || parent_op == A_DEREF) {
-                if (node->sym->class != C_GLOBAL) {
-                    return cg_load_local_sym(node->sym, node->op);
-                } else {
+                if (node->sym->class == C_GLOBAL || node->sym->class == C_STATIC) {
                     return cg_load_global_sym(node->sym, node->op);
+                } else {
+                    return cg_load_local_sym(node->sym, node->op);
                 }
             }
             return NO_REG;
@@ -212,10 +212,10 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         case A_ASSIGN:
             switch (node->right->op) {
                 case A_IDENT:
-                    if (node->right->sym->class != C_GLOBAL) {
-                        return cg_store_local_sym(leftreg, node->right->sym);
-                    } else {
+                    if (node->right->sym->class == C_GLOBAL || node->right->sym->class == C_STATIC) {
                         return cg_store_global_sym(leftreg, node->right->sym);
+                    } else {
+                        return cg_store_local_sym(leftreg, node->right->sym);
                     }
                 case A_DEREF:
                     return cg_store_deref(leftreg, rightreg, node->right->type);
@@ -247,17 +247,17 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             }
         case A_POSTINC:
         case A_POSTDEC:
-            if (node->sym->class != C_GLOBAL) {
-                return cg_load_local_sym(node->sym, node->op);
-            } else {
+            if (node->sym->class == C_GLOBAL || node->sym->class == C_STATIC) {
                 return cg_load_global_sym(node->sym, node->op);
+            } else {
+                return cg_load_local_sym(node->sym, node->op);
             }
         case A_PREINC:
         case A_PREDEC:
-            if (node->left->sym->class != C_GLOBAL) {
-                return cg_load_local_sym(node->left->sym, node->op);
-            } else {
+            if (node->left->sym->class == C_GLOBAL || node->left->sym->class == C_STATIC) {
                 return cg_load_global_sym(node->left->sym, node->op);
+            } else {
+                return cg_load_local_sym(node->left->sym, node->op);
             }
         case A_NEGATE:
             return cg_negate(leftreg);

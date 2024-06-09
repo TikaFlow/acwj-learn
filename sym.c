@@ -22,6 +22,30 @@ void reset_local_syms() {
     FUNC_PTR = NULL;
 }
 
+void reset_static_syms() {
+    Symbol *cur, *prev = NULL;
+
+    for (cur = GLOBAL_HEAD; cur; cur = cur->next) {
+        if (cur->class == C_STATIC) {
+            printf("Releasing static %s %s\n", cur->stype == S_FUNCTION ? "function" : "variable", cur->name);
+            if (cur == GLOBAL_HEAD) {
+                GLOBAL_HEAD = cur->next;
+            } else {
+                prev->next = cur->next;
+            }
+
+            if (cur == GLOBAL_TAIL) {
+                if (!prev) {
+                    GLOBAL_TAIL = prev;
+                }
+            }
+
+        }
+        prev = cur;
+    }
+
+}
+
 void reset_sym_table() {
     reset_global_syms();
     reset_local_syms();

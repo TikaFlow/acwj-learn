@@ -320,6 +320,9 @@ static int keyword(char *s) {
             if (!strcmp(s, "short")) {
                 return T_SHORT;
             }
+            if (!strcmp(s, "static")) {
+                return T_STATIC;
+            }
             if (!strcmp(s, "struct")) {
                 return T_STRUCT;
             }

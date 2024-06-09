@@ -3,7 +3,7 @@ INC_DIR=/tmp/include
 SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
 EXEC=tcc
 
-NEW=test/47-sizeof.c
+NEW=test/48-static.c
 ASM=$(NEW:.c=.s)
 
 .PHONY: all test clean inc
@@ -24,6 +24,9 @@ new: $(NEW) $(EXEC) inc
 	ld -o out out.o /lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2
 	@echo "=================== $(NEW) ==================="
 	@./out
+
+self: $(SRCS) $(HEADER) $(EXEC) inc
+	./$(EXEC) -vo out $(SRCS) $(HEADER)
 
 test: $(EXEC) inc
 	@echo "Running tests..."

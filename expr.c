@@ -169,6 +169,9 @@ static ASTnode *primary() {
     Symbol *ctype, *sym;
 
     switch (TOKEN.token_type) {
+        case T_STATIC:
+        case T_EXTERN:
+            fatal("For now, compiler not support static local variable");
         case T_SIZEOF:
             scan();
             match(T_LPAREN, "( after sizeof");

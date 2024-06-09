@@ -86,6 +86,7 @@ static char *do_compile(char *file) {
 
     fclose(OUT_FILE);
     fclose(IN_FILE);
+    reset_static_syms();
 
     return OUT_FILE_NAME;
 }

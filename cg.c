@@ -145,13 +145,16 @@ void cg_func_pre_amble(Symbol *sym) {
     cg_text_section();
     cg_reset_local_offset();
 
+    if (sym->class == C_GLOBAL) {
+        fprintf(OUT_FILE, "\t.globl\t%s\n", name);
+    }
+
     fprintf(OUT_FILE,
-            "\t.globl\t%s\n"
             "\t.type\t%s, @function\n"
             "%s:\n"
             "\tpushq\t%%rbp\n"
             "\tmovq\t%%rsp, %%rbp\n",
-            name, name, name);
+            name, name);
 
     // copy all params to register
     for (param = sym->first; param; cnt++, param = param->next) {
@@ -520,11 +523,10 @@ void cg_new_sym(Symbol *sym) {
     }
 
     cg_data_section();
-    fprintf(OUT_FILE,
-            "\t.globl\t%s\n"
-            "%s:\n",
-            sym->name,
-            sym->name);
+    if (sym->class == C_GLOBAL) {
+        fprintf(OUT_FILE, "\t.globl\t%s\n", sym->name);
+    }
+    fprintf(OUT_FILE, "%s:\n", sym->name);
 
     if (sym->stype == S_ARRAY) {
         size = size_of_type(value_at(sym->ptype), sym->ctype); // howto? if a struct array
@@ -615,21 +617,25 @@ int cg_widen(int r, int old_type, int new_type) {
 }
 
 int cg_return(int reg, Symbol *sym) {
-    switch (sym->ptype) {
-        case P_CHAR:
-            fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
-            break;
-        case P_SHORT:
-            fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", dreglist[reg]);
-            break;
-        case P_INT:
-            fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[reg]);
-            break;
-        case P_LONG:
-            fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
-            break;
-        default:
-            fatals("Bad function type in cg_return()", get_name(V_PTYPE, sym->ptype));
+    if (is_ptr(sym->ptype)) {
+        fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
+    } else {
+        switch (sym->ptype) {
+            case P_CHAR:
+                fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
+                break;
+            case P_SHORT:
+                fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", dreglist[reg]);
+                break;
+            case P_INT:
+                fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[reg]);
+                break;
+            case P_LONG:
+                fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
+                break;
+            default:
+                fatals("Bad function type in cg_return()", get_name(V_PTYPE, sym->ptype));
+        }
     }
     cg_jump(sym->end_label);
 
@@ -639,7 +645,7 @@ int cg_return(int reg, Symbol *sym) {
 int cg_address(Symbol *sym) {
     int reg = alloc_register();
 
-    if (sym->class == C_GLOBAL) {
+    if (sym->class == C_GLOBAL || sym->class == C_STATIC) {
         fprintf(OUT_FILE, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[reg]);
     } else {
         fprintf(OUT_FILE, "\tleaq\t%d(%%rbp), %s\n", sym->posn, reglist[reg]);
@@ -655,6 +661,8 @@ int cg_deref(int reg, int type) {
         case 1:
             fprintf(OUT_FILE, "\tmovzbq\t(%s), %s\n", reglist[reg], reglist[reg]);
             break;
+        case 2:
+            fprintf(OUT_FILE, "\tmovswq\t(%s), %s\n", reglist[reg], reglist[reg]);
         case 4:
             fprintf(OUT_FILE, "\tmovslq\t(%s), %s\n", reglist[reg], reglist[reg]);
             break;
@@ -674,6 +682,9 @@ int cg_store_deref(int r1, int r2, int type) {
     switch (size) {
         case 1:
             fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[r1]);
+            break;
+        case 2:
+            fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", dreglist[r1]);
             break;
         case 4:
             fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[r1]);

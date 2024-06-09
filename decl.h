@@ -154,6 +154,8 @@ void reset_global_syms();
 
 void reset_local_syms();
 
+void reset_static_syms();
+
 void reset_sym_table();
 
 Symbol *find_global_sym(char *s);

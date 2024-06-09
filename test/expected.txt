@@ -286,3 +286,9 @@ size of int: 4
 size of foo: 13
 size of alias of foo: 13
 size of baz(type is bar): 13
+=================== test/48-static.c ===================
+0
+1
+2
+3
+4

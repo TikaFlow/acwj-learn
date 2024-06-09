@@ -21,6 +21,7 @@ static char *TOKEN_NAMES[] = {
         "if", "else", "while", "for", "return", "sizeof",
         "struct", "union", "enum", "typedef", "extern",
         "break", "continue", "switch", "case", "default",
+        "static",
         // structures
         "int literal", "string literal", ";", "identifier",
         "{", "}", "(", ")", "[", "]",

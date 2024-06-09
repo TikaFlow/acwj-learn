@@ -19,32 +19,21 @@ int parse_type(Symbol **ctype, int *class) {
     while (storage_flag) {
         switch (TOKEN.token_type) {
             case T_EXTERN:
+                if (*class == C_STATIC) {
+                    fatal("'extern' not allowed in static declaration");
+                }
                 *class = C_EXTERN;
                 scan();
                 break;
-                // case T_CONST:
-                //     *class |= C_CONST;
-                //     scan();
-                //     break;
-                // case T_VOLATILE:
-                //     *class |= C_VOLATILE;
-                //     scan();
-                //     break;
-                // case T_AUTO:
-                //     *class |= C_AUTO;
-                //     scan();
-                //     break;
-                // case T_STATIC:
-                //     *class |= C_STATIC;
-                //     scan();
-                //     break;
-                // case T_TYPEDEF:
-                //     storage_flag = FALSE;
-                //     break;
-                // case T_REGISTER:
-                //     *class |= C_REGISTER;
-                //     scan();
-                //     break;
+            case T_STATIC:
+                if (*class == C_EXTERN) {
+                    fatal("'static' not allowed in extern declaration");
+                } else if (*class == C_LOCAL) {
+                    fatal("For now, compiler not support static local variable");
+                }
+                *class = C_STATIC;
+                scan();
+                break;
             default:
                 storage_flag = FALSE;
         }
@@ -122,7 +111,7 @@ int parse_stars(int type) {
 }
 
 int parse_cast() {
-    int type, class;
+    int type, class = C_NONE;
     Symbol *ctype;
 
     type = parse_type(&ctype, &class);
@@ -187,6 +176,7 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
 
     //treat arr name as a pointer th its elements' type
     switch (class) {
+        case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
             sym = add_global_sym(name, pointer_to(type), ctype, S_ARRAY, class, n_elem, 0);
@@ -205,6 +195,7 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
 
 static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class) {
     switch (class) {
+        case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
             return add_global_sym(name, type, ctype, S_VARIABLE, class, 1, 0);
@@ -277,7 +268,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 
     if (!old_func) {
         end_label = gen_label();
-        new_func = add_global_sym(name, type, NULL, S_FUNCTION, C_GLOBAL, 0, end_label);
+        new_func = add_global_sym(name, type, NULL, S_FUNCTION, class, 0, end_label);
     }
 
     match(T_LPAREN, "(");
@@ -526,7 +517,7 @@ static void init_array(Symbol *sym, int type, Symbol *ctype, int class) {
     int n_elem = sym->n_elem, max_elem, i = 0, j;
     long *init_list;
 
-    if (class == C_EXTERN || class == C_GLOBAL) {
+    if (class == C_EXTERN || class == C_GLOBAL || class == C_STATIC) {
         // array init with {
         match(T_LBRACE, "{");
 
@@ -581,7 +572,7 @@ static void init_var(Symbol *sym, int type, Symbol *ctype, int class, ASTnode **
     ASTnode *var, *expr;
     *glue_tree = NULL;
 
-    if (class == C_EXTERN || class == C_GLOBAL) {
+    if (class == C_EXTERN || class == C_GLOBAL || class == C_STATIC) {
         sym->init_list = (long *) malloc(sizeof(long));
         sym->init_list[0] = parse_literal(type);
         sym->n_elem = 1;
@@ -613,6 +604,7 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
 
     // check if has been declared
     switch (class) {
+        case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
             if (find_global_sym(name)) {
@@ -658,7 +650,7 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
     }
 
     // generate space if is a GLOBAL symbol
-    if (class == C_GLOBAL) {
+    if (class == C_GLOBAL || class == C_STATIC) {
         gen_new_sym(sym);
     }
 
@@ -692,7 +684,7 @@ int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **
 
         // if a func, no list, so leave
         if (sym->stype == S_FUNCTION) {
-            if (class != C_GLOBAL) {
+            if (class != C_GLOBAL && class != C_STATIC) {
                 fatal("Function definition not at global scope");
             }
             return type;
