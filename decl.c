@@ -156,6 +156,26 @@ static long parse_literal(int type) {
     return 0; // keep compiler happy
 }
 
+static int is_new_sym(Symbol *sym, int class, int type, Symbol *ctype) {
+    if (!sym) {
+        return TRUE;
+    }
+
+    if ((sym->class == C_GLOBAL && class == C_EXTERN)
+        || (sym->class == C_EXTERN && class == C_GLOBAL)) {
+        if (sym->ptype != type
+            || (type >= P_STRUCT && sym->ctype != ctype)) {
+            fatals("Type mismatch for symbol", sym->name);
+        }
+
+        sym->class = C_GLOBAL;
+        return FALSE;
+    }
+
+    fatals("Duplicate global symbol declaration", sym->name);
+    return FALSE; // keep compiler happy
+}
+
 static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
     Symbol *sym = NULL;
     int n_elem = -1;
@@ -178,7 +198,10 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
         case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
-            sym = add_global_sym(name, pointer_to(type), ctype, S_ARRAY, class, n_elem, 0);
+            sym = find_global_sym(name);
+            if (is_new_sym(sym, class, type, ctype)) {
+                sym = add_global_sym(name, pointer_to(type), ctype, S_ARRAY, class, n_elem, 0);
+            }
             break;
         case C_LOCAL:
         case C_PARAM:
@@ -193,22 +216,30 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
 }
 
 static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class) {
+    Symbol *sym = NULL;
     switch (class) {
         case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
-            return add_global_sym(name, type, ctype, S_VARIABLE, class, 1, 0);
+            sym = find_global_sym(name);
+            if (is_new_sym(sym, class, type, ctype)) {
+                sym = add_global_sym(name, type, ctype, S_VARIABLE, class, 1, 0);
+            }
+            break;
         case C_LOCAL:
-            return add_local_sym(name, type, ctype, S_VARIABLE, 1);
+            sym = add_local_sym(name, type, ctype, S_VARIABLE, 1);
+            break;
         case C_PARAM:
-            return add_param_sym(name, type, ctype, S_VARIABLE);
+            sym = add_param_sym(name, type, ctype, S_VARIABLE);
+            break;
         case C_MEMBER:
-            return add_member_sym(name, type, ctype, S_VARIABLE, 1);
+            sym = add_member_sym(name, type, ctype, S_VARIABLE, 1);
+            break;
         default:
             break; // keep compiler happy
     }
 
-    return NULL;
+    return sym;
 }
 
 static int declare_param_list(Symbol *old_func, Symbol *new_func) {
@@ -608,9 +639,6 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
         case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
-            if (find_global_sym(name)) {
-                fatals("Global variable already defined", name);
-            }
         case C_LOCAL:
         case C_PARAM:
             if (find_local_sym(name)) {
@@ -702,7 +730,7 @@ int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **
 }
 
 void declare_global() {
-    Symbol *ctype;
+    Symbol *ctype = NULL;
     ASTnode *unused;
 
     while (TOKEN.token_type != T_EOF) {

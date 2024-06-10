@@ -120,7 +120,7 @@ static int gen_func_call(ASTnode *node) {
 }
 
 int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int parent_op) {
-    int leftreg, rightreg;
+    int leftreg = NO_REG, rightreg = NO_REG;
 
     if (!node) {
         return NO_REG;
@@ -310,10 +310,21 @@ void gen_new_sym(Symbol *sym) {
     cg_new_sym(sym);
 }
 
-int gen_new_str(char *str) {
-    int label = gen_label();
+int gen_new_str(char *str, int first) {
+    int label;
+
+    if (first) {
+        label = gen_label();
+    } else {
+        label = NO_LABEL;
+    }
+
     cg_new_str(label, str);
     return label;
+}
+
+void gen_new_str_end() {
+    cg_new_str_end();
 }
 
 int gen_type_size(int type) {

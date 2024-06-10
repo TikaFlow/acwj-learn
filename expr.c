@@ -79,8 +79,8 @@ static ASTnode *access_member(ASTnode *left, int with_pointer) {
     if (!with_pointer) {
         if (left->type != P_STRUCT && left->type != P_UNION) {
             fatals("Expression is not a struct/union", TEXT);
-        }else{
-            left->op= A_ADDR;
+        } else {
+            left->op = A_ADDR;
         }
     }
     if (with_pointer) {
@@ -152,7 +152,7 @@ static ASTnode *paren_expr(Symbol **ctype) {
 
 static ASTnode *primary() {
     ASTnode *node = NULL;
-    int label, size, class, type = P_NONE;
+    int label, size, class, type;
     Symbol *ctype, *sym, *var;
 
     switch (TOKEN.token_type) {
@@ -184,7 +184,15 @@ static ASTnode *primary() {
             }
             break;
         case T_STRLIT:
-            label = gen_new_str(TEXT);
+            label = gen_new_str(TEXT, TRUE);
+
+            while (peek_token().token_type == T_STRLIT) {
+                // get the string literal
+                scan();
+                gen_new_str(TEXT, FALSE);
+            }
+            gen_new_str_end();
+
             node = make_ast_leaf(A_STRLIT, pointer_to(P_CHAR), NULL, NULL, label);
             break;
         case T_IDENT:

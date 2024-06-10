@@ -36,6 +36,10 @@ int size_of_type(int ptype, Symbol *ctype) {
 ASTnode *modify_type(ASTnode *left, ASTnode *right, int op) {
     int lsize, rsize, ltype = left->type, rtype = right->type;
 
+    // if (op == A_LOGAND || op == A_LOGOR) {
+    //     return left;
+    // }
+
     if (ltype == P_STRUCT || ltype == P_UNION || rtype == P_STRUCT || rtype == P_UNION) {
         fatal("I don't know how to deal with it yet");
     }

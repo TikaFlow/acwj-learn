@@ -325,3 +325,7 @@ value of ptr points: 2
 ### head = 10 10
 mid = 15 15
 tail = 20 20
+=================== test/53-five-issues.c ===================
+consecutive string: abcdef
+compatible operand types, fred = 5
+return with no value

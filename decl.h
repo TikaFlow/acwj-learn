@@ -36,7 +36,9 @@ void gen_free_regs(int keep_reg);
 
 void gen_new_sym(Symbol *sym);
 
-int gen_new_str(char *str);
+int gen_new_str(char *str, int first);
+
+void gen_new_str_end();
 
 int gen_type_size(int type);
 
@@ -84,6 +86,8 @@ int cg_store_local_sym(int r, Symbol *sym);
 void cg_new_sym(Symbol *sym);
 
 void cg_new_str(int label, char *str);
+
+void cg_new_str_end();
 
 int cg_compare_and_set(int ASTop, int r1, int r2);
 

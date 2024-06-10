@@ -78,18 +78,23 @@ static ASTnode *for_stmt() {
 }
 
 static ASTnode *return_stmt() {
-    ASTnode *tree;
-
-    if (FUNC_PTR->ptype == P_VOID) {
-        fatal("Can't return from a void function");
-    }
+    ASTnode *tree = NULL;
 
     scan();
 
-    tree = bin_expr(0);
-    tree = modify_type(tree, make_ast_leaf(P_NONE, FUNC_PTR->ptype, FUNC_PTR->ctype, NULL, 0), P_NONE);
-    if (!tree) {
-        fatal("Incompatible return type");
+    if (FUNC_PTR->ptype == P_VOID) {
+        if (TOKEN.token_type != T_SEMI) {
+            fatal("Can't return from a void function");
+        }
+    } else {
+        if (TOKEN.token_type == T_SEMI) {
+            fatal("Must return a value from a non-void function");
+        }
+        tree = bin_expr(0);
+        tree = modify_type(tree, make_ast_leaf(P_NONE, FUNC_PTR->ptype, FUNC_PTR->ctype, NULL, 0), P_NONE);
+        if (!tree) {
+            fatal("Incompatible return type");
+        }
     }
 
     tree = make_ast_unary(A_RETURN, P_NONE, NULL, tree, NULL, 0);
@@ -203,6 +208,9 @@ static ASTnode *single_stmt() {
     Symbol *ctype;
     ASTnode *stmt;
     switch (TOKEN.token_type) {
+        case T_SEMI:
+            scan();
+            return NULL;
         case T_IDENT:
             if (!find_typedef_sym(TEXT)) {
                 return bin_expr(0);
@@ -262,6 +270,15 @@ ASTnode *compound_stmt(int is_switch) {
     }
 
     while (TRUE) {
+        if (is_switch &&
+            (TOKEN.token_type == T_CASE || TOKEN.token_type == T_DEFAULT || TOKEN.token_type == T_RBRACE)) {
+            return left;
+        }
+        if (TOKEN.token_type == T_RBRACE) {
+            scan();
+            return left;
+        }
+
         tree = single_stmt();
 
         if (tree) {
@@ -292,15 +309,6 @@ ASTnode *compound_stmt(int is_switch) {
             } else {
                 left = tree;
             }
-        }
-
-        if (is_switch &&
-            (TOKEN.token_type == T_CASE || TOKEN.token_type == T_DEFAULT || TOKEN.token_type == T_RBRACE)) {
-            return left;
-        }
-        if (TOKEN.token_type == T_RBRACE) {
-            scan();
-            return left;
         }
     }
 }

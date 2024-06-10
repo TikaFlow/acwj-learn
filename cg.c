@@ -620,12 +620,16 @@ void cg_new_sym(Symbol *sym) {
 
 void cg_new_str(int label, char *str) {
     char *cptr;
-    cg_label(label);
+    if (label != NO_LABEL) {
+        cg_label(label);
+    }
 
     for (cptr = str; *cptr; cptr++) {
         fprintf(OUT_FILE, "\t.byte\t%d\n", *cptr);
     }
+}
 
+void cg_new_str_end() {
     fprintf(OUT_FILE, "\t.byte\t0\n");
 }
 
@@ -673,6 +677,8 @@ int cg_return(int reg, Symbol *sym) {
         fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
     } else {
         switch (sym->ptype) {
+            case P_VOID:
+                break;
             case P_CHAR:
                 fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
                 break;
