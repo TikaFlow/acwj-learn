@@ -8,7 +8,7 @@
 static ASTnode *single_stmt();
 
 static ASTnode *nop_stmt() {
-    return make_ast_leaf(A_NOP, P_NONE, NULL, 0);
+    return make_ast_leaf(A_NOP, P_NONE, NULL, NULL, 0);
 }
 
 static ASTnode *if_stmt() {
@@ -18,7 +18,7 @@ static ASTnode *if_stmt() {
     match(T_LPAREN, "(");
     cond_node = bin_expr(0);
     if (cond_node->op < A_EQ || cond_node->op > A_GE) {
-        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node, NULL, 0);
+        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node->ctype, cond_node, NULL, 0);
     }
     match(T_RPAREN, ")");
     true_node = compound_stmt(FALSE);
@@ -27,7 +27,7 @@ static ASTnode *if_stmt() {
         false_node = compound_stmt(FALSE);
     }
 
-    return make_ast_node(A_IF, P_NONE, cond_node, true_node, false_node, NULL, 0);
+    return make_ast_node(A_IF, P_NONE, NULL, cond_node, true_node, false_node, NULL, 0);
 }
 
 static ASTnode *while_stmt() {
@@ -38,7 +38,7 @@ static ASTnode *while_stmt() {
 
     cond_node = bin_expr(0);
     if (cond_node->op < A_EQ || cond_node->op > A_GE) {
-        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node, NULL, 0);
+        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node->ctype, cond_node, NULL, 0);
     }
     match(T_RPAREN, ")");
 
@@ -46,7 +46,7 @@ static ASTnode *while_stmt() {
     body_node = compound_stmt(FALSE);
     LOOP_LEVEL--;
 
-    return make_ast_node(A_WHILE, P_NONE, cond_node, NULL, body_node, NULL, 0);
+    return make_ast_node(A_WHILE, P_NONE, NULL, cond_node, NULL, body_node, NULL, 0);
 }
 
 static ASTnode *for_stmt() {
@@ -60,7 +60,7 @@ static ASTnode *for_stmt() {
 
     cond_node = bin_expr(0);
     if (cond_node->op < A_EQ || cond_node->op > A_GE) {
-        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node, NULL, 0);
+        cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node->ctype, cond_node, NULL, 0);
     }
     match(T_SEMI, ";");
 
@@ -71,10 +71,10 @@ static ASTnode *for_stmt() {
     body_node = compound_stmt(FALSE);
     LOOP_LEVEL--;
 
-    tree = make_ast_node(A_GLUE, P_NONE, body_node, NULL, post_node, NULL, 0);
-    tree = make_ast_node(A_WHILE, P_NONE, cond_node, NULL, tree, NULL, 0);
+    tree = make_ast_node(A_GLUE, P_NONE, NULL, body_node, NULL, post_node, NULL, 0);
+    tree = make_ast_node(A_WHILE, P_NONE, NULL, cond_node, NULL, tree, NULL, 0);
 
-    return make_ast_node(A_GLUE, P_NONE, pre_node, NULL, tree, NULL, 0);
+    return make_ast_node(A_GLUE, P_NONE, NULL, pre_node, NULL, tree, NULL, 0);
 }
 
 static ASTnode *return_stmt() {
@@ -87,12 +87,12 @@ static ASTnode *return_stmt() {
     scan();
 
     tree = bin_expr(0);
-    tree = modify_type(tree, FUNC_PTR->ptype, P_NONE);
+    tree = modify_type(tree, make_ast_leaf(P_NONE, FUNC_PTR->ptype, FUNC_PTR->ctype, NULL, 0), P_NONE);
     if (!tree) {
         fatal("Incompatible return type");
     }
 
-    tree = make_ast_unary(A_RETURN, P_NONE, tree, NULL, 0);
+    tree = make_ast_unary(A_RETURN, P_NONE, NULL, tree, NULL, 0);
     match(T_SEMI, ";");
     return tree;
 }
@@ -105,7 +105,7 @@ static ASTnode *goto_stmt(int goto_type) {
     // skip the break/continue keyword
     scan();
     match(T_SEMI, ";");
-    return make_ast_leaf(goto_type, P_NONE, NULL, 0);
+    return make_ast_leaf(goto_type, P_NONE, NULL, NULL, 0);
 }
 
 static ASTnode *switch_stmt() {
@@ -123,7 +123,7 @@ static ASTnode *switch_stmt() {
         fatal("Switch expression must be an integer");
     }
 
-    tree = make_ast_unary(A_SWITCH, P_NONE, left, NULL, 0);
+    tree = make_ast_unary(A_SWITCH, P_NONE, NULL, left, NULL, 0);
     SWITCH_LEVEL++;
 
     while (in_loop) {
@@ -172,10 +172,10 @@ static ASTnode *switch_stmt() {
                 }
 
                 if (case_tree) {
-                    case_tail->right = make_ast_unary(op, P_NONE, left, NULL, case_val);
+                    case_tail->right = make_ast_unary(op, P_NONE, NULL, left, NULL, case_val);
                     case_tail = case_tail->right;
                 } else {
-                    case_tree = case_tail = make_ast_unary(op, P_NONE, left, NULL, case_val);
+                    case_tree = case_tail = make_ast_unary(op, P_NONE, NULL, left, NULL, case_val);
                 }
 
                 break;
@@ -288,7 +288,7 @@ ASTnode *compound_stmt(int is_switch) {
 
         if (tree) {
             if (left) {
-                left = make_ast_node(A_GLUE, P_NONE, left, NULL, tree, NULL, 0);
+                left = make_ast_node(A_GLUE, P_NONE, NULL, left, NULL, tree, NULL, 0);
             } else {
                 left = tree;
             }

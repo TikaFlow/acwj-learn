@@ -23,7 +23,7 @@ ASTnode *expression_list(int end_token) {
 
     while (TOKEN.token_type != end_token) {
         param_node = bin_expr(0);
-        node = make_ast_node(A_GLUE, P_NONE, node, NULL, param_node, NULL, param_cnt++);
+        node = make_ast_node(A_GLUE, P_NONE, NULL, node, NULL, param_node, NULL, param_cnt++);
 
         if (TOKEN.token_type == end_token) {
             break;
@@ -44,67 +44,55 @@ ASTnode *func_call() {
     ASTnode *node = expression_list(T_RPAREN);
     scan();
     // TODO check params against prototype
-    node = make_ast_unary(A_FUNCCALL, func->ptype, node, func, 0);
+    node = make_ast_unary(A_FUNCCALL, func->ptype, func->ctype, node, func, 0);
     return node;
 }
 
-static ASTnode *access_array() {
-    ASTnode *left, *right;
-    Symbol *arr;
+static ASTnode *access_array(ASTnode *left) {
+    ASTnode *right;
 
-    if (!(arr = find_sym(TEXT))) {
-        fatals("Undeclared array", TEXT);
-    }
-    if (arr->stype != S_ARRAY && (arr->stype == S_VARIABLE && !is_ptr(arr->ptype))) {
+    if (!is_ptr(left->type)) {
         fatals("Not an array or pointer", TEXT);
-    }
-
-    if (arr->stype == S_ARRAY) {
-        left = make_ast_leaf(A_ADDR, arr->ptype, arr, 0);
-    } else {
-        left = make_ast_leaf(A_IDENT, arr->ptype, arr, 0);
-        left->rvalue = TRUE;
     }
 
     scan();
     right = bin_expr(0);
     match(T_RBRACKET, "]");
+    left->rvalue = TRUE;
 
     if (!is_int(right->type)) {
         fatal("Array index must be an integer");
     }
 
-    right = modify_type(right, left->type, A_ADD);
-    left = make_ast_node(A_ADD, arr->ptype, left, NULL, right, NULL, 0);
-    left = make_ast_unary(A_DEREF, value_at(left->type), left, NULL, 0);
+    right = modify_type(right, left, A_ADD);
+    left = make_ast_node(A_ADD, left->type, left->ctype, left, NULL, right, NULL, 0);
+    left = make_ast_unary(A_DEREF, value_at(left->type), left->ctype, left, NULL, 0);
 
     return left;
 }
 
-static ASTnode *access_member(int with_pointer) {
-    ASTnode *left, *right;
-    Symbol *var, *ctype, *member;
+static ASTnode *access_member(ASTnode *left, int with_pointer) {
+    ASTnode *right;
+    Symbol *ctype, *member;
 
     // check variable type
-    if (!(var = find_sym(TEXT)) || var->stype != S_VARIABLE) {
-        fatals("Unknown variable", TEXT);
+    if (!with_pointer) {
+        if (left->type != P_STRUCT && left->type != P_UNION) {
+            fatals("Expression is not a struct/union", TEXT);
+        }else{
+            left->op= A_ADDR;
+        }
     }
-    if (!with_pointer && var->ptype != P_STRUCT && var->ptype != P_UNION) {
-        fatals("Can't access member of non-struct type", TEXT);
-    }
-    if (with_pointer && var->ptype != pointer_to(P_STRUCT) && var->ptype != pointer_to(P_UNION)) {
-        fatals("Can't access member of non-struct type", TEXT);
-    }
-
-    // get var's pointer
     if (with_pointer) {
-        left = make_ast_leaf(A_IDENT, pointer_to(var->ptype), var, 0);
-    } else {
-        left = make_ast_leaf(A_ADDR, var->ptype, var, 0);
+        if (left->type != pointer_to(P_STRUCT) && left->type != pointer_to(P_UNION)) {
+            fatals("Expression is not a pointer to struct/union", TEXT);
+        }
     }
-    left->rvalue = TRUE;
-    ctype = var->ctype;
 
+    left->rvalue = TRUE;
+    ctype = left->ctype;
+
+    // skip '.' or '->'
     scan();
     match(T_IDENT, "identifier");
 
@@ -119,77 +107,44 @@ static ASTnode *access_member(int with_pointer) {
     }
 
     // get member offset
-    right = make_ast_leaf(A_INTLIT, P_INT, NULL, member->posn);
+    right = make_ast_leaf(A_INTLIT, P_INT, NULL, NULL, member->posn);
     // add offset to pointer
-    left = make_ast_node(A_ADD, pointer_to(member->ptype), left, NULL, right, NULL, 0);
+    left = make_ast_node(A_ADD, pointer_to(member->ptype), member->ctype, left, NULL, right, NULL, 0);
     // dereference pointer to get member value
-    left = make_ast_unary(A_DEREF, member->ptype, left, NULL, 0);
+    left = make_ast_unary(A_DEREF, member->ptype, member->ctype, left, NULL, 0);
 
     return left;
 }
 
-static ASTnode *postfix() {
+static ASTnode *paren_expr(Symbol **ctype) {
     ASTnode *node;
-    Symbol *var;
-    int rvalue = FALSE;
-
-    if ((var = find_enum_val_sym(TEXT))) {
-        scan();
-        return make_ast_leaf(A_INTLIT, P_INT, NULL, var->posn);
-    }
-
-    switch (peek_token().token_type) {
-        case T_LPAREN:
-            scan();
-            return func_call();
-        case T_LBRACKET:
-            scan();
-            return access_array();
-        case T_DOT:
-            scan();
-            return access_member(FALSE);
-        case T_ARROW:
-            scan();
-            return access_member(TRUE);
-    }
-
-    if (!(var = find_sym(TEXT))) {
-        fatals("Unknown variable", TEXT);
-    }
-    switch (var->stype) {
-        case S_VARIABLE:
-            break;
-        case S_ARRAY:
-            rvalue = TRUE;
-            break;
-        default:
-            fatals("Not a variable", TEXT);
-    }
-
+    int type = P_NONE;
     scan();
 
     switch (TOKEN.token_type) {
-        case T_INC:
-            if (rvalue) {
-                fatals("Can't increment rvalue", TEXT);
+        case T_IDENT:
+            if (!find_typedef_sym(TEXT)) {
+                node = bin_expr(0);
+                break;
             }
-            scan();
-            node = make_ast_leaf(A_POSTINC, var->ptype, var, 0);
-            break;
-        case T_DEC:
-            if (rvalue) {
-                fatals("Can't decrement rvalue", TEXT);
-            }
-            scan();
-            node = make_ast_leaf(A_POSTDEC, var->ptype, var, 0);
-            break;
+        case T_VOID:
+        case T_CHAR:
+        case T_SHORT:
+        case T_INT:
+        case T_LONG:
+        case T_STRUCT:
+        case T_UNION:
+        case T_ENUM:
+            type = parse_cast(ctype);
+            match(T_RPAREN, ")");
         default:
-            if (rvalue) {
-                node = make_ast_leaf(A_ADDR, var->ptype, var, 0);
-                node->rvalue = TRUE;
-            } else {
-                node = make_ast_leaf(A_IDENT, var->ptype, var, 0);
-            }
+            node = bin_expr(0);
+    }
+
+    if (type == P_NONE) {
+        match(T_RPAREN, ")");
+    } else {
+        node = make_ast_unary(A_CAST, type, *ctype, node, NULL, 0);
     }
 
     return node;
@@ -198,7 +153,7 @@ static ASTnode *postfix() {
 static ASTnode *primary() {
     ASTnode *node = NULL;
     int label, size, class, type = P_NONE;
-    Symbol *ctype, *sym;
+    Symbol *ctype, *sym, *var;
 
     switch (TOKEN.token_type) {
         case T_STATIC:
@@ -218,58 +173,101 @@ static ASTnode *primary() {
             }
 
             match(T_RPAREN, "closed ) sizeof");
-            return make_ast_leaf(A_INTLIT, P_INT, NULL, size);
+            return make_ast_leaf(A_INTLIT, P_INT, NULL, NULL, size);
         case T_INTLIT:
             if (TOKEN.int_value >= 0 && TOKEN.int_value <= 0xff) {
-                node = make_ast_leaf(A_INTLIT, P_CHAR, NULL, TOKEN.int_value);
+                node = make_ast_leaf(A_INTLIT, P_CHAR, NULL, NULL, TOKEN.int_value);
             } else if (TOKEN.int_value <= 0xffff) {
-                node = make_ast_leaf(A_INTLIT, P_SHORT, NULL, TOKEN.int_value);
+                node = make_ast_leaf(A_INTLIT, P_SHORT, NULL, NULL, TOKEN.int_value);
             } else {
-                node = make_ast_leaf(A_INTLIT, P_INT, NULL, TOKEN.int_value);
+                node = make_ast_leaf(A_INTLIT, P_INT, NULL, NULL, TOKEN.int_value);
             }
             break;
         case T_STRLIT:
             label = gen_new_str(TEXT);
-            node = make_ast_leaf(A_STRLIT, pointer_to(P_CHAR), NULL, label);
+            node = make_ast_leaf(A_STRLIT, pointer_to(P_CHAR), NULL, NULL, label);
             break;
         case T_IDENT:
-            return postfix();
-        case T_LPAREN:
-            scan();
+            if ((var = find_enum_val_sym(TEXT))) {
+                node = make_ast_leaf(A_INTLIT, P_INT, NULL, NULL, var->posn);
+                break;
+            }
 
-            switch (TOKEN.token_type) {
-                case T_IDENT:
-                    if (!find_typedef_sym(TEXT)) {
-                        node = bin_expr(0);
-                        break;
+            if (!(var = find_sym(TEXT))) {
+                fatals("Unknown variable or function", TEXT);
+            }
+
+            switch (var->stype) {
+                case S_VARIABLE:
+                    node = make_ast_leaf(A_IDENT, var->ptype, var->ctype, var, 0);
+                    break;
+                case S_FUNCTION:
+                    scan();
+                    // TODO maybe support function pointer as a parameter?
+                    if (TOKEN.token_type != T_LPAREN) {
+                        fatal("Missing ( after function name");
                     }
-                case T_VOID:
-                case T_CHAR:
-                case T_SHORT:
-                case T_INT:
-                case T_LONG:
-                case T_STRUCT:
-                case T_UNION:
-                case T_ENUM:
-                    type = parse_cast();
-                    match(T_RPAREN, ")");
+                    return func_call();
+                case S_ARRAY:
+                    node = make_ast_leaf(A_ADDR, var->ptype, var->ctype, var, 0);
+                    node->rvalue = TRUE;
+                    break;
                 default:
-                    node = bin_expr(0);
+                    fatals("Not a variable or function", TEXT);
             }
-
-            if (type == P_NONE) {
-                match(T_RPAREN, ")");
-            } else {
-                node = make_ast_unary(A_CAST, type, node, NULL, 0);
-            }
-
-            return node;
+            break;
+        case T_LPAREN:
+            return paren_expr(&ctype);
         default:
             fatals("syntax error, token", get_name(V_TOKEN, TOKEN.token_type));
     }
 
     scan();
     return node;
+}
+
+static ASTnode *postfix() {
+    ASTnode *node = primary();
+
+    while (TRUE) {
+        switch (TOKEN.token_type) {
+            case T_LBRACKET:
+                node = access_array(node);
+                break;
+            case T_DOT:
+                node = access_member(node, FALSE);
+                break;
+            case T_ARROW:
+                node = access_member(node, TRUE);
+                break;
+            case T_INC:
+                if (node->rvalue) {
+                    fatal("Can't ++ a rvalue");
+                }
+                scan();
+
+                if (node->op == A_POSTINC || node->op == A_POSTDEC) {
+                    fatal("Can't ++ and/or -- more than once");
+                }
+
+                node->op = A_POSTINC;
+                break;
+            case T_DEC:
+                if (node->rvalue) {
+                    fatal("Can't ++ a rvalue");
+                }
+                scan();
+
+                if (node->op == A_POSTINC || node->op == A_POSTDEC) {
+                    fatal("Can't ++ and/or -- more than once");
+                }
+
+                node->op = A_POSTDEC;
+                break;
+            default:
+                return node;
+        }
+    }
 }
 
 static int token_to_op(int tk) {
@@ -324,29 +322,31 @@ static ASTnode *prefix() {
                 fatal("* operator must be followed by a variable or *");
             }
 
-            tree = make_ast_unary(A_DEREF, value_at(tree->type), tree, NULL, 0);
+            tree = make_ast_unary(A_DEREF, value_at(tree->type), tree->ctype, tree, NULL, 0);
             break;
         case T_MINUS:
             scan();
             tree = prefix();
 
             tree->rvalue = TRUE;
-            tree = modify_type(tree, P_INT, P_NONE);
-            tree = make_ast_unary(A_NEGATE, tree->type, tree, NULL, 0);
+            if (tree->type == P_CHAR) {
+                tree->type = P_INT;
+            }
+            tree = make_ast_unary(A_NEGATE, tree->type, tree->ctype, tree, NULL, 0);
             break;
         case T_INVERT:
             scan();
             tree = prefix();
 
             tree->rvalue = TRUE;
-            tree = make_ast_unary(A_INVERT, tree->type, tree, NULL, 0);
+            tree = make_ast_unary(A_INVERT, tree->type, tree->ctype, tree, NULL, 0);
             break;
         case T_LOGNOT:
             scan();
             tree = prefix();
 
             tree->rvalue = TRUE;
-            tree = make_ast_unary(A_LOGNOT, tree->type, tree, NULL, 0);
+            tree = make_ast_unary(A_LOGNOT, tree->type, tree->ctype, tree, NULL, 0);
             break;
         case T_INC:
             scan();
@@ -355,7 +355,7 @@ static ASTnode *prefix() {
             if (tree->op != A_IDENT) {
                 fatal("++ operator must be followed by a variable");
             }
-            tree = make_ast_unary(A_PREINC, tree->type, tree, NULL, 0);
+            tree = make_ast_unary(A_PREINC, tree->type, tree->ctype, tree, NULL, 0);
             break;
         case T_DEC:
             scan();
@@ -364,12 +364,12 @@ static ASTnode *prefix() {
             if (tree->op != A_IDENT) {
                 fatal("++ operator must be followed by a variable");
             }
-            tree = make_ast_unary(A_PREDEC, tree->type, tree, NULL, 0);
+            tree = make_ast_unary(A_PREDEC, tree->type, tree->ctype, tree, NULL, 0);
             break;
         case T_PLUS:
             scan();
         default:
-            tree = primary();
+            tree = postfix();
     }
 
     return tree;
@@ -406,7 +406,7 @@ ASTnode *bin_expr(int ptp) {
             case A_ASSIGN:
                 right->rvalue = TRUE;
 
-                right = modify_type(right, left->type, P_NONE);
+                right = modify_type(right, left, P_NONE);
                 if (!right) {
                     fatal("Incompatible expression in assignment");
                 }
@@ -419,13 +419,13 @@ ASTnode *bin_expr(int ptp) {
                 match(T_COLON, "':' after conditional expression");
                 ltemp = bin_expr(0);
 
-                return make_ast_node(ast_op, right->type, left, right, ltemp, NULL, 0);
+                return make_ast_node(ast_op, right->type, right->ctype, left, right, ltemp, NULL, 0);
             default:
                 left->rvalue = TRUE;
                 right->rvalue = TRUE;
 
-                ltemp = modify_type(left, right->type, ast_op);
-                rtemp = modify_type(right, left->type, ast_op);
+                ltemp = modify_type(left, right, ast_op);
+                rtemp = modify_type(right, left, ast_op);
                 if (!ltemp && !rtemp) {
                     fatal("Incompatible types in arithmetic expression");
                 }
@@ -438,7 +438,7 @@ ASTnode *bin_expr(int ptp) {
                 }
         }
 
-        left = make_ast_node(ast_op, left->type, left, NULL, right, NULL, 0);
+        left = make_ast_node(ast_op, left->type, left->ctype, left, NULL, right, NULL, 0);
 
         token_type = TOKEN.token_type;
         switch (token_type) {

@@ -14,11 +14,12 @@ Token peek_token();
 int scan();
 
 // tree.c
-ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, Symbol *sym, long int_value);
+ASTnode *make_ast_node(int op, int type, Symbol *ctype, ASTnode *left, ASTnode *mid, ASTnode *right, Symbol *sym,
+                       long int_value);
 
-ASTnode *make_ast_leaf(int op, int type, Symbol *sym, long int_value);
+ASTnode *make_ast_leaf(int op, int type, Symbol *ctype, Symbol *sym, long int_value);
 
-ASTnode *make_ast_unary(int op, int type, ASTnode *left, Symbol *sym, long int_value);
+ASTnode *make_ast_unary(int op, int type, Symbol *ctype, ASTnode *left, Symbol *sym, long int_value);
 
 void dump_ast(ASTnode *n, int label, int level);
 
@@ -211,7 +212,7 @@ int parse_type(Symbol **ctype, int *class);
 
 int parse_stars(int type);
 
-int parse_cast();
+int parse_cast(Symbol **ctype);
 
 // type.c
 int is_int(int type);
@@ -222,7 +223,7 @@ int pointer_to(int type);
 
 int value_at(int type);
 
-ASTnode *modify_type(ASTnode *tree, int rtype, int op);
+ASTnode *modify_type(ASTnode *left, ASTnode *right, int op);
 
 int size_of_type(int type, Symbol *ctype);
 

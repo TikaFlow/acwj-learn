@@ -16,6 +16,7 @@
 EXTERN_ int LINE;
 // put back char
 EXTERN_ int PUT_BACK;
+EXTERN_ int FLAG_LINE_START;
 // input and output file
 EXTERN_ FILE *IN_FILE;
 EXTERN_ char *IN_FILE_NAME;

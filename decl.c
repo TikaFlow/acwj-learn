@@ -110,11 +110,10 @@ int parse_stars(int type) {
     return type;
 }
 
-int parse_cast() {
+int parse_cast(Symbol **ctype) {
     int type, class = C_NONE;
-    Symbol *ctype;
 
-    type = parse_type(&ctype, &class);
+    type = parse_type(ctype, &class);
     if (type == P_NONE) {
         return type;
     }
@@ -309,7 +308,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
         }
     }
 
-    tree = make_ast_unary(A_FUNCTION, type, tree, old_func, end_label);
+    tree = make_ast_unary(A_FUNCTION, type, ctype, tree, old_func, end_label);
 
     // optimize
     tree = optimize(tree);
@@ -579,15 +578,15 @@ static void init_var(Symbol *sym, int type, Symbol *ctype, int class, ASTnode **
         sym->init_list[0] = parse_literal(type);
         sym->n_elem = 1;
     } else if (class == C_LOCAL) {
-        var = make_ast_leaf(A_IDENT, sym->ptype, sym, 0);
+        var = make_ast_leaf(A_IDENT, sym->ptype, sym->ctype, sym, 0);
         expr = bin_expr(0);
         expr->rvalue = TRUE;
 
-        expr = modify_type(expr, var->type, P_NONE);
+        expr = modify_type(expr, var, P_NONE);
         if (!expr) {
             fatal("Incompatible types in initialization");
         }
-        *glue_tree = make_ast_node(A_ASSIGN, expr->type, expr, NULL, var, NULL, 0);
+        *glue_tree = make_ast_node(A_ASSIGN, expr->type, expr->ctype, expr, NULL, var, NULL, 0);
     }
 }
 
@@ -678,7 +677,7 @@ int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **
 
         if (tree) { // avoid unnecessary nesting
             if (*glue_tree) {
-                *glue_tree = make_ast_node(A_GLUE, P_NONE, *glue_tree, NULL, tree, NULL, 0);
+                *glue_tree = make_ast_node(A_GLUE, P_NONE, NULL, *glue_tree, NULL, tree, NULL, 0);
             } else {
                 *glue_tree = tree;
             }

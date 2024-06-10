@@ -33,8 +33,8 @@ int size_of_type(int ptype, Symbol *ctype) {
     return (ptype == P_STRUCT || ptype == P_UNION) ? ctype->size : gen_type_size(ptype);
 }
 
-ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
-    int lsize, rsize, ltype = tree->type;
+ASTnode *modify_type(ASTnode *left, ASTnode *right, int op) {
+    int lsize, rsize, ltype = left->type, rtype = right->type;
 
     if (ltype == P_STRUCT || ltype == P_UNION || rtype == P_STRUCT || rtype == P_UNION) {
         fatal("I don't know how to deal with it yet");
@@ -42,7 +42,7 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
 
     if (is_int(ltype) && is_int(rtype)) {
         if (ltype == rtype) {
-            return tree;
+            return left;
         }
 
         lsize = size_of_type(ltype, NULL);
@@ -53,13 +53,13 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
         }
 
         if (lsize < rsize) {
-            return make_ast_unary(A_WIDEN, rtype, tree, NULL, 0);
+            return make_ast_unary(A_WIDEN, rtype, NULL, left, NULL, 0);
         }
     }
 
     if (is_ptr(ltype) && is_ptr(rtype)) {
         if (op == P_NONE && (ltype == rtype || ltype == pointer_to(P_VOID))) {
-            return tree;
+            return left;
         }
     }
 
@@ -67,9 +67,9 @@ ASTnode *modify_type(ASTnode *tree, int rtype, int op) {
         if (is_int(ltype) && is_ptr(rtype)) {
             rsize = gen_type_size(value_at(rtype));
             if (rsize > 1) {
-                return make_ast_unary(A_SCALE, rtype, tree, NULL, rsize);
+                return make_ast_unary(A_SCALE, rtype, right->ctype, left, NULL, rsize);
             }
-            return tree;
+            return left;
         }
     }
 

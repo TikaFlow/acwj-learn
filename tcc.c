@@ -13,6 +13,7 @@
 static void init() {
     LINE = 1;
     PUT_BACK = '\n';
+    FLAG_LINE_START = TRUE;
     TOKEN_BACK.token_type = T_EOF;
     TOKEN_BACK.int_value = 0;
 

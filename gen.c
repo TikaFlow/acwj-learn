@@ -191,7 +191,7 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         case A_INTLIT:
             return cg_load_int(node->int_value);
         case A_STRLIT:
-            return cg_load_str(node->id);
+            return cg_load_str(node->int_value);
         case A_IDENT:
             if (node->rvalue || parent_op == A_DEREF) {
                 if (node->sym->class == C_GLOBAL || node->sym->class == C_STATIC) {

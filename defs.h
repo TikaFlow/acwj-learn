@@ -47,11 +47,6 @@
 #define LD_CMD "ld -o"
 #define LD_SUFFIX "/lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2"
 
-// typedefs
-typedef struct Symbol Symbol;
-typedef struct ASTnode ASTnode;
-typedef struct Token Token;
-
 // value type, used to get name
 enum {
     V_TOKEN,
@@ -63,39 +58,39 @@ enum {
 enum {
     T_EOF,
     // binary operators
-    T_ASSIGN, T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
-    T_QUESTION, T_LOGOR, T_LOGAND, T_OR, T_XOR, T_AND,
-    T_EQ, T_NE, T_LT, T_GT, T_LE, T_GE,
-    T_LSHIFT, T_RSHIFT, T_PLUS, T_MINUS, T_STAR, T_SLASH,
+    T_ASSIGN, T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH, // 5
+    T_QUESTION, T_LOGOR, T_LOGAND, T_OR, T_XOR, T_AND, // 11
+    T_EQ, T_NE, T_LT, T_GT, T_LE, T_GE, // 17
+    T_LSHIFT, T_RSHIFT, T_PLUS, T_MINUS, T_STAR, T_SLASH, // 23
     // unary operators
-    T_INC, T_DEC, T_INVERT, T_LOGNOT,
+    T_INC, T_DEC, T_INVERT, T_LOGNOT, // 27
     // types
-    T_VOID, T_CHAR, T_SHORT, T_INT, T_LONG,
+    T_VOID, T_CHAR, T_SHORT, T_INT, T_LONG, // 32
     // keywords
-    T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN, T_SIZEOF,
-    T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF, T_EXTERN,
-    T_BREAK, T_CONTINUE, T_SWITCH, T_CASE, T_DEFAULT,
-    T_STATIC,
+    T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN, T_SIZEOF, // 38
+    T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF, T_EXTERN, // 43
+    T_BREAK, T_CONTINUE, T_SWITCH, T_CASE, T_DEFAULT, // 48
+    T_STATIC, // 49
     // structures
-    T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
-    T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN, T_LBRACKET, T_RBRACKET,
-    T_COMMA, T_DOT, T_ARROW, T_COLON,
+    T_INTLIT, T_STRLIT, T_SEMI, T_IDENT, // 53
+    T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN, T_LBRACKET, T_RBRACKET, // 59
+    T_COMMA, T_DOT, T_ARROW, T_COLON, // 63
 };
 
 // AST node type
 enum {
     A_NONE,
-    A_ASSIGN, A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH,
-    A_TERNARY, A_LOGOR, A_LOGAND, A_OR, A_XOR, A_AND,
-    A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE,
-    A_LSHIFT, A_RSHIFT,
-    A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE,
-    A_INTLIT, A_STRLIT, A_IDENT, A_GLUE,
-    A_IF, A_WHILE, A_FUNCTION, A_WIDEN, A_RETURN, A_FUNCCALL,
-    A_DEREF, A_ADDR, A_SCALE,
-    A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC, A_NEGATE, A_INVERT,
-    A_LOGNOT, A_TOBOOL,
-    A_BREAK, A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT, A_CAST,
+    A_ASSIGN, A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH, // 5
+    A_TERNARY, A_LOGOR, A_LOGAND, A_OR, A_XOR, A_AND, // 11
+    A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE, // 17
+    A_LSHIFT, A_RSHIFT, // 19
+    A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, // 23
+    A_INTLIT, A_STRLIT, A_IDENT, A_GLUE, // 27
+    A_IF, A_WHILE, A_FUNCTION, A_WIDEN, A_RETURN, A_FUNCCALL, // 33
+    A_DEREF, A_ADDR, A_SCALE, // 36
+    A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC, A_NEGATE, A_INVERT, // 42
+    A_LOGNOT, A_TOBOOL, // 44
+    A_BREAK, A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT, A_CAST, // 50
     A_NOP,
 };
 
@@ -142,28 +137,12 @@ struct Token {
     long int_value;
 };
 
-// AST node struct
-struct ASTnode {
-    int op;
-    int type;
-    int rvalue;
-    ASTnode *left;
-    ASTnode *mid;
-    ASTnode *right;
-    Symbol *sym; // symbol pointer in the symbol table
-    union {
-        long int_value; // intlit
-        int id; // symbol slot id
-        int size; // scale
-    };
-};
-
 // symbol table struct
 struct Symbol {
     char *name;
     int ptype;
     int stype;
-    Symbol *ctype; // for struct/union, pointer to it's type
+    struct Symbol *ctype; // for struct/union, pointer to it's type
     int class; // global/local/param/struct/union/member
     int size; // total byte size
     int n_elem; // for function, number of parameters, for array, number of elements
@@ -172,8 +151,29 @@ struct Symbol {
         int end_label; // function end label
         int posn; // for param, positive position from stack base pointer/RBP
     };
-    Symbol *next;
-    Symbol *first;
+    struct Symbol *next;
+    struct Symbol *first;
 };
+
+// AST node struct
+struct ASTnode {
+    int op;
+    int type;
+    struct Symbol *ctype; // for struct/union, pointer to it's type
+    int rvalue;
+    struct ASTnode *left;
+    struct ASTnode *mid;
+    struct ASTnode *right;
+    struct Symbol *sym; // symbol pointer in the symbol table
+    union {
+        long int_value; // intlit
+        int size; // scale
+    };
+};
+
+// typedefs
+typedef struct Symbol Symbol;
+typedef struct ASTnode ASTnode;
+typedef struct Token Token;
 
 #endif //ACWJ_LEARN_DEFS_H

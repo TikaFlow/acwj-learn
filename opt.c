@@ -24,7 +24,7 @@ static ASTnode *fold1(ASTnode *tree) {
             return tree;
     }
 
-    return make_ast_leaf(A_INTLIT, tree->type, NULL, val);
+    return make_ast_leaf(A_INTLIT, tree->type, NULL, NULL, val);
 }
 
 static ASTnode *fold2(ASTnode *tree) {
@@ -50,7 +50,7 @@ static ASTnode *fold2(ASTnode *tree) {
             return tree;
     }
 
-    return make_ast_leaf(A_INTLIT, tree->type, NULL, val);
+    return make_ast_leaf(A_INTLIT, tree->type, NULL, NULL, val);
 }
 
 static ASTnode *fold(ASTnode *tree) {

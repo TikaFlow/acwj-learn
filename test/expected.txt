@@ -321,3 +321,7 @@ ptr[3] = 4
 result of function receive a pointer: 4
 after ptr++, ptr is 0x404024
 value of ptr points: 2
+=================== test/52-pointer2.c ===================
+### head = 10 10
+mid = 15 15
+tail = 20 20

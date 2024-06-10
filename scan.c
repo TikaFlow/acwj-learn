@@ -24,9 +24,10 @@ static int next() {
     c = fgetc(IN_FILE);
 
     // pre-processor statements
-    while (c == '#') {
+    while (FLAG_LINE_START && c == '#') {
         // skip #
         scan();
+        FLAG_LINE_START = FALSE;
 
         l = (int) TOKEN.int_value;
         // skip line number
@@ -50,10 +51,13 @@ static int next() {
             return c;
         }
         c = fgetc(IN_FILE);
+        FLAG_LINE_START = TRUE;
     }
 
+    FLAG_LINE_START = FALSE;
     if (c == '\n') {
         LINE++;
+        FLAG_LINE_START = TRUE;
     }
     return c;
 }

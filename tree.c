@@ -5,7 +5,8 @@
 #include "data.h"
 #include "decl.h"
 
-ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *right, Symbol *sym, long int_value) {
+ASTnode *make_ast_node(int op, int type, Symbol *ctype, ASTnode *left, ASTnode *mid, ASTnode *right, Symbol *sym, long
+int_value) {
 
     ASTnode *node = (ASTnode *) malloc(sizeof(ASTnode));
 
@@ -16,6 +17,7 @@ ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *r
 
     node->op = op;
     node->type = type;
+    node->ctype = ctype;
     node->left = left;
     node->mid = mid;
     node->right = right;
@@ -24,12 +26,12 @@ ASTnode *make_ast_node(int op, int type, ASTnode *left, ASTnode *mid, ASTnode *r
     return node;
 }
 
-ASTnode *make_ast_leaf(int op, int type, Symbol *sym, long int_value) {
-    return make_ast_node(op, type, NULL, NULL, NULL, sym, int_value);
+ASTnode *make_ast_unary(int op, int type, Symbol *ctype, ASTnode *left, Symbol *sym, long int_value) {
+    return make_ast_node(op, type, ctype, left, NULL, NULL, sym, int_value);
 }
 
-ASTnode *make_ast_unary(int op, int type, ASTnode *left, Symbol *sym, long int_value) {
-    return make_ast_node(op, type, left, NULL, NULL, sym, int_value);
+ASTnode *make_ast_leaf(int op, int type, Symbol *ctype, Symbol *sym, long int_value) {
+    return make_ast_unary(op, type, ctype, NULL, sym, int_value);
 }
 
 static int gendumplabel() {
