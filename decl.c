@@ -204,6 +204,8 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
             }
             break;
         case C_LOCAL:
+            sym = add_local_sym(name, pointer_to(type), ctype, S_ARRAY, n_elem);
+            break;
         case C_PARAM:
         case C_MEMBER:
             fatal("TODO: declare_array for non-global");
@@ -625,6 +627,7 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
     Symbol *sym = NULL;
     char *name = strdup(TEXT);
     int stype = S_VARIABLE;
+    *glue_tree = NULL;
 
     // should have a variable name
     match(T_IDENT, "identifier");

@@ -60,8 +60,7 @@ static void cg_reset_local_offset() {
     local_offset = 0;
 }
 
-static int cg_get_local_offset(int type) {
-    int size = cg_type_size(type);
+static int cg_get_local_offset(int size) {
     local_offset += size > 4 ? size : 4;
 
     return -local_offset;
@@ -192,7 +191,7 @@ void cg_func_pre_amble(Symbol *sym) {
     // copy all params to register
     for (param = sym->first; param; cnt++, param = param->next) {
         if (cnt <= 6) {
-            param->posn = cg_get_local_offset(param->ptype);
+            param->posn = cg_get_local_offset(param->size);
             cg_store_local_sym(param_reg++, param);
         } else {
             param->posn = param_offset;
@@ -201,7 +200,7 @@ void cg_func_pre_amble(Symbol *sym) {
     }
 
     for (local = LOCAL_HEAD; local; local = local->next) {
-        local->posn = cg_get_local_offset(local->ptype);
+        local->posn = cg_get_local_offset(local->size);
     }
 
     cg_set_stack_offset();
@@ -741,22 +740,20 @@ int cg_store_deref(int r1, int r2, int type) {
 
     switch (size) {
         case 1:
-            fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[r1]);
+            fprintf(OUT_FILE, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
             break;
         case 2:
-            fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", dreglist[r1]);
+            fprintf(OUT_FILE, "\tmovw\t%s, (%s)\n", dreglist[r1], reglist[r2]);
             break;
         case 4:
-            fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[r1]);
+            fprintf(OUT_FILE, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
             break;
         case 8:
-            fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[r1]);
+            fprintf(OUT_FILE, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
             break;
         default:
             fatals("Bad type in cg_store_deref()", get_name(V_PTYPE, type));
     }
-
-    fprintf(OUT_FILE, "\tmovq\t%%rax, (%s)\n", reglist[r2]);
 
     return r1;
 }
