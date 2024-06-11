@@ -65,12 +65,16 @@ ASTnode *modify_type(ASTnode *left, ASTnode *right, int op) {
     }
 
     if (is_ptr(ltype) && is_ptr(rtype)) {
+        if (op >= A_EQ && op <= A_GE) {
+            return left;
+        }
+
         if (op == P_NONE && (ltype == rtype || ltype == pointer_to(P_VOID))) {
             return left;
         }
     }
 
-    if (op == A_ADD || op == A_SUBTRACT) {
+    if (op == A_ADD || op == A_SUBTRACT || op == A_ASPLUS || op == A_ASMINUS) {
         if (is_int(ltype) && is_ptr(rtype)) {
             rsize = gen_type_size(value_at(rtype));
             if (rsize > 1) {

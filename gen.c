@@ -222,7 +222,7 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return cg_load_str(node->int_value);
         case A_IDENT:
             if (node->rvalue || parent_op == A_DEREF) {
-                if (node->sym->class == C_GLOBAL || node->sym->class == C_STATIC) {
+                if (node->sym->class == C_GLOBAL || node->sym->class == C_STATIC || node->sym->class == C_EXTERN) {
                     return cg_load_global_sym(node->sym, node->op);
                 } else {
                     return cg_load_local_sym(node->sym, node->op);

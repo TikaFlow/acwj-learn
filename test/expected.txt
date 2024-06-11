@@ -350,3 +350,11 @@ x is 36
 16
 5 H
 12 B
+=================== test/57-fix3issues.c ===================
+One of the three is NULL
+One of the three is NULL
+One of the three is NULL
+All  three  are non-NULL
+Unable to open /root/fred: Permission denied
+q w e r e w
+3 5 7 9 7 5

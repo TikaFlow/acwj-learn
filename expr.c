@@ -116,7 +116,7 @@ static ASTnode *access_member(ASTnode *left, int with_pointer) {
     return left;
 }
 
-static ASTnode *paren_expr(Symbol **ctype) {
+static ASTnode *paren_expr(Symbol **ctype, int ptp) {
     ASTnode *node;
     int type = P_NONE;
     scan();
@@ -138,7 +138,7 @@ static ASTnode *paren_expr(Symbol **ctype) {
             type = parse_cast(ctype);
             match(T_RPAREN, ")");
         default:
-            node = bin_expr(0);
+            node = bin_expr(ptp);
     }
 
     if (type == P_NONE) {
@@ -150,7 +150,7 @@ static ASTnode *paren_expr(Symbol **ctype) {
     return node;
 }
 
-static ASTnode *primary() {
+static ASTnode *primary(int ptp) {
     ASTnode *node = NULL;
     int label, size, class, type;
     Symbol *ctype, *sym, *var;
@@ -225,7 +225,7 @@ static ASTnode *primary() {
             }
             break;
         case T_LPAREN:
-            return paren_expr(&ctype);
+            return paren_expr(&ctype, ptp);
         default:
             fatals("syntax error, token", get_name(V_TOKEN, TOKEN.token_type));
     }
@@ -234,8 +234,8 @@ static ASTnode *primary() {
     return node;
 }
 
-static ASTnode *postfix() {
-    ASTnode *node = primary();
+static ASTnode *postfix(int ptp) {
+    ASTnode *node = primary(ptp);
 
     while (TRUE) {
         switch (TOKEN.token_type) {
@@ -305,13 +305,13 @@ static int op_precedence(int token_type) {
     return prec;
 }
 
-static ASTnode *prefix() {
+static ASTnode *prefix(int ptp) {
     ASTnode *tree;
 
     switch (TOKEN.token_type) {
         case T_AND:
             scan();
-            tree = prefix();
+            tree = prefix(ptp);
 
             // if (tree->op != A_IDENT) {
             //     fatal("& operator must be followed by a variable");
@@ -324,17 +324,17 @@ static ASTnode *prefix() {
             break;
         case T_STAR:
             scan();
-            tree = prefix();
+            tree = prefix(ptp);
 
-            if (tree->op != A_IDENT && tree->op != A_DEREF) {
-                fatal("* operator must be followed by a variable or *");
+            if (!is_ptr(tree->type)) {
+                fatal("* operator must be followed by an expression of pointer type");
             }
 
             tree = make_ast_unary(A_DEREF, value_at(tree->type), tree->ctype, tree, NULL, 0);
             break;
         case T_MINUS:
             scan();
-            tree = prefix();
+            tree = prefix(ptp);
 
             tree->rvalue = TRUE;
             if (tree->type == P_CHAR) {
@@ -344,21 +344,21 @@ static ASTnode *prefix() {
             break;
         case T_INVERT:
             scan();
-            tree = prefix();
+            tree = prefix(ptp);
 
             tree->rvalue = TRUE;
             tree = make_ast_unary(A_INVERT, tree->type, tree->ctype, tree, NULL, 0);
             break;
         case T_LOGNOT:
             scan();
-            tree = prefix();
+            tree = prefix(ptp);
 
             tree->rvalue = TRUE;
             tree = make_ast_unary(A_LOGNOT, tree->type, tree->ctype, tree, NULL, 0);
             break;
         case T_INC:
             scan();
-            tree = prefix();
+            tree = prefix(ptp);
 
             if (tree->op != A_IDENT) {
                 fatal("++ operator must be followed by a variable");
@@ -367,7 +367,7 @@ static ASTnode *prefix() {
             break;
         case T_DEC:
             scan();
-            tree = prefix();
+            tree = prefix(ptp);
 
             if (tree->op != A_IDENT) {
                 fatal("++ operator must be followed by a variable");
@@ -377,7 +377,7 @@ static ASTnode *prefix() {
         case T_PLUS:
             scan();
         default:
-            tree = postfix();
+            tree = postfix(ptp);
     }
 
     return tree;
@@ -387,7 +387,7 @@ static ASTnode *prefix() {
  * @param ptp: previous token precedence
  */
 ASTnode *bin_expr(int ptp) {
-    ASTnode *ltemp, *rtemp, *right, *left = prefix();
+    ASTnode *ltemp, *rtemp, *right, *left = prefix(ptp);
     int ast_op, token_type = TOKEN.token_type;
 
     switch (token_type) {

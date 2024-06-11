@@ -8,5 +8,6 @@
 char *strdup(char *s);
 char *strchr(char *s, int c);
 char *strrchr(char *s, int c);
+char *strerror(int errnum);
 
 #endif //ACWJ_LEARN_STRING_H
