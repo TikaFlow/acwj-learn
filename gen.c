@@ -113,7 +113,7 @@ static int gen_func_call(ASTnode *node) {
             args_num = glue->size + 1;
         }
 
-        gen_free_regs(NO_REG);
+        cg_free_register(reg);
     }
 
     return cg_call(node->sym, args_num);

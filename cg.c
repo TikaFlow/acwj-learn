@@ -14,7 +14,7 @@ enum {
     DATA_SECTION
 } cur_section = NO_SECTION;
 
-static int local_offset, stack_offset, ALIGN = 0b11;
+static int local_offset, stack_offset, align = 0b11, spill_reg = 0;
 static int freereg[FREE_REG_NUM];
 static char *breglist[] = {"%r10b", "%r11b", "%r12b", "%r13b", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static char *dreglist[] = {"%r10d", "%r11d", "%r12d", "%r13d", "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
@@ -36,6 +36,26 @@ void cg_data_section() {
     }
 }
 
+static void cg_push_reg(int reg) {
+    fprintf(OUT_FILE, "\tpushq\t%s\n", reglist[reg]);
+}
+
+static void cg_pop_reg(int reg) {
+    fprintf(OUT_FILE, "\tpopq\t%s\n", reglist[reg]);
+}
+
+static void spill_all_regs() {
+    for (int i = 0; i < FREE_REG_NUM; i++) {
+        cg_push_reg(i);
+    }
+}
+
+static void restore_all_regs() {
+    for (int i = FREE_REG_NUM - 1; i >= 0; i--) {
+        cg_pop_reg(i);
+    }
+}
+
 static void cg_reset_local_offset() {
     local_offset = 0;
 }
@@ -52,7 +72,7 @@ static void cg_set_stack_offset() {
 }
 
 int cg_align(int type, int offset, int direction) {
-    return type == P_CHAR ? offset : (offset + ALIGN * direction) & ~ALIGN;
+    return type == P_CHAR ? offset : (offset + align * direction) & ~align;
 }
 
 void cg_free_regs(int keep_reg) {
@@ -64,20 +84,33 @@ void cg_free_regs(int keep_reg) {
 }
 
 int cg_alloc_register() {
-    for (int i = 0; i < 4; i++) {
-        if (freereg[i]) {
-            freereg[i] = FALSE;
-            return i;
+    int reg;
+    for (reg = 0; reg < FREE_REG_NUM; reg++) {
+        if (freereg[reg]) {
+            freereg[reg] = FALSE;
+            return reg;
         }
     }
-    fprintf(stderr, "Out of registers!\n");
-    exit(1);
+
+    // when no free register, we spill one to stack
+    reg = spill_reg++ % FREE_REG_NUM;
+    fprintf(OUT_FILE, "# spill register %s to stack\n", reglist[reg]);
+    cg_push_reg(reg);
+
+    return reg;
 }
 
-static void free_register(int reg) {
+void cg_free_register(int reg) {
     if (freereg[reg]) {
         fprintf(stderr, "Error trying to free register %d\n", reg);
         exit(1);
+    }
+
+    if (spill_reg) {
+        spill_reg--;
+        fprintf(OUT_FILE, "# reload register %s from stack\n", reglist[reg]);
+        cg_pop_reg(reg);
+        return;
     }
     freereg[reg] = TRUE;
 }
@@ -175,10 +208,12 @@ void cg_func_pre_amble(Symbol *sym) {
 
     cg_set_stack_offset();
     fprintf(OUT_FILE, "\tsubq\t$%d, %%rsp\n", stack_offset);
+    spill_all_regs(); // or spill and restore at cg_call()
 }
 
 void cg_func_post_amble(Symbol *sym) {
     cg_label(sym->end_label);
+    restore_all_regs();
     fprintf(OUT_FILE,
             "\taddq\t$%d, %%rsp\n"
             "\tpopq\t%%rbp\n"
@@ -347,19 +382,19 @@ int cg_load_str(int label) {
 
 int cg_add(int r1, int r2) {
     fprintf(OUT_FILE, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
 int cg_sub(int r1, int r2) {
     fprintf(OUT_FILE, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
 int cg_mul(int r1, int r2) {
     fprintf(OUT_FILE, "\timulq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
@@ -368,7 +403,7 @@ int cg_div(int r1, int r2) {
     fprintf(OUT_FILE, "\tcqto\n");
     fprintf(OUT_FILE, "\tidivq\t%s\n", reglist[r2]);
     fprintf(OUT_FILE, "\tmovq\t%%rax, %s\n", reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
@@ -450,33 +485,33 @@ int cg_logand(int r1, int r2) {
 
 int cg_and(int r1, int r2) {
     fprintf(OUT_FILE, "\tand\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
 int cg_or(int r1, int r2) {
     fprintf(OUT_FILE, "\tor\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
 int cg_xor(int r1, int r2) {
     fprintf(OUT_FILE, "\txor\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
 int cg_sal(int r1, int r2) {
     fprintf(OUT_FILE, "\tmovb\t%s, %%cl\n", breglist[r2]);
     fprintf(OUT_FILE, "\tsalq\t%%cl, %s\n", reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
 int cg_sar(int r1, int r2) {
     fprintf(OUT_FILE, "\tmovb\t%s, %%cl\n", breglist[r2]);
     fprintf(OUT_FILE, "\tsarq\t%%cl, %s\n", reglist[r1]);
-    free_register(r2);
+    cg_free_register(r2);
     return r1;
 }
 
@@ -651,7 +686,7 @@ int cg_compare_and_set(int ASTop, int r1, int r2) {
     fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
     fprintf(OUT_FILE, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
     fprintf(OUT_FILE, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
-    free_register(r1);
+    cg_free_register(r1);
 
     return r2;
 }
@@ -695,6 +730,7 @@ int cg_return(int reg, Symbol *sym) {
                 fatals("Bad function type in cg_return()", get_name(V_PTYPE, sym->ptype));
         }
     }
+    cg_free_register(reg);
     cg_jump(sym->end_label);
 
     return NO_REG;

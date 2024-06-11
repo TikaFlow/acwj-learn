@@ -49,6 +49,8 @@ void cg_free_regs(int keep_reg);
 
 int cg_alloc_register();
 
+void cg_free_register(int reg);
+
 void cg_pre_amble();
 
 void cg_post_amble();
