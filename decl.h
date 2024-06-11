@@ -119,9 +119,7 @@ int cg_lognot(int r);
 
 int cg_tobool(int r, int op, int label);
 
-int cg_logor(int r1, int r2);
-
-int cg_logand(int r1, int r2);
+int cg_load_bool(int reg, int val);
 
 int cg_and(int r1, int r2);
 

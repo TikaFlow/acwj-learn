@@ -329,3 +329,16 @@ tail = 20 20
 consecutive string: abcdef
 compatible operand types, fred = 5
 return with no value
+=================== test/54-spill-register.c ===================
+-35
+x is 36
+=================== test/55-lazy-evaluate.c ===================
+0 0 | 0
+0 1 | 0
+1 0 | 0
+1 1 | 1
+
+0 0 | 0
+0 1 | 1
+1 0 | 1
+1 1 | 1

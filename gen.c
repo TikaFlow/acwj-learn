@@ -119,6 +119,30 @@ static int gen_func_call(ASTnode *node) {
     return cg_call(node->sym, args_num);
 }
 
+static int gen_short_circuit(ASTnode *node, int is_and) {
+    int reg, lfalse = gen_label(), lend = gen_label();
+
+    // LOGAND, for example, when false, jump to lfalse
+    reg = gen_ast(node->left, NO_LABEL, NO_LABEL, NO_LABEL, node->op);
+    cg_tobool(reg, node->op, lfalse);
+
+    // when false, jump to lfalse
+    reg = gen_ast(node->right, NO_LABEL, NO_LABEL, NO_LABEL, node->op);
+    cg_tobool(reg, node->op, lfalse);
+
+    // didn't jump, then true
+    cg_load_bool(reg, is_and);
+    cg_jump(lend);
+
+    // someone jumped to here, then false
+    cg_label(lfalse);
+    cg_load_bool(reg, !is_and);
+
+    cg_label(lend);
+
+    return reg;
+}
+
 int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int parent_op) {
     int leftreg = NO_REG, rightreg = NO_REG;
 
@@ -137,6 +161,10 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return gen_func_call(node);
         case A_TERNARY:
             return gen_if_ast(node, NO_LABEL, NO_LABEL);
+        case A_LOGAND:
+            return gen_short_circuit(node, TRUE);
+        case A_LOGOR:
+            return gen_short_circuit(node, FALSE);
         case A_GLUE:
             gen_ast(node->left, if_label, start_label, end_label, node->op);
             gen_free_regs(NO_REG);
@@ -278,10 +306,6 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return cg_lognot(leftreg);
         case A_TOBOOL:
             return cg_tobool(leftreg, parent_op, if_label);
-        case A_LOGOR:
-            return cg_logor(leftreg, rightreg);
-        case A_LOGAND:
-            return cg_logand(leftreg, rightreg);
         case A_BREAK:
             return cg_jump(end_label);
         case A_CONTINUE:

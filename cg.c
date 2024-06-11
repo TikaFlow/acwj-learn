@@ -94,7 +94,6 @@ int cg_alloc_register() {
 
     // when no free register, we spill one to stack
     reg = spill_reg++ % FREE_REG_NUM;
-    fprintf(OUT_FILE, "# spill register %s to stack\n", reglist[reg]);
     cg_push_reg(reg);
 
     return reg;
@@ -108,7 +107,6 @@ void cg_free_register(int reg) {
 
     if (spill_reg) {
         spill_reg--;
-        fprintf(OUT_FILE, "# reload register %s from stack\n", reglist[reg]);
         cg_pop_reg(reg);
         return;
     }
@@ -427,60 +425,26 @@ int cg_lognot(int r) {
 
 int cg_tobool(int r, int op, int label) {
     fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r], reglist[r]);
-    if (op == A_IF || op == A_WHILE) {
-        fprintf(OUT_FILE, "\tje\tL%d\n", label);
-    } else {
-        fprintf(OUT_FILE, "\tsetnz\t%s\n", breglist[r]);
-        fprintf(OUT_FILE, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
+    switch (op) {
+        case A_IF:
+        case A_WHILE:
+        case A_LOGAND:
+            fprintf(OUT_FILE, "\tje\tL%d\n", label);
+            break;
+        case A_LOGOR:
+            fprintf(OUT_FILE, "\tjne\tL%d\n", label);
+            break;
+        default:
+            fprintf(OUT_FILE, "\tsetnz\t%s\n", breglist[r]);
+            fprintf(OUT_FILE, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
     }
 
     return r;
 }
 
-int cg_logor(int r1, int r2) {
-    int ltrue = gen_label(), lend = gen_label();
-
-    // test r1 and jump to ltrue if true
-    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r1], reglist[r1]);
-    fprintf(OUT_FILE, "\tjne\tL%d\n", ltrue);
-
-    // test r2 and jump to ltrue if true
-    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r2], reglist[r2]);
-    fprintf(OUT_FILE, "\tjne\tL%d\n", ltrue);
-
-    // didn't jump, so result is false
-    fprintf(OUT_FILE, "\tmovq\t$0, %s\n", reglist[r1]);
-    fprintf(OUT_FILE, "\tjmp\tL%d\n", lend);
-
-    // someone jump to here, so r1 is true
-    cg_label(ltrue);
-    fprintf(OUT_FILE, "\tmovq\t$1, %s\n", reglist[r1]);
-    cg_label(lend);
-
-    return r1;
-}
-
-int cg_logand(int r1, int r2) {
-    int lfalse = gen_label(), lend = gen_label();
-
-    // test r1 and jump to lfalse if false
-    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r1], reglist[r1]);
-    fprintf(OUT_FILE, "\tje\tL%d\n", lfalse);
-
-    // test r2 and jump to lfalse if false
-    fprintf(OUT_FILE, "\ttestq\t%s, %s\n", reglist[r2], reglist[r2]);
-    fprintf(OUT_FILE, "\tje\tL%d\n", lfalse);
-
-    // didn't jump, so result is true
-    fprintf(OUT_FILE, "\tmovq\t$1, %s\n", reglist[r1]);
-    fprintf(OUT_FILE, "\tjmp\tL%d\n", lend);
-
-    // someone jump to here, so r1 is false
-    cg_label(lfalse);
-    fprintf(OUT_FILE, "\tmovq\t$0, %s\n", reglist[r1]);
-    cg_label(lend);
-
-    return r1;
+int cg_load_bool(int reg, int val) {
+    fprintf(OUT_FILE, "\tmovq\t$%d, %s\n", val, reglist[reg]);
+    return reg;
 }
 
 int cg_and(int r1, int r2) {
@@ -730,7 +694,9 @@ int cg_return(int reg, Symbol *sym) {
                 fatals("Bad function type in cg_return()", get_name(V_PTYPE, sym->ptype));
         }
     }
-    cg_free_register(reg);
+    if (reg != NO_REG) {
+        cg_free_register(reg);
+    }
     cg_jump(sym->end_label);
 
     return NO_REG;
