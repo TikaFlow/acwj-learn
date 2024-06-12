@@ -75,6 +75,8 @@ int cg_mul(int r1, int r2);
 
 int cg_div(int r1, int r2);
 
+int cg_mod(int r1, int r2);
+
 int cg_sal_n(int reg, int n);
 
 int cg_call(Symbol *sym, int args_num);

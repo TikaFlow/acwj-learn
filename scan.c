@@ -436,6 +436,14 @@ int scan() {
             put_back(c);
             TOKEN.token_type = T_SLASH;
             break;
+        case '%':
+            if ((c = next()) == '=') {
+                TOKEN.token_type = T_ASMOD;
+                break;
+            }
+            put_back(c);
+            TOKEN.token_type = T_MOD;
+            break;
         case ';':
             TOKEN.token_type = T_SEMI;
             break;

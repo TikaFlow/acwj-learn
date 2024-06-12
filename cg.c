@@ -239,76 +239,46 @@ static char *get_address(Symbol *sym, int is_global) {
 static int cg_load_sym(Symbol *sym, int op, int is_global) {
     char *addr = get_address(sym, is_global);
     char *base = is_global ? "(%rip)" : "";
-
+    char *add_cmd = NULL;
+    char *mov_cmd = NULL;
     int reg = cg_alloc_register();
-    int size = 1;
-    if (cg_type_size(sym->ptype) == 8) {
-        if (is_ptr(sym->ptype)) {
-            size = size_of_type(value_at(sym->ptype), sym->ctype);
-        }
-        if (op == A_PREINC) {
-            fprintf(OUT_FILE, "\taddq\t$%d, %s\n", size, addr);
-        }
-        if (op == A_PREDEC) {
-            fprintf(OUT_FILE, "\tsubq\t$%d, %s\n", size, addr);
-        }
-        fprintf(OUT_FILE, "\tmovq\t%s%s, %s\n", addr, base, reglist[reg]);
-        if (op == A_POSTINC) {
-            fprintf(OUT_FILE, "\taddq\t$%d, %s\n", size, addr);
-        }
-        if (op == A_POSTDEC) {
-            fprintf(OUT_FILE, "\tsubq\t$%d, %s\n", size, addr);
-        }
-    } else {
-        switch (sym->ptype) {
-            case P_CHAR:
-                if (op == A_PREINC) {
-                    fprintf(OUT_FILE, "\tincb\t%s\n", addr);
-                }
-                if (op == A_PREDEC) {
-                    fprintf(OUT_FILE, "\tdecb\t%s\n", addr);
-                }
-                fprintf(OUT_FILE, "\tmovzbq\t%s%s, %s\n", addr, base, reglist[reg]);
-                if (op == A_POSTINC) {
-                    fprintf(OUT_FILE, "\tincb\t%s\n", addr);
-                }
-                if (op == A_POSTDEC) {
-                    fprintf(OUT_FILE, "\tdecb\t%s\n", addr);
-                }
-                break;
-            case P_SHORT:
-                if (op == A_PREINC) {
-                    fprintf(OUT_FILE, "\tincw\t%s\n", addr);
-                }
-                if (op == A_PREDEC) {
-                    fprintf(OUT_FILE, "\tdecw\t%s\n", addr);
-                }
-                fprintf(OUT_FILE, "\tmovswq\t%s%s, %s\n", addr, base, reglist[reg]);
-                if (op == A_POSTINC) {
-                    fprintf(OUT_FILE, "\tincw\t%s\n", addr);
-                }
-                if (op == A_POSTDEC) {
-                    fprintf(OUT_FILE, "\tdecw\t%s\n", addr);
-                }
-                break;
-            case P_INT:
-                if (op == A_PREINC) {
-                    fprintf(OUT_FILE, "\tincl\t%s\n", addr);
-                }
-                if (op == A_PREDEC) {
-                    fprintf(OUT_FILE, "\tdecl\t%s\n", addr);
-                }
-                fprintf(OUT_FILE, "\tmovslq\t%s%s, %s\n", addr, base, reglist[reg]);
-                if (op == A_POSTINC) {
-                    fprintf(OUT_FILE, "\tincl\t%s\n", addr);
-                }
-                if (op == A_POSTDEC) {
-                    fprintf(OUT_FILE, "\tdecl\t%s\n", addr);
-                }
-                break;
-            default:
-                fatals("Bad type when load symbol", get_name(V_PTYPE, sym->ptype));
-        }
+    int offset = 1;
+    int type_size = cg_type_size(sym->ptype);
+
+    if (type_size == 8 && is_ptr(sym->ptype)) {
+        offset = size_of_type(value_at(sym->ptype), sym->ctype);
+    }
+    if (op == A_PREDEC || op == A_POSTDEC) {
+        offset = -offset;
+    }
+
+    switch (type_size) {
+        case 1:
+            add_cmd = "addb";
+            mov_cmd = "movzbq";
+            break;
+        case 2:
+            add_cmd = "addw";
+            mov_cmd = "movswq";
+            break;
+        case 4:
+            add_cmd = "addl";
+            mov_cmd = "movslq";
+            break;
+        case 8:
+            add_cmd = "addq";
+            mov_cmd = "movq";
+            break;
+        default:
+            fatals("Bad type when load symbol", get_name(V_PTYPE, sym->ptype));
+    }
+
+    if (op == A_PREINC || op == A_PREDEC) {
+        fprintf(OUT_FILE, "\t%s\t$%d, %s\n", add_cmd, offset, addr);
+    }
+    fprintf(OUT_FILE, "\t%s\t%s%s, %s\n", mov_cmd, addr, base, reglist[reg]);
+    if (op == A_POSTINC || op == A_POSTDEC) {
+        fprintf(OUT_FILE, "\t%s\t$%d, %s\n", add_cmd, offset, addr);
     }
     return reg;
 }
@@ -345,13 +315,26 @@ int cg_mul(int r1, int r2) {
     return r1;
 }
 
-int cg_div(int r1, int r2) {
+static int cg_div_mod(int r1, int r2, int is_div) {
     fprintf(OUT_FILE, "\tmovq\t%s,%%rax\n", reglist[r1]);
     fprintf(OUT_FILE, "\tcqto\n");
     fprintf(OUT_FILE, "\tidivq\t%s\n", reglist[r2]);
-    fprintf(OUT_FILE, "\tmovq\t%%rax, %s\n", reglist[r1]);
+    if (is_div) {
+        fprintf(OUT_FILE, "\tmovq\t%%rax, %s\n", reglist[r1]);
+    } else {
+        fprintf(OUT_FILE, "\tmovq\t%%rdx, %s\n", reglist[r1]);
+    }
+
     cg_free_register(r2);
     return r1;
+}
+
+int cg_div(int r1, int r2) {
+    return cg_div_mod(r1, r2, TRUE);
+}
+
+int cg_mod(int r1, int r2) {
+    return cg_div_mod(r1, r2, FALSE);
 }
 
 int cg_negate(int r) {

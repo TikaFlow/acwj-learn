@@ -9,14 +9,14 @@
 static char *TOKEN_NAMES[] = {
         "EOF",
         // binary operators
-        "=", "+=", "-=", "*=", "/=",
+        "=", "+=", "-=", "*=", "/=", "%=",
         "?", "||", "&&", "|", "^", "&",
         "==", "!=", "<", ">", "<=", ">=",
-        "<<", ">>", "+", "-", "*", "/",
+        "<<", ">>", "+", "-", "*", "/", "%",
         // unary operators
         "++", "--", "~", "!",
         // types
-        "void", "char", "int", "long",
+        "void", "char", "short", "int", "long",
         // keywords
         "if", "else", "while", "for", "return", "sizeof",
         "struct", "union", "enum", "typedef", "extern",
@@ -31,22 +31,22 @@ static char *TOKEN_NAMES[] = {
 // op name
 char *OP_NAMES[] = {
         "NONE",
-        "ASSIGN", "ADDASSIGN", "SUBASSIGN", "MULASSIGN", "DIVASSIGN",
-        "LOGOR", "LOGAND", "OR", "XOR", "AND",
+        "ASSIGN", "ADDASSIGN", "SUBASSIGN", "MULASSIGN", "DIVASSIGN", "MODASSIGN",
+        "TERNARY", "LOGOR", "LOGAND", "OR", "XOR", "AND",
         "EQ", "NE", "LT", "GT", "LE", "GE",
-        "LSHIFT", "RSHIFT",
-        "ADD", "SUBTRACT", "MULTIPLY", "DIVIDE",
+        "LSHIFT", "RSHIFT", "ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "MOD",
         "INTLIT", "STRLIT", "IDENT", "GLUE",
         "IF", "WHILE", "FUNCTION", "WIDEN", "RETURN", "FUNCCALL",
         "DEREF", "ADDR", "SCALE",
         "PREINC", "PREDEC", "POSTINC", "POSTDEC", "NEGATE", "INVERT",
         "LOGNOT", "TOBOOL",
-        "BREAK", "CONTINUE", "SWITCH", "CASE", "DEFAULT",
+        "BREAK", "CONTINUE", "SWITCH", "CASE", "DEFAULT", "CAST",
+        "NOP",
 };
 
 // ptpye name
 char *PTYPE_NAMES[] = {
-        "NONE", "VOID", "CHAR", "INT", "LONG", "STRUCT", "UNION"
+        "NONE", "VOID", "CHAR", "SHORT", "INT", "LONG", "STRUCT", "UNION"
 };
 
 char *get_name(int value_type, int value) {

@@ -196,6 +196,8 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             return cg_mul(leftreg, rightreg);
         case A_DIVIDE:
             return cg_div(leftreg, rightreg);
+        case A_MOD:
+            return cg_mod(leftreg, rightreg);
         case A_AND:
             return cg_and(leftreg, rightreg);
         case A_OR:
@@ -233,6 +235,7 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         case A_ASMINUS:
         case A_ASSTAR:
         case A_ASSLASH:
+        case A_ASMOD:
             switch (node->op) {
                 case A_ASPLUS:
                     leftreg = cg_add(leftreg, rightreg);
@@ -245,6 +248,9 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
                     break;
                 case A_ASSLASH:
                     leftreg = cg_div(leftreg, rightreg);
+                    break;
+                case A_ASMOD:
+                    leftreg = cg_mod(leftreg, rightreg);
                     break;
             }
             node->right = node->left;

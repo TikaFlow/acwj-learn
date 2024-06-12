@@ -5,16 +5,17 @@
 #include "data.h"
 #include "decl.h"
 
+// T_EOF,
+// T_ASSIGN, T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH, T_ASMOD, // 6
+// T_QUESTION, T_LOGOR, T_LOGAND, T_OR, T_XOR, T_AND, // 12
+// T_EQ, T_NE, T_LT, T_GT, T_LE, T_GE, // 18
+// T_LSHIFT, T_RSHIFT, T_PLUS, T_MINUS, T_STAR, T_SLASH, T_MOD, // 25
 static int op_prec[] = {
-        0, 10, 10, 10, 10, 10,  // T_EOF, T_ASSIGN, T_ASPLUS, T_ASMINUS, T_ASPSTAR, T_ASPFSLASH
-        15,                     // T_QUESTION
-        20, 30,                 // T_LOGOR, T_LOGAND
-        40, 50, 60,             // T_OR, T_XOR, T_AND
-        70, 70,                 // T_EQ, T_NE
-        80, 80, 80, 80,         // T_LT, T_GT, T_LE, T_GE
-        90, 90,                 // T_LSHIFT, T_RSHIFT
-        100, 100,               // T_PLUS, T_MINUS
-        110, 110,               // T_STAR, T_SLASH
+        0,
+        1, 1, 1, 1, 1, 1,
+        2, 3, 4, 5, 6, 7,
+        8, 8, 9, 9, 9, 9,
+        10, 10, 11, 11, 12, 12, 12,
 };
 
 ASTnode *expression_list(int end_token) {
@@ -279,7 +280,7 @@ static ASTnode *postfix(int ptp) {
 }
 
 static int token_to_op(int tk) {
-    if (tk > T_EOF && tk < T_SLASH) {
+    if (tk > T_EOF && tk <= T_MOD) {
         return tk;
     }
     fatals("Unknown token", get_name(V_TOKEN, TOKEN.token_type));
@@ -294,7 +295,7 @@ static int stick_right(int token_type) {
 }
 
 static int op_precedence(int token_type) {
-    if (token_type == T_VOID) {
+    if (token_type > T_MOD) {
         fatals("Token with no precendence", get_name(V_TOKEN, token_type));
     }
 

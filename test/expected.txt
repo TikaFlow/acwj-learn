@@ -358,3 +358,8 @@ All  three  are non-NULL
 Unable to open /root/fred: Permission denied
 q w e r e w
 3 5 7 9 7 5
+=================== test/58-modulo.c ===================
+6
+9
+6
+9
