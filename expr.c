@@ -326,6 +326,7 @@ static ASTnode *prefix(int ptp) {
         case T_STAR:
             scan();
             tree = prefix(ptp);
+            tree->rvalue = TRUE;
 
             if (!is_ptr(tree->type)) {
                 fatal("* operator must be followed by an expression of pointer type");

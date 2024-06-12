@@ -82,7 +82,7 @@ static char *do_compile(char *file) {
 
     // start with scan the first token
     scan();
-    gen_pre_amble();
+    gen_pre_amble(file);
     declare_global();
     gen_post_amble();
 

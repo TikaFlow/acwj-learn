@@ -28,7 +28,7 @@ int gen_label();
 
 int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int parent_op);
 
-void gen_pre_amble();
+void gen_pre_amble(char *file);
 
 void gen_post_amble();
 
@@ -51,7 +51,7 @@ int cg_alloc_register();
 
 void cg_free_register(int reg);
 
-void cg_pre_amble();
+void cg_pre_amble(char *file);
 
 void cg_post_amble();
 
@@ -93,9 +93,9 @@ void cg_new_str(int label, char *str);
 
 void cg_new_str_end();
 
-int cg_compare_and_set(int ASTop, int r1, int r2);
+int cg_compare_and_set(ASTnode *node, int r1, int r2);
 
-int cg_compare_and_jump(int ASTop, int r1, int r2, int label);
+int cg_compare_and_jump(ASTnode *node, int r1, int r2, int label);
 
 void cg_label(int l);
 
@@ -138,6 +138,8 @@ int cg_align(int type, int offset, int direction);
 void cg_switch(int reg, int case_cnt, int *case_label, int *case_val, int dft_label);
 
 void cg_mov_reg(int r1, int r2);
+
+void cg_line_num(int line_num);
 
 // expr.c
 ASTnode *expression_list(int end_token);

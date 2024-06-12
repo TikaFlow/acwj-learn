@@ -168,6 +168,7 @@ struct ASTnode {
         long int_value; // intlit
         int size; // scale
     };
+    int line; // line number which the node comes from
 };
 
 // typedefs

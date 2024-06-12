@@ -206,14 +206,15 @@ static ASTnode *switch_stmt() {
 
 static ASTnode *single_stmt() {
     Symbol *ctype;
-    ASTnode *stmt;
+    ASTnode *stmt = NULL;
     switch (TOKEN.token_type) {
         case T_SEMI:
             scan();
-            return NULL;
+            break;
         case T_IDENT:
             if (!find_typedef_sym(TEXT)) {
-                return bin_expr(0);
+                stmt = bin_expr(0);
+                break;
             }
         case T_CHAR:
         case T_SHORT:
@@ -228,24 +229,38 @@ static ASTnode *single_stmt() {
             } else {
                 match(T_SEMI, ";");
             }
-            return stmt;
+            break;
         case T_IF:
-            return if_stmt();
+            stmt = if_stmt();
+            break;
         case T_WHILE:
-            return while_stmt();
+            stmt = while_stmt();
+            break;
         case T_FOR:
-            return for_stmt();
+            stmt = for_stmt();
+            break;
         case T_RETURN:
-            return return_stmt();
+            stmt = return_stmt();
+            break;
         case T_BREAK:
-            return goto_stmt(A_BREAK);
+            stmt = goto_stmt(A_BREAK);
+            break;
         case T_CONTINUE:
-            return goto_stmt(A_CONTINUE);
+            stmt = goto_stmt(A_CONTINUE);
+            break;
         case T_SWITCH:
-            return switch_stmt();
+            stmt = switch_stmt();
+            break;
         default:
-            return bin_expr(0);
+            stmt = bin_expr(0);
+            break;
     }
+
+    if (stmt) {
+        stmt->line = LINE;
+    }
+
+    return stmt;
 }
 
 /*

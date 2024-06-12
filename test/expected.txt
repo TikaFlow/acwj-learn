@@ -363,3 +363,10 @@ q w e r e w
 9
 6
 9
+=================== test/59-fix-bugs.c ===================
+i is 1
+i is 2
+i is 3
+leftover owl
+All numbers are equal
+1

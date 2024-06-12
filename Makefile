@@ -3,7 +3,7 @@ INC_DIR=/tmp/include
 SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
 EXEC=tcc
 
-NEW=test/58-modulo.c
+NEW=test/59-fix-bugs.c
 ASM=$(NEW:.c=.s)
 
 .PHONY: all test clean inc
@@ -20,7 +20,7 @@ $(EXEC): $(HEADER) $(SRCS)
 new: $(NEW) $(EXEC) inc
 	./$(EXEC) -S $<
 	@mv $(ASM) out.s
-	as -g -o out.o out.s
+	as -o out.o out.s
 	ld -o out out.o /lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2
 	@echo "=================== $(NEW) ==================="
 	@./out

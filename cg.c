@@ -36,23 +36,23 @@ void cg_data_section() {
     }
 }
 
-static void cg_push_reg(int reg) {
-    fprintf(OUT_FILE, "\tpushq\t%s\n", reglist[reg]);
+static void cg_push_reg(char *reg) {
+    fprintf(OUT_FILE, "\tpushq\t%s\n", reg);
 }
 
-static void cg_pop_reg(int reg) {
-    fprintf(OUT_FILE, "\tpopq\t%s\n", reglist[reg]);
+static void cg_pop_reg(char *reg) {
+    fprintf(OUT_FILE, "\tpopq\t%s\n", reg);
 }
 
 static void spill_all_regs() {
     for (int i = 0; i < FREE_REG_NUM; i++) {
-        cg_push_reg(i);
+        cg_push_reg(reglist[i]);
     }
 }
 
 static void restore_all_regs() {
     for (int i = FREE_REG_NUM - 1; i >= 0; i--) {
-        cg_pop_reg(i);
+        cg_pop_reg(reglist[i]);
     }
 }
 
@@ -93,7 +93,7 @@ int cg_alloc_register() {
 
     // when no free register, we spill one to stack
     reg = spill_reg++ % FREE_REG_NUM;
-    cg_push_reg(reg);
+    cg_push_reg(reglist[reg]);
 
     return reg;
 }
@@ -106,14 +106,17 @@ void cg_free_register(int reg) {
 
     if (spill_reg) {
         spill_reg--;
-        cg_pop_reg(reg);
+        cg_pop_reg(reglist[reg]);
         return;
     }
     freereg[reg] = TRUE;
 }
 
-void cg_pre_amble() {
+void cg_pre_amble(char *file) {
     cg_free_regs(NO_REG);
+    cg_text_section();
+
+    fprintf(OUT_FILE, "\t.file 1 \"%s\"\n", file);
 /*
 # internal switch(expr) routine
 # %rsi = switch table, %rax = expr
@@ -574,26 +577,53 @@ int cg_jump(int l) {
     return NO_REG;
 }
 
-int cg_compare_and_set(int ASTop, int r1, int r2) {
-    if (ASTop < A_EQ || ASTop > A_GE) {
+static void cg_compare(ASTnode *node, int r1, int r2) {
+    int op = node->op;
+    int type = node->left->type;
+    int size = cg_type_size(type);
+
+    if (op < A_EQ || op > A_GE) {
         fatal("Bad ASTop in cg_compare_and_set()");
     }
 
-    fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
-    fprintf(OUT_FILE, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
+    cg_push_reg("%rax");
+    cg_push_reg("%rbx");
+    switch (size) {
+        case 1:
+            fprintf(OUT_FILE, "\tcmpb\t%s, %s\n", breglist[r2], breglist[r1]);
+            break;
+        case 2:
+            fprintf(OUT_FILE,"\tmovq\t%s, %%rax\n", reglist[r1]);
+            fprintf(OUT_FILE, "\tmovq\t%s, %%rbx\n", reglist[r2]);
+            fprintf(OUT_FILE, "\tcmpw\t%%bx, %%ax\n");
+            break;
+        case 4:
+            fprintf(OUT_FILE, "\tcmpl\t%s, %s\n", dreglist[r2], dreglist[r1]);
+            break;
+        case 8:
+            fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+            break;
+        default:
+            break; // make compiler happy
+    }
+    cg_pop_reg("%rbx");
+    cg_pop_reg("%rax");
+}
+
+int cg_compare_and_set(ASTnode *node, int r1, int r2) {
+    cg_compare(node, r1, r2);
+
+    fprintf(OUT_FILE, "\t%s\t%s\n", cmplist[node->op - A_EQ], breglist[r2]);
     fprintf(OUT_FILE, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
     cg_free_register(r1);
 
     return r2;
 }
 
-int cg_compare_and_jump(int ASTop, int r1, int r2, int l) {
-    if (ASTop < A_EQ || ASTop > A_GE) {
-        fatal("Bad ASTop in cg_compare_and_jump()");
-    }
+int cg_compare_and_jump(ASTnode *node, int r1, int r2, int l) {
+    cg_compare(node, r1, r2);
 
-    fprintf(OUT_FILE, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
-    fprintf(OUT_FILE, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], l);
+    fprintf(OUT_FILE, "\t%s\tL%d\n", invcmplist[node->op - A_EQ], l);
     cg_free_regs(NO_REG);
 
     return NO_REG;
@@ -637,7 +667,7 @@ int cg_return(int reg, Symbol *sym) {
 int cg_address(Symbol *sym) {
     int reg = cg_alloc_register();
 
-    if (sym->class == C_GLOBAL || sym->class == C_STATIC) {
+    if (sym->class == C_GLOBAL || sym->class == C_STATIC || sym->class == C_EXTERN) {
         fprintf(OUT_FILE, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[reg]);
     } else {
         fprintf(OUT_FILE, "\tleaq\t%d(%%rbp), %s\n", sym->posn, reglist[reg]);
@@ -710,4 +740,8 @@ void cg_switch(int reg, int case_cnt, int *case_label, int *case_val, int dft_la
 
 void cg_mov_reg(int r1, int r2) {
     fprintf(OUT_FILE, "\tmovq\t%s, %s\n", reglist[r1], reglist[r2]);
+}
+
+void cg_line_num(int line_num) {
+    fprintf(OUT_FILE, "\t.loc 1 %d 0\n", line_num);
 }

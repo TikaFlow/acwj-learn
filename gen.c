@@ -10,6 +10,13 @@ int gen_label() {
     return id++;
 }
 
+static void update_line(ASTnode *node) {
+    if (node->line && LINE != node->line) {
+        LINE = node->line;
+        cg_line_num(node->line);
+    }
+}
+
 static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
     int lend, lfalse = gen_label();
     int exp_reg, reg = cg_alloc_register();
@@ -150,6 +157,8 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         return NO_REG;
     }
 
+    update_line(node);
+
     switch (node->op) {
         case A_IF:
             return gen_if_ast(node, start_label, end_label);
@@ -215,13 +224,13 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         case A_LE:
         case A_GE:
             if (parent_op == A_IF || parent_op == A_WHILE || parent_op == A_TERNARY) {
-                return cg_compare_and_jump(node->op, leftreg, rightreg, if_label);
+                return cg_compare_and_jump(node, leftreg, rightreg, if_label);
             }
-            return cg_compare_and_set(node->op, leftreg, rightreg);
+            return cg_compare_and_set(node, leftreg, rightreg);
         case A_INTLIT:
             return cg_load_int(node->int_value);
         case A_STRLIT:
-            return cg_load_str(node->int_value);
+            return cg_load_str((int) node->int_value);
         case A_IDENT:
             if (node->rvalue || parent_op == A_DEREF) {
                 if (node->sym->class == C_GLOBAL || node->sym->class == C_STATIC || node->sym->class == C_EXTERN) {
@@ -257,7 +266,8 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         case A_ASSIGN:
             switch (node->right->op) {
                 case A_IDENT:
-                    if (node->right->sym->class == C_GLOBAL || node->right->sym->class == C_STATIC) {
+                    if (node->right->sym->class == C_GLOBAL || node->right->sym->class == C_STATIC
+                        || node->right->sym->class == C_EXTERN) {
                         return cg_store_global_sym(leftreg, node->right->sym);
                     } else {
                         return cg_store_local_sym(leftreg, node->right->sym);
@@ -292,14 +302,15 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
             }
         case A_POSTINC:
         case A_POSTDEC:
-            if (node->sym->class == C_GLOBAL || node->sym->class == C_STATIC) {
+            if (node->sym->class == C_GLOBAL || node->sym->class == C_STATIC || node->sym->class == C_EXTERN) {
                 return cg_load_global_sym(node->sym, node->op);
             } else {
                 return cg_load_local_sym(node->sym, node->op);
             }
         case A_PREINC:
         case A_PREDEC:
-            if (node->left->sym->class == C_GLOBAL || node->left->sym->class == C_STATIC) {
+            if (node->left->sym->class == C_GLOBAL || node->left->sym->class == C_STATIC
+                || node->left->sym->class == C_EXTERN) {
                 return cg_load_global_sym(node->left->sym, node->op);
             } else {
                 return cg_load_local_sym(node->left->sym, node->op);
@@ -324,8 +335,8 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
     return NO_REG;
 }
 
-void gen_pre_amble() {
-    cg_pre_amble();
+void gen_pre_amble(char *file) {
+    cg_pre_amble(file);
 }
 
 void gen_post_amble() {
