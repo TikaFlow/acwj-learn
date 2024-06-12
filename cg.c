@@ -16,9 +16,10 @@ enum {
 
 static int local_offset, stack_offset, align = 0b11, spill_reg = 0;
 static int freereg[FREE_REG_NUM];
-static char *breglist[] = {"%r10b", "%r11b", "%r12b", "%r13b", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
-static char *dreglist[] = {"%r10d", "%r11d", "%r12d", "%r13d", "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
-static char *reglist[] = {"%r10", "%r11", "%r12", "%r13", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+static char *breglist[] = {"%r12b", "%r13b", "%r14b", "%r15b", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *wreglist[] = {"%r12w", "%r13w", "%r14w", "%r15w", "%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
+static char *dreglist[] = {"%r12d", "%r13d", "%r14d", "%r15d", "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
+static char *reglist[] = {"%r12", "%r13", "%r14", "%r15", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static char *cmplist[] = {"sete", "setne", "setl", "setg", "setle", "setge"};
 static char *invcmplist[] = {"jne", "je", "jge", "jle", "jg", "jl"};
 
@@ -208,12 +209,12 @@ void cg_func_pre_amble(Symbol *sym) {
 
     cg_set_stack_offset();
     fprintf(OUT_FILE, "\tsubq\t$%d, %%rsp\n", stack_offset);
-    spill_all_regs(); // or spill and restore at cg_call()
+    spill_all_regs(); // r12-r15 are callee saved
 }
 
 void cg_func_post_amble(Symbol *sym) {
     cg_label(sym->end_label);
-    restore_all_regs();
+    restore_all_regs(); // r12-r15 are callee saved
     fprintf(OUT_FILE,
             "\taddq\t$%d, %%rsp\n"
             "\tpopq\t%%rbp\n"
@@ -451,6 +452,8 @@ int cg_store_global_sym(int reg, Symbol *sym) {
                 fprintf(OUT_FILE, "\tmovb\t%s, %s(%%rip)\n", breglist[reg], sym->name);
                 break;
             case P_SHORT:
+                fprintf(OUT_FILE, "\tmovw\t%s, %s(%%rip)\n", wreglist[reg], sym->name);
+                break;
             case P_INT:
                 fprintf(OUT_FILE, "\tmovl\t%s, %s(%%rip)\n", dreglist[reg], sym->name);
                 break;
@@ -470,6 +473,8 @@ int cg_store_local_sym(int reg, Symbol *sym) {
                 fprintf(OUT_FILE, "\tmovb\t%s, %d(%%rbp)\n", breglist[reg], sym->posn);
                 break;
             case P_SHORT:
+                fprintf(OUT_FILE, "\tmovw\t%s, %d(%%rbp)\n", wreglist[reg], sym->posn);
+                break;
             case P_INT:
                 fprintf(OUT_FILE, "\tmovl\t%s, %d(%%rbp)\n", dreglist[reg], sym->posn);
                 break;
@@ -586,16 +591,12 @@ static void cg_compare(ASTnode *node, int r1, int r2) {
         fatal("Bad ASTop in cg_compare_and_set()");
     }
 
-    cg_push_reg("%rax");
-    cg_push_reg("%rbx");
     switch (size) {
         case 1:
             fprintf(OUT_FILE, "\tcmpb\t%s, %s\n", breglist[r2], breglist[r1]);
             break;
         case 2:
-            fprintf(OUT_FILE,"\tmovq\t%s, %%rax\n", reglist[r1]);
-            fprintf(OUT_FILE, "\tmovq\t%s, %%rbx\n", reglist[r2]);
-            fprintf(OUT_FILE, "\tcmpw\t%%bx, %%ax\n");
+            fprintf(OUT_FILE, "\tcmpw\t%s, %s\n", wreglist[r2], wreglist[r1]);
             break;
         case 4:
             fprintf(OUT_FILE, "\tcmpl\t%s, %s\n", dreglist[r2], dreglist[r1]);
@@ -606,8 +607,6 @@ static void cg_compare(ASTnode *node, int r1, int r2) {
         default:
             break; // make compiler happy
     }
-    cg_pop_reg("%rbx");
-    cg_pop_reg("%rax");
 }
 
 int cg_compare_and_set(ASTnode *node, int r1, int r2) {
@@ -624,7 +623,8 @@ int cg_compare_and_jump(ASTnode *node, int r1, int r2, int l) {
     cg_compare(node, r1, r2);
 
     fprintf(OUT_FILE, "\t%s\tL%d\n", invcmplist[node->op - A_EQ], l);
-    cg_free_regs(NO_REG);
+    cg_free_register(r1);
+    cg_free_register(r2);
 
     return NO_REG;
 }
@@ -644,7 +644,7 @@ int cg_return(int reg, Symbol *sym) {
                 fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
                 break;
             case P_SHORT:
-                fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", dreglist[reg]);
+                fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", wreglist[reg]);
                 break;
             case P_INT:
                 fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[reg]);
@@ -706,7 +706,7 @@ int cg_store_deref(int r1, int r2, int type) {
             fprintf(OUT_FILE, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
             break;
         case 2:
-            fprintf(OUT_FILE, "\tmovw\t%s, (%s)\n", dreglist[r1], reglist[r2]);
+            fprintf(OUT_FILE, "\tmovw\t%s, (%s)\n", wreglist[r1], reglist[r2]);
             break;
         case 4:
             fprintf(OUT_FILE, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);

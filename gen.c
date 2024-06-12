@@ -27,15 +27,17 @@ static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
     // condition statements
     // when false, jump to lfalse
     gen_ast(node->left, lfalse, NO_LABEL, NO_LABEL, node->op);
-    gen_free_regs(NO_REG);
+    if (node->op == A_IF) {
+        gen_free_regs(NO_REG);
+    }
     // true statements
     // when true, no jump
     exp_reg = gen_ast(node->mid, NO_LABEL, start_label, end_label, node->op);
     // when is if node, exp_reg is NO_REG(-1), so DO NOT need to move to reg
     if (node->op == A_TERNARY) {
         cg_mov_reg(exp_reg, reg);
+        cg_free_register(exp_reg);
     }
-    gen_free_regs(reg);
 
     if (node->right) {
         cg_jump(lend);
@@ -46,8 +48,8 @@ static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
         exp_reg = gen_ast(node->right, NO_LABEL, start_label, end_label, node->op);
         if (node->op == A_TERNARY) {
             cg_mov_reg(exp_reg, reg);
+            cg_free_register(exp_reg);
         }
-        gen_free_regs(reg);
         cg_label(lend);
     }
 
