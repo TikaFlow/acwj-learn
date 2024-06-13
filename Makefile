@@ -18,7 +18,7 @@ $(EXEC): $(HEADER) $(SRCS)
 	gcc -o $@ -g -Wall -DDEBUG -DINC_DIR=\"$(INC_DIR)\" $^
 
 new: $(NEW) $(EXEC) inc
-	./$(EXEC) -vS -DINC_DIR='\"$(INC_DIR)\"' -Dtest1=100 -Dtest2=123 -Dtest3='\(-333\)' $<
+	./$(EXEC) -vS -DINC_DIR='\"$(INC_DIR)\"' $<
 	@mv $(ASM) out.s
 	as -o out.o out.s
 	ld -o out out.o /lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2
@@ -30,7 +30,7 @@ self: $(SRCS) $(HEADER) $(EXEC) inc
 
 test: $(EXEC) inc
 	@echo "Running tests..."
-	@test/test-all.sh $(EXEC) -DINC_DIR='\"$(INC_DIR)\"' -Dtest1=100 -Dtest2=123 -Dtest3='\(-333\)'
+	@test/test-all.sh $(EXEC) -DINC_DIR='\"$(INC_DIR)\"'
 	@echo "Comparing output with expected..."
 	@diff test/output.txt test/expected.txt
 	@echo "All Tests passed!"

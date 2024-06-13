@@ -634,29 +634,29 @@ int cg_widen(int r, int old_type, int new_type) {
 }
 
 int cg_return(int reg, Symbol *sym) {
-    if (is_ptr(sym->ptype)) {
-        fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
-    } else {
-        switch (sym->ptype) {
-            case P_VOID:
-                break;
-            case P_CHAR:
-                fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
-                break;
-            case P_SHORT:
-                fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", wreglist[reg]);
-                break;
-            case P_INT:
-                fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[reg]);
-                break;
-            case P_LONG:
-                fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
-                break;
-            default:
-                fatals("Bad function type in cg_return()", get_name(V_PTYPE, sym->ptype));
-        }
-    }
     if (reg != NO_REG) {
+        if (is_ptr(sym->ptype)) {
+            fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
+        } else {
+            switch (sym->ptype) {
+                case P_VOID:
+                    break;
+                case P_CHAR:
+                    fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
+                    break;
+                case P_SHORT:
+                    fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", wreglist[reg]);
+                    break;
+                case P_INT:
+                    fprintf(OUT_FILE, "\tmovslq\t%s, %%rax\n", dreglist[reg]);
+                    break;
+                case P_LONG:
+                    fprintf(OUT_FILE, "\tmovq\t%s, %%rax\n", reglist[reg]);
+                    break;
+                default:
+                    fatals("Bad function type in cg_return()", get_name(V_PTYPE, sym->ptype));
+            }
+        }
         cg_free_register(reg);
     }
     cg_jump(sym->end_label);

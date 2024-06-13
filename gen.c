@@ -289,7 +289,10 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
         case A_RETURN:
             return cg_return(leftreg, FUNC_PTR);
         case A_ADDR:
-            return cg_address(node->sym);
+            if (node->sym) {
+                return cg_address(node->sym);
+            }
+            return leftreg;
         case A_DEREF:
             if (node->rvalue) {
                 return cg_deref(leftreg, node->left->type);
