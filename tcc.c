@@ -10,6 +10,14 @@
 
 #include "decl.h"
 
+struct macro {
+    char *name;
+    struct macro *next;
+};
+
+static struct macro *macro_head = NULL;
+static struct macro *macro_tail = NULL;
+
 static void init() {
     LINE = 1;
     PUT_BACK = '\n';
@@ -55,10 +63,17 @@ static char *alter_suffix(char *str, char suf) {
 
 static char *do_compile(char *file) {
     char cmd[MAX_TEXT];
+    struct macro *m;
+    int len = 0;
     IN_FILE_NAME = file;
     OUT_FILE_NAME = alter_suffix(IN_FILE_NAME, 's');
 
-    snprintf(cmd, MAX_TEXT, "%s %s %s", CPP_CMD, INC_DIR, IN_FILE_NAME);
+    len += snprintf(cmd + len, MAX_TEXT - len, "%s %s", CPP_CMD, INC_DIR);
+    // add macro to cmd
+    for (m = macro_head; m; m = m->next) {
+        len += snprintf(cmd + len, MAX_TEXT - len, " %s", m->name);
+    }
+    snprintf(cmd + len, MAX_TEXT - len, " %s", IN_FILE_NAME);
 
     if (!OUT_FILE_NAME) {
         fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", IN_FILE_NAME);
@@ -78,6 +93,7 @@ static char *do_compile(char *file) {
     init();
     if (FLAG_v) {
         printf("Compiling %s\n", file);
+        printf("%s\n", cmd);
     }
 
     // start with scan the first token
@@ -144,6 +160,7 @@ static void do_link(char *o_file, char *obj_list[]) {
 static char *parse_options(int argc, char *argv[], int *i_ptr) {
     int i;
     char *o_file = NULL;
+    struct macro *mac;
     // parse the command line arguments
     for (i = 1; i < argc; i++) {
         // No leading '-', then it's a file name
@@ -160,6 +177,26 @@ static char *parse_options(int argc, char *argv[], int *i_ptr) {
                 case 'c':
                     FLAG_c = TRUE;
                     break;
+                case 'D':
+                    if (argv[i][j + 1]) {
+                        mac = malloc(sizeof(struct macro));
+                        mac->name = strdup(argv[i]);
+                        mac->next = NULL;
+
+                        // add to macro list
+                        if (macro_head) {
+                            macro_tail->next = mac;
+                            macro_tail = mac;
+                        } else {
+                            macro_head = macro_tail = mac;
+                        }
+
+                        // skip the macro name
+                        while (argv[i][++j]);
+                        j--;
+                        break;
+                    }
+                    fatal("-D option must have a macro name after it");
                 case 'T':
                     FLAG_T = TRUE;
                     break;

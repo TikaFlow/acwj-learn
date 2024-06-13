@@ -17,9 +17,12 @@ static void update_line(ASTnode *node) {
     }
 }
 
+/*
+ * generate code for IF/TERNARY node
+ */
 static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
     int lend, lfalse = gen_label();
-    int exp_reg, reg = cg_alloc_register();
+    int exp_reg, reg = NO_REG;
     if (node->right) {
         lend = gen_label();
     }
@@ -27,7 +30,9 @@ static int gen_if_ast(ASTnode *node, int start_label, int end_label) {
     // condition statements
     // when false, jump to lfalse
     gen_ast(node->left, lfalse, NO_LABEL, NO_LABEL, node->op);
-    if (node->op == A_IF) {
+    if (node->op == A_TERNARY) {
+        reg = cg_alloc_register();
+    } else {
         gen_free_regs(NO_REG);
     }
     // true statements

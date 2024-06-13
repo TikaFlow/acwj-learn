@@ -383,3 +383,8 @@ All numbers are equal
 10 -61
 11 -72
 12 -84
+=================== test/61-trans-macro.c ===================
+macro INC_DIR = /tmp/include
+macro test1 = 100
+macro test2 = 123
+macro test3 = -333

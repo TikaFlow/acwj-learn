@@ -3,7 +3,7 @@ INC_DIR=/tmp/include
 SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
 EXEC=tcc
 
-NEW=test/60-fix-bugs.c
+NEW=test/61-trans-macro.c
 ASM=$(NEW:.c=.s)
 
 .PHONY: all test clean inc
@@ -18,7 +18,7 @@ $(EXEC): $(HEADER) $(SRCS)
 	gcc -o $@ -g -Wall -DDEBUG -DINC_DIR=\"$(INC_DIR)\" $^
 
 new: $(NEW) $(EXEC) inc
-	./$(EXEC) -S $<
+	./$(EXEC) -vS -DINC_DIR='\"$(INC_DIR)\"' -Dtest1=100 -Dtest2=123 -Dtest3='\(-333\)' $<
 	@mv $(ASM) out.s
 	as -o out.o out.s
 	ld -o out out.o /lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2
@@ -26,11 +26,11 @@ new: $(NEW) $(EXEC) inc
 	@./out
 
 self: $(SRCS) $(HEADER) $(EXEC) inc
-	./$(EXEC) -vo out $(SRCS) $(HEADER)
+	./$(EXEC) -vo out -DINC_DIR='\"$(INC_DIR)\"' $(SRCS) $(HEADER)
 
 test: $(EXEC) inc
 	@echo "Running tests..."
-	@test/test-all.sh $(EXEC)
+	@test/test-all.sh $(EXEC) -DINC_DIR='\"$(INC_DIR)\"' -Dtest1=100 -Dtest2=123 -Dtest3='\(-333\)'
 	@echo "Comparing output with expected..."
 	@diff test/output.txt test/expected.txt
 	@echo "All Tests passed!"
