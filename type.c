@@ -80,7 +80,7 @@ ASTnode *modify_type(ASTnode *left, ASTnode *right, int op) {
             if (rsize > 1) {
                 return make_ast_unary(A_SCALE, rtype, right->ctype, left, NULL, rsize);
             }
-            return left;
+            return make_ast_unary(A_WIDEN, rtype, NULL, left, NULL, 0);
         }
     }
 

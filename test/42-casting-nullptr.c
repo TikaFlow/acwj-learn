@@ -15,8 +15,7 @@ int main() {
     int e = (int) 0x1fffffff0;
     printf("e = %d\n", e);
 
-    char *f = "abc";
-    printf("str f's value = %lx\n", (long) f);
+    printf("str a's value = %lx\n", (long) a);
 
     return 0;
 }

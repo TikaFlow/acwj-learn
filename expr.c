@@ -108,7 +108,7 @@ static ASTnode *access_member(ASTnode *left, int with_pointer) {
     }
 
     // get member offset
-    right = make_ast_leaf(A_INTLIT, P_INT, NULL, NULL, member->posn);
+    right = make_ast_leaf(A_INTLIT, P_LONG, NULL, NULL, member->posn);
     // add offset to pointer
     left = make_ast_node(A_ADD, pointer_to(member->ptype), member->ctype, left, NULL, right, NULL, 0);
     // dereference pointer to get member value
@@ -372,7 +372,7 @@ static ASTnode *prefix(int ptp) {
             tree = prefix(ptp);
 
             if (tree->op != A_IDENT) {
-                fatal("++ operator must be followed by a variable");
+                fatal("-- operator must be followed by a variable");
             }
             tree = make_ast_unary(A_PREDEC, tree->type, tree->ctype, tree, NULL, 0);
             break;

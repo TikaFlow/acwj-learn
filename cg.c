@@ -14,7 +14,7 @@ enum {
     DATA_SECTION
 } cur_section = NO_SECTION;
 
-static int local_offset, stack_offset, align = 0b11, spill_reg = 0;
+static int local_offset, stack_offset, align = 7, spill_reg = 0;
 static int freereg[FREE_REG_NUM];
 static char *breglist[] = {"%r12b", "%r13b", "%r14b", "%r15b", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static char *wreglist[] = {"%r12w", "%r13w", "%r14w", "%r15w", "%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
@@ -72,7 +72,7 @@ static void cg_set_stack_offset() {
 }
 
 int cg_align(int type, int offset, int direction) {
-    return type == P_CHAR ? offset : (offset + align * direction) & ~align;
+    return (offset + align * direction) & ~align;
 }
 
 void cg_free_regs(int keep_reg) {
@@ -259,7 +259,7 @@ static int cg_load_sym(Symbol *sym, int op, int is_global) {
     switch (type_size) {
         case 1:
             add_cmd = "addb";
-            mov_cmd = "movzbq";
+            mov_cmd = "movsbq";
             break;
         case 2:
             add_cmd = "addw";
@@ -642,7 +642,7 @@ int cg_return(int reg, Symbol *sym) {
                 case P_VOID:
                     break;
                 case P_CHAR:
-                    fprintf(OUT_FILE, "\tmovzbq\t%s, %%rax\n", breglist[reg]);
+                    fprintf(OUT_FILE, "\tmovsbq\t%s, %%rax\n", breglist[reg]);
                     break;
                 case P_SHORT:
                     fprintf(OUT_FILE, "\tmovswq\t%s, %%rax\n", wreglist[reg]);
@@ -681,7 +681,7 @@ int cg_deref(int reg, int type) {
 
     switch (size) {
         case 1:
-            fprintf(OUT_FILE, "\tmovzbq\t(%s), %s\n", reglist[reg], reglist[reg]);
+            fprintf(OUT_FILE, "\tmovsbq\t(%s), %s\n", reglist[reg], reglist[reg]);
             break;
         case 2:
             fprintf(OUT_FILE, "\tmovswq\t(%s), %s\n", reglist[reg], reglist[reg]);

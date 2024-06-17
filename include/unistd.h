@@ -8,4 +8,8 @@
 void _exit(int status);
 int unlink(char *pathname);
 
+int read(int fd, char *buf, int count);
+int write(int fd, void *buf, int count);
+int close(int fd);
+
 #endif //ACWJ_LEARN_UNISTD_H

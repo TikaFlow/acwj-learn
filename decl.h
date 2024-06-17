@@ -21,8 +21,6 @@ ASTnode *make_ast_leaf(int op, int type, Symbol *ctype, Symbol *sym, long int_va
 
 ASTnode *make_ast_unary(int op, int type, Symbol *ctype, ASTnode *left, Symbol *sym, long int_value);
 
-void dump_ast(ASTnode *n, int label, int level);
-
 // gen.c
 int gen_label();
 

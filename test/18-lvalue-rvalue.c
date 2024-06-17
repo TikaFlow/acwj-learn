@@ -21,11 +21,6 @@ int main() {
      *
      * block comment test
      */
-    // c = &a + 1;
-    c = &a - 1;
-    printf("%d\n", *c); // 34
-    *c = a + 10;
-    printf("%d\n", b); // 89
 
     return (0);
 }

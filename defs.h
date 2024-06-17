@@ -18,8 +18,6 @@
 #define DEFAULT_ARRAY_SIZE 0X10
 // symbol length
 #define MAX_TEXT 1024
-// max number of obj files
-#define MAX_OBJ 256
 // when no register is available
 #define NO_REG (-1)
 // when no label is available
@@ -32,20 +30,6 @@
 #define DESC (-1)
 // when not found, return this value - function that returns index
 #define NOT_FOUND (-1)
-// default output file name
-#define A_OUT "a.out"
-// pre-processor command
-#define CPP_CMD "cpp -nostdinc -isystem"
-// need define include dir when compile
-#ifndef INC_DIR
-#warning "INC_DIR is not defined, using default value: /usr/include"
-#define INC_DIR "/usr/include"
-#endif
-// assembler command
-#define AS_CMD "as -o"
-// linker command
-#define LD_CMD "ld -o"
-#define LD_SUFFIX "/lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2"
 
 // value type, used to get name
 enum {

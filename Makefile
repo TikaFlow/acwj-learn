@@ -1,10 +1,14 @@
 HEADER=defs.h data.h decl.h
 INC_DIR=/tmp/include
 SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
-EXEC=tcc
+EXEC=./tcc
 
-NEW=test/61-trans-macro.c
-ASM=$(NEW:.c=.s)
+NEW=test/61-pass-macro.c
+CPP=$(NEW:.c=.i)
+ASM=$(CPP:.i=.s)
+
+STARTER=/lib/x86_64-linux-gnu/crt1.o
+LOADER=/lib64/ld-linux-x86-64.so.2
 
 .PHONY: all test clean inc
 
@@ -15,25 +19,23 @@ inc:
 	rsync -a include/ $(INC_DIR)/
 
 $(EXEC): $(HEADER) $(SRCS)
-	gcc -o $@ -g -Wall -DDEBUG -DINC_DIR=\"$(INC_DIR)\" $^
+	gcc -o $@ -g -Wall -DDEBUG $^
 
 new: $(NEW) $(EXEC) inc
-	./$(EXEC) -vS -DINC_DIR='\"$(INC_DIR)\"' $<
-	@mv $(ASM) out.s
+	cpp -o $(CPP) -nostdinc -isystem $(INC_DIR) $(NEW)
+	$(EXEC) $(CPP)
+	mv $(ASM) out.s
 	as -o out.o out.s
-	ld -o out out.o /lib/x86_64-linux-gnu/crt1.o -lc -I /lib64/ld-linux-x86-64.so.2
+	ld -o out out.o $(STARTER) -lc -I $(LOADER)
 	@echo "=================== $(NEW) ==================="
 	@./out
 
-self: $(SRCS) $(HEADER) $(EXEC) inc
-	./$(EXEC) -vo out -DINC_DIR='\"$(INC_DIR)\"' $(SRCS) $(HEADER)
-
 test: $(EXEC) inc
 	@echo "Running tests..."
-	@test/test-all.sh $(EXEC) -DINC_DIR='\"$(INC_DIR)\"'
+	@test/test-all.sh $(EXEC) $(STARTER) $(LOADER)
 	@echo "Comparing output with expected..."
 	@diff test/output.txt test/expected.txt
 	@echo "All Tests passed!"
 
 clean:
-	rm -f $(EXEC) out* *.out *.o *.s test/output.txt test/*.s test/*.o
+	rm -f $(EXEC) out* *.out *.o *.s test/output.txt test/*.i test/*.s test/*.o

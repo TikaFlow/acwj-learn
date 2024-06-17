@@ -5,10 +5,9 @@
  *
  * - Not elegant, but progressive.
  */
-int open(char *pathname, int flags);
-int read(int fd, char *buf, int count);
-int write(int fd, void *buf, int count);
-int close(int fd);
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 char *buf;
 
@@ -16,7 +15,7 @@ int main() {
     int zin;
     int cnt;
 
-    buf= "                                                             ";
+    buf = malloc(60);
     zin = open("test/26-prototypes.c", 0);
     if (zin == -1) {
         return (1);

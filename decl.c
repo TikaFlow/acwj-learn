@@ -14,7 +14,7 @@ static int declare_typedef(Symbol **ctype);
 static int type_of_typedef(char *name, Symbol **ctype);
 
 int parse_type(Symbol **ctype, int *class) {
-    int type = 0, can_no_var = FALSE, storage_flag = TRUE;
+    int type = P_NONE, can_no_var = FALSE, storage_flag = TRUE;
 
     while (storage_flag) {
         switch (TOKEN.token_type) {
@@ -199,7 +199,7 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
         case C_EXTERN:
         case C_GLOBAL:
             sym = find_global_sym(name);
-            if (is_new_sym(sym, class, type, ctype)) {
+            if (is_new_sym(sym, class, pointer_to(type), ctype)) {
                 sym = add_global_sym(name, pointer_to(type), ctype, S_ARRAY, class, n_elem, 0);
             }
             break;
@@ -292,7 +292,7 @@ static int declare_param_list(Symbol *old_func, Symbol *new_func) {
 static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
     ASTnode *tree, *final_stmt;
     Symbol *old_func, *new_func = NULL;
-    int end_label, param_cnt;
+    int end_label = 0, param_cnt;
 
     if ((old_func = find_global_sym(name)) && old_func->stype != S_FUNCTION) {
         old_func = NULL;
@@ -341,15 +341,10 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
         }
     }
 
-    tree = make_ast_unary(A_FUNCTION, type, ctype, tree, old_func, end_label);
-
     // optimize
     tree = optimize(tree);
 
-    if (FLAG_T) {
-        dump_ast(tree, NO_LABEL, 0); // SHOW_AST
-        fprintf(stdout, "\n\n");
-    }
+    tree = make_ast_unary(A_FUNCTION, type, ctype, tree, old_func, end_label);
 
     gen_ast(tree, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
     reset_local_syms();
@@ -360,7 +355,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 static Symbol *declare_composite(int ptype) {
     Symbol *member, *ctype = NULL;
     ASTnode *unused;
-    int offset = 0, type;
+    int type, cur_size, max_size = 0;
     char *name = NULL;
 
     // skip struct/union keyword
@@ -422,19 +417,18 @@ static Symbol *declare_composite(int ptype) {
 
     if (ptype == P_STRUCT) { // for struct
         for (member = ctype->first; member; member = member->next) {
-            member->posn = gen_align(member->ptype, offset, ASC);
-            offset = member->posn + size_of_type(member->ptype, member->ctype);
+            member->posn = gen_align(member->ptype, max_size, ASC);
+            cur_size = size_of_type(member->ptype, member->ctype);
+            max_size = member->posn + (cur_size < 8 ? 8 : cur_size);
         }
-        ctype->size = offset;
     } else { // for union
-        int cur_size, max_size = 0;
         for (member = ctype->first; member; member = member->next) {
             member->posn = 0;
             cur_size = size_of_type(member->ptype, member->ctype);
             max_size = max_size > cur_size ? max_size : cur_size;
         }
-        ctype->size = max_size;
     }
+    ctype->size = max_size;
 
 #ifdef DEBUG
     // DEBUG START
