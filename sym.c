@@ -13,7 +13,6 @@ void reset_global_syms() {
     GLOBAL_HEAD = GLOBAL_TAIL = NULL;
     STRUCT_HEAD = STRUCT_TAIL = NULL;
     UNION_HEAD = UNION_TAIL = NULL;
-    MEMBER_HEAD = MEMBER_TAIL = NULL;
     ENUM_HEAD = ENUM_TAIL = NULL;
     TYPEDEF_HEAD = TYPEDEF_TAIL = NULL;
 }
@@ -125,12 +124,12 @@ Symbol *add_union_sym(char *name) {
     return sym;
 }
 
-Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int n_elem) {
+Symbol *add_member_sym(char *name, Symbol **head, Symbol **tail, int ptype, Symbol *ctype, int stype, int n_elem) {
     Symbol *sym = new_sym(name, ptype, ctype, stype, C_MEMBER, n_elem, 0);
     if (ptype == P_STRUCT || ptype == P_UNION) {
         sym->size = ctype->size;
     }
-    add_sym(&MEMBER_HEAD, &MEMBER_TAIL, sym);
+    add_sym(head, tail, sym);
 
     return sym;
 }
@@ -202,8 +201,8 @@ Symbol *find_union_sym(char *s) {
     return find_sym_in_list(s, UNION_HEAD);
 }
 
-Symbol *find_member_sym(char *s) {
-    return find_sym_in_list(s, MEMBER_HEAD);
+Symbol *find_member_sym(char *s, Symbol *head) {
+    return find_sym_in_list(s, head);
 }
 
 /*

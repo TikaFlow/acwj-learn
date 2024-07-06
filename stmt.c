@@ -224,7 +224,7 @@ static ASTnode *single_stmt() {
         case T_UNION:
         case T_ENUM:
         case T_TYPEDEF:
-            declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt);
+            declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt, NULL, NULL);
             if (stmt && stmt->op == A_ASSIGN) { // A_ASSIGN will be handled behind
             } else {
                 match(T_SEMI, ";");

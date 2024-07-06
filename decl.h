@@ -181,7 +181,7 @@ Symbol *find_struct_sym(char *s);
 
 Symbol *find_union_sym(char *s);
 
-Symbol *find_member_sym(char *s);
+Symbol *find_member_sym(char *s, Symbol *head);
 
 Symbol *find_enum_type_sym(char *s);
 
@@ -201,7 +201,7 @@ Symbol *add_struct_sym(char *name);
 
 Symbol *add_union_sym(char *name);
 
-Symbol *add_member_sym(char *name, int ptype, Symbol *ctype, int stype, int size);
+Symbol *add_member_sym(char *name, Symbol **head, Symbol **tail, int ptype, Symbol *ctype, int stype, int n_elem);
 
 Symbol *add_enum_sym(char *name, int class, int value);
 
@@ -210,7 +210,8 @@ Symbol *add_typedef_sym(char *name, int ptype, Symbol *ctype);
 void dump_sym_tables();
 
 // decl.c
-int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **glue_tree);
+int
+declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **glue_tree, Symbol **head, Symbol **tail);
 
 void declare_global();
 

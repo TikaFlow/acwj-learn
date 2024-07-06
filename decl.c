@@ -217,7 +217,7 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
     return sym;
 }
 
-static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class) {
+static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class, Symbol **head, Symbol **tail) {
     Symbol *sym = NULL;
     switch (class) {
         case C_STATIC:
@@ -235,7 +235,7 @@ static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class) {
             sym = add_param_sym(name, type, ctype, S_VARIABLE);
             break;
         case C_MEMBER:
-            sym = add_member_sym(name, type, ctype, S_VARIABLE, 1);
+            sym = add_member_sym(name, head, tail, type, ctype, S_VARIABLE, 1);
             break;
         default:
             break; // keep compiler happy
@@ -263,7 +263,7 @@ static int declare_param_list(Symbol *old_func, Symbol *new_func) {
             }
         }
 
-        type = declare_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, &unused);
+        type = declare_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, &unused, NULL, NULL);
         if (type == P_NONE) {
             fatal("Bad type in parameter list");
         }
@@ -355,7 +355,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 static Symbol *declare_composite(int ptype) {
     Symbol *member, *ctype = NULL;
     ASTnode *unused;
-    int type, cur_size, max_size = 0;
+    int type, cur_size, max_size = 0, mem_cnt = 0;;
     char *name = NULL;
 
     // skip struct/union keyword
@@ -391,12 +391,14 @@ static Symbol *declare_composite(int ptype) {
 
     scan();
     // parse member list
+    Symbol *mem_head = NULL, *mem_tail = NULL;
     while (TRUE) {
-        type = declare_list(&member, C_MEMBER, T_SEMI, T_RBRACE, &unused);
+        type = declare_list(&member, C_MEMBER, T_SEMI, T_RBRACE, &unused, &mem_head, &mem_tail);
         if (type == P_NONE) {
             fatal("Declaration does not declare anything");
         }
 
+        mem_cnt++;
         if (TOKEN.token_type == T_RBRACE) {
             warning("No semicolon at end of struct or union");
             break;
@@ -408,12 +410,11 @@ static Symbol *declare_composite(int ptype) {
     }
     match(T_RBRACE, "}");
 
-    if (!MEMBER_HEAD) {
+    if (!mem_cnt) {
         fatal("No member in struct/union");
     }
 
-    ctype->first = MEMBER_HEAD;
-    MEMBER_HEAD = MEMBER_TAIL = NULL;
+    ctype->first = mem_head;
 
     if (ptype == P_STRUCT) { // for struct
         for (member = ctype->first; member; member = member->next) {
@@ -617,7 +618,7 @@ static void init_var(Symbol *sym, int type, Symbol *ctype, int class, ASTnode **
     }
 }
 
-static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tree) {
+static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tree, Symbol **head, Symbol **tail) {
     Symbol *sym = NULL;
     char *name = strdup(TEXT);
     int stype = S_VARIABLE;
@@ -637,14 +638,17 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
         case C_EXTERN:
         case C_GLOBAL:
         case C_LOCAL:
+            break;
         case C_PARAM:
             if (find_local_sym(name)) {
                 fatals("Local variable already defined", name);
             }
+            break;
         case C_MEMBER:
-            if (find_member_sym(name)) {
+            if (find_member_sym(name, *head)) {
                 fatals("Struct/Union member already defined", name);
             }
+            break;
         default:
             break; // keep compiler happy
     }
@@ -654,7 +658,7 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
         sym = declare_array(name, type, ctype, class);
         stype = S_ARRAY;
     } else {
-        sym = declare_scalar(name, type, ctype, class);
+        sym = declare_scalar(name, type, ctype, class, head, tail);
     }
 
     // check if has a initial value
@@ -683,7 +687,8 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
     return sym;
 }
 
-int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **glue_tree) {
+int
+declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **glue_tree, Symbol **head, Symbol **tail) {
     int init_type, type;
     Symbol *sym;
     ASTnode *tree = NULL;
@@ -698,7 +703,7 @@ int declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **
         type = parse_stars(init_type);
 
         // parse this symbol
-        sym = declare_sym(type, *ctype, class, &tree);
+        sym = declare_sym(type, *ctype, class, &tree, head, tail);
 
         if (tree) { // avoid unnecessary nesting
             if (*glue_tree) {
@@ -731,7 +736,7 @@ void declare_global() {
     ASTnode *unused;
 
     while (TOKEN.token_type != T_EOF) {
-        declare_list(&ctype, C_GLOBAL, T_SEMI, T_EOF, &unused);
+        declare_list(&ctype, C_GLOBAL, T_SEMI, T_EOF, &unused, NULL, NULL);
 
         if (TOKEN.token_type == T_SEMI) {
             scan();
