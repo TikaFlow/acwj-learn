@@ -72,9 +72,36 @@ static ASTnode *access_array(ASTnode *left) {
     return left;
 }
 
+static Symbol *get_member(Symbol *ctype, char *name, long *offset) {
+    Symbol *member;
+    for (member = ctype->first; member; member = member->next) {
+        if (member->name) {
+            if (!strcmp(member->name, name)) {
+                *offset = *offset + member->posn;
+                break;
+            }
+        } else {
+            if (member->ctype->name) {
+                // a named struct/union, no recursive call
+                continue;
+            }
+            if (member->ctype->ptype == P_STRUCT || member->ctype->ptype == P_UNION) {
+                *offset = *offset + member->posn;
+                return get_member(member->ctype, name, offset);
+            }
+        }
+    }
+    if (!member) {
+        fatals("No member found in struct/union", name);
+    }
+
+    return member;
+}
+
 static ASTnode *access_member(ASTnode *left, int with_pointer) {
     ASTnode *right;
     Symbol *ctype, *member;
+    long offset = 0;
 
     // check variable type
     if (!with_pointer) {
@@ -97,18 +124,11 @@ static ASTnode *access_member(ASTnode *left, int with_pointer) {
     scan();
     match(T_IDENT, "identifier");
 
-    // get member name
-    for (member = ctype->first; member; member = member->next) {
-        if (!strcmp(member->name, TEXT)) {
-            break;
-        }
-    }
-    if (!member) {
-        fatals("No member found in struct/union", TEXT);
-    }
+    // get member name and offset
+    member = get_member(ctype, TEXT, &offset);
 
     // get member offset
-    right = make_ast_leaf(A_INTLIT, P_LONG, NULL, NULL, member->posn);
+    right = make_ast_leaf(A_INTLIT, P_LONG, NULL, NULL, offset);
     // add offset to pointer
     left = make_ast_node(A_ADD, pointer_to(member->ptype), member->ctype, left, NULL, right, NULL, 0);
     // dereference pointer to get member value

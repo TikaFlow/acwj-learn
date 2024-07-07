@@ -3,7 +3,7 @@ INC_DIR=/tmp/include
 SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
 EXEC=./tcc
 
-NEW=test/61-pass-macro.c
+NEW=test/f02-member-promotion.c
 CPP=$(NEW:.c=.i)
 ASM=$(CPP:.i=.s)
 
@@ -30,7 +30,7 @@ new: $(NEW) $(EXEC) inc
 	@echo "=================== $(NEW) ==================="
 	@./out
 
-test: $(EXEC) inc
+test: clean $(EXEC) inc
 	@echo "Running tests..."
 	@test/test-all.sh $(EXEC) $(STARTER) $(LOADER)
 	@echo "Comparing output with expected..."

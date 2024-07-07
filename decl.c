@@ -353,7 +353,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 }
 
 static Symbol *declare_composite(int ptype) {
-    Symbol *member, *ctype = NULL;
+    Symbol *member = NULL, *ctype = NULL;
     ASTnode *unused;
     int type, cur_size, max_size = 0, mem_cnt = 0;;
     char *name = NULL;
@@ -392,18 +392,40 @@ static Symbol *declare_composite(int ptype) {
     scan();
     // parse member list
     Symbol *mem_head = NULL, *mem_tail = NULL;
+    int invalid = FALSE, nothing, composite;
     while (TRUE) {
+        nothing = composite = FALSE;
         type = declare_list(&member, C_MEMBER, T_SEMI, T_RBRACE, &unused, &mem_head, &mem_tail);
-        if (type == P_NONE) {
+        if (type == P_NONE) { // if no member name
+            // a nested struct/union
+            if (member && (member->ptype == P_STRUCT || member->ptype == P_UNION)) {
+                composite = TRUE;
+                if (member->name) {
+                    nothing = TRUE;
+                } else {
+                    add_member_sym(member->name, &mem_head, &mem_tail, member->ptype, member, S_VARIABLE, 1);
+                }
+            } else {
+                invalid = TRUE;
+            }
+        }
+        if (nothing) {
+            warning("Declaration does not declare anything");
+        }
+        if (invalid) {
             fatal("Declaration does not declare anything");
         }
 
         mem_cnt++;
         if (TOKEN.token_type == T_RBRACE) {
-            warning("No semicolon at end of struct or union");
+            if (!composite) {
+                warning("No semicolon at end of struct or union");
+            }
             break;
         }
-        match(T_SEMI, "separator");
+        if (!composite) {
+            match(T_SEMI, "separator");
+        }
         if (TOKEN.token_type == T_RBRACE) {
             break;
         }
@@ -416,6 +438,7 @@ static Symbol *declare_composite(int ptype) {
 
     ctype->first = mem_head;
 
+    // calculate offset
     if (ptype == P_STRUCT) { // for struct
         for (member = ctype->first; member; member = member->next) {
             member->posn = gen_align(member->ptype, max_size, ASC);
@@ -426,6 +449,7 @@ static Symbol *declare_composite(int ptype) {
         for (member = ctype->first; member; member = member->next) {
             member->posn = 0;
             cur_size = size_of_type(member->ptype, member->ctype);
+            cur_size = cur_size < 8 ? 8 : cur_size;
             max_size = max_size > cur_size ? max_size : cur_size;
         }
     }

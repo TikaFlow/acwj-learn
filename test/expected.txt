@@ -385,3 +385,6 @@ macro INC_DIR = /tmp/include
 macro test1 = 100
 macro test2 = 123
 macro test3 = -333
+=================== test/f02-member-promotion.c ===================
+1
+257
