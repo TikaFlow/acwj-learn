@@ -72,13 +72,14 @@ static ASTnode *access_array(ASTnode *left) {
     return left;
 }
 
-static Symbol *get_member(Symbol *ctype, char *name, long *offset) {
-    Symbol *member;
+static Symbol *get_member(Symbol *ctype, char *name, long *base) {
+    Symbol *member = NULL, *nested;
+    long offset;
     for (member = ctype->first; member; member = member->next) {
         if (member->name) {
             if (!strcmp(member->name, name)) {
-                *offset = *offset + member->posn;
-                break;
+                *base += member->posn;
+                return member;
             }
         } else {
             if (member->ctype->name) {
@@ -86,13 +87,13 @@ static Symbol *get_member(Symbol *ctype, char *name, long *offset) {
                 continue;
             }
             if (member->ctype->ptype == P_STRUCT || member->ctype->ptype == P_UNION) {
-                *offset = *offset + member->posn;
-                return get_member(member->ctype, name, offset);
+                offset = member->posn;
+                if ((nested = get_member(member->ctype, name, &offset))) {
+                    *base += offset;
+                    return nested;
+                }
             }
         }
-    }
-    if (!member) {
-        fatals("No member found in struct/union", name);
     }
 
     return member;
@@ -126,6 +127,9 @@ static ASTnode *access_member(ASTnode *left, int with_pointer) {
 
     // get member name and offset
     member = get_member(ctype, TEXT, &offset);
+    if (!member) {
+        fatals("No member found in struct/union", TEXT);
+    }
 
     // get member offset
     right = make_ast_leaf(A_INTLIT, P_LONG, NULL, NULL, offset);
