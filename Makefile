@@ -3,7 +3,7 @@ INC_DIR=/tmp/include
 SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
 EXEC=./tcc
 
-NEW=test/f03-member-offset.c
+NEW=test/f04-forward-declaration.c
 CPP=$(NEW:.c=.i)
 ASM=$(CPP:.i=.s)
 
@@ -38,4 +38,4 @@ test: clean $(EXEC) inc
 	@echo "All Tests passed!"
 
 clean:
-	rm -f $(EXEC) out* *.out *.o *.s test/output.txt test/*.i test/*.s test/*.o
+	rm -f $(EXEC) out* *.out *.i *.s *.o test/output.txt test/*.i test/*.s test/*.o

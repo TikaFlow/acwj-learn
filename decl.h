@@ -154,6 +154,8 @@ void match(int token_type, char *what);
 
 char *get_name(int value_type, int value);
 
+void debug(char *s);
+
 void warning(char *s);
 
 void fatal(char *s);
@@ -163,6 +165,8 @@ void fatals(char *s1, char *s2);
 void fatald(char *s, int d);
 
 void fatalc(char *s, int c);
+
+char *format_str(char *fmt, ...);
 
 // sym.c
 void reset_global_syms();

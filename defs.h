@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 // constants
 #define MAX_INT 0x7fffffff
@@ -30,6 +31,11 @@
 #define DESC (-1)
 // when not found, return this value - function that returns index
 #define NOT_FOUND (-1)
+
+// typedefs
+typedef struct Symbol Symbol;
+typedef struct ASTnode ASTnode;
+typedef struct Token Token;
 
 // value type, used to get name
 enum {
@@ -125,7 +131,7 @@ struct Symbol {
     char *name;
     int ptype;
     int stype;
-    struct Symbol *ctype; // for struct/union, pointer to it's type
+    Symbol *ctype; // for struct/union, pointer to it's type
     int class; // global/local/param/struct/union/member
     int size; // total byte size
     int n_elem; // for function, number of parameters, for array, number of elements
@@ -134,30 +140,25 @@ struct Symbol {
         int end_label; // function end label
         int posn; // for param, positive position from stack base pointer/RBP
     };
-    struct Symbol *next;
-    struct Symbol *first;
+    Symbol *next;
+    Symbol *first;
 };
 
 // AST node struct
 struct ASTnode {
     int op;
     int type;
-    struct Symbol *ctype; // for struct/union, pointer to it's type
+    Symbol *ctype; // for struct/union, pointer to it's type
     int rvalue;
-    struct ASTnode *left;
-    struct ASTnode *mid;
-    struct ASTnode *right;
-    struct Symbol *sym; // symbol pointer in the symbol table
+    ASTnode *left;
+    ASTnode *mid;
+    ASTnode *right;
+    Symbol *sym; // symbol pointer in the symbol table
     union {
         long int_value; // intlit
         int size; // scale
     };
     int line; // line number which the node comes from
 };
-
-// typedefs
-typedef struct Symbol Symbol;
-typedef struct ASTnode ASTnode;
-typedef struct Token Token;
 
 #endif //ACWJ_LEARN_DEFS_H

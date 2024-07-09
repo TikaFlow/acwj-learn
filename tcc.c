@@ -75,10 +75,12 @@ static char *do_compile(char *file) {
     declare_global();
     gen_post_amble();
 
+#ifdef DEBUG
     printf("Symbols for %s\n", file);
     dump_sym_tables();
     printf("Release static symbols for %s\n", file);
     reset_static_syms();
+#endif // DEBUG
 
     fclose(OUT_FILE);
     fclose(IN_FILE);

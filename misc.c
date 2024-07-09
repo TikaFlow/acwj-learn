@@ -81,6 +81,10 @@ void match(int token_type, char *what) {
     fatals("expected", what);
 }
 
+void debug(char *s) {
+    fprintf(stdout, "[DEBUG] %s:%d %s.\n", IN_FILE_NAME, LINE, s);
+}
+
 void warning(char *s) {
     fprintf(stderr, "[WARNING] %s:%d %s.\n", IN_FILE_NAME, LINE, s);
 }
@@ -116,4 +120,18 @@ void fatalc(char *s, int c) {
     fclose(IN_FILE);
     unlink(OUT_FILE_NAME);
     exit(1);
+}
+
+char *format_str(char *fmt, ...) {
+    char *str = calloc(MAX_TEXT, sizeof(char));
+    if (!str) {
+        fprintf(stderr, "Out of memory.");
+    }
+
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(str, fmt, args);
+    va_end(args);
+
+    return str;
 }

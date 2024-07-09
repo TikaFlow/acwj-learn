@@ -5,6 +5,8 @@
 #include "data.h"
 #include "decl.h"
 
+static int not_typedef = TRUE;
+
 static Symbol *declare_composite(int ptype);
 
 static void declare_enum();
@@ -88,11 +90,11 @@ int parse_type(Symbol **ctype, int *class) {
     if (TOKEN.token_type == T_SEMI) {
         // not a variable declaration, but only a struct/union/enum/typedef definition
         if (type == P_STRUCT || type == P_UNION || can_no_var) {
-            type = P_NONE;
-            scan();
         } else {
-            fatal("Variable name expected");
+            warning("Declaration does not declare anything");
         }
+        type = P_NONE;
+        scan();
     }
 
     return type;
@@ -300,7 +302,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 
     if (!old_func) {
         end_label = gen_label();
-        new_func = add_global_sym(name, type, NULL, S_FUNCTION, class, 0, end_label);
+        new_func = add_global_sym(name, type, ctype, S_FUNCTION, class, 0, end_label);
     }
 
     match(T_LPAREN, "(");
@@ -355,7 +357,7 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
 static Symbol *declare_composite(int ptype) {
     Symbol *member = NULL, *ctype = NULL;
     ASTnode *unused;
-    int type, cur_size, max_size = 0, mem_cnt = 0;;
+    int type, cur_size, max_size = 0, mem_cnt = 0;
     char *name = NULL;
 
     // skip struct/union keyword
@@ -372,27 +374,45 @@ static Symbol *declare_composite(int ptype) {
         scan();
     }
 
+    if (ctype) {
+        // we found a existing one, but now defining a new composite
+        if (TOKEN.token_type == T_LBRACE && ctype->size > 0) {
+            fatals("Struct/Union type already defined", TEXT);
+        }
+    } else {
+        if (ptype == P_STRUCT) {
+            ctype = add_struct_sym(name);
+        } else {
+            ctype = add_union_sym(name);
+        }
+        ctype->size = -1; // mark as half definition
+    }
+
+    /*
+     * after struct xxx, should be one of below:
+     * ; - half definition
+     * { - full definition
+     * * - pointer to composite
+     * ident
+     *      - variable/param/function name
+     *      - typedef
+     *
+     * if not defining a new composite, and also not half definition, then must define
+     * something of this type which should have full definition
+     */
     if (TOKEN.token_type != T_LBRACE) {
-        if (!ctype) {
-            fatals("Unknown struct/union type", TEXT);
+        if (TOKEN.token_type != T_SEMI && ctype->size < 0 && not_typedef) {
+            fatals("Incomplete type declaration", name);
         }
         return ctype;
     }
 
     // struct xxx{}
-    if (ctype) {
-        fatals("Struct type already defined", TEXT);
-    }
-    if (ptype == P_STRUCT) {
-        ctype = add_struct_sym(name);
-    } else {
-        ctype = add_union_sym(name);
-    }
-
     scan();
     // parse member list
     Symbol *mem_head = NULL, *mem_tail = NULL;
     int invalid = FALSE, nothing, composite;
+    ctype->size = 0; // mark as full defined
     while (TRUE) {
         nothing = composite = FALSE;
         type = declare_list(&member, C_MEMBER, T_SEMI, T_RBRACE, &unused, &mem_head, &mem_tail);
@@ -438,7 +458,7 @@ static Symbol *declare_composite(int ptype) {
 
     ctype->first = mem_head;
 
-    // calculate offset
+    // calculate offset and size
     if (ptype == P_STRUCT) { // for struct
         for (member = ctype->first; member; member = member->next) {
             member->posn = gen_align(member->ptype, max_size, ASC);
@@ -456,15 +476,13 @@ static Symbol *declare_composite(int ptype) {
     ctype->size = max_size;
 
 #ifdef DEBUG
-    // DEBUG START
     // print struct info
-    printf("[DEBUG] struct/union %s's size is %d\n", ctype->name, ctype->size);
+    debug(format_str("%s %s's size is %d", ptype == P_STRUCT ? "struct" : "union", ctype->name, ctype->size));
     for (Symbol *debug_member = ctype->first; debug_member; debug_member = debug_member->next) {
-        printf("[DEBUG] offset of %s.%s is %d\n", ctype->name, debug_member->name, debug_member->posn);
+        debug(format_str("offset of %s.%s is %d", ctype->name, debug_member->name, debug_member->posn));
     }
     printf("\n");
-    // DEBUG END
-#endif
+#endif // DEBUG
 
     return ctype;
 }
@@ -529,6 +547,7 @@ static void declare_enum() {
 static int declare_typedef(Symbol **ctype) {
     int type, class = C_NONE;
 
+    not_typedef = FALSE;
     // skip typedef keyword
     scan();
 
@@ -547,7 +566,9 @@ static int declare_typedef(Symbol **ctype) {
     }
 
     add_typedef_sym(TEXT, type, *ctype);
+    // skip alias name
     scan();
+    not_typedef = TRUE;
 
     return type;
 }

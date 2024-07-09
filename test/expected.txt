@@ -394,3 +394,4 @@ macro test3 = -333
 -257
 257
 0
+=================== test/f04-forward-declaration.c ===================
