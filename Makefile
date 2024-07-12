@@ -3,7 +3,7 @@ INC_DIR=/tmp/include
 SRCS=tcc.c scan.c expr.c cg.c gen.c tree.c stmt.c misc.c decl.c sym.c type.c opt.c
 EXEC=./tcc
 
-NEW=test/f04-forward-declaration.c
+NEW=test/f06-fix-bug.c
 CPP=$(NEW:.c=.i)
 ASM=$(CPP:.i=.s)
 

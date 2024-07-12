@@ -30,7 +30,16 @@ int value_at(int type) {
 }
 
 int size_of_type(int ptype, Symbol *ctype) {
-    return (ptype == P_STRUCT || ptype == P_UNION) ? ctype->size : gen_type_size(ptype);
+    int size;
+    if (ptype == P_STRUCT || ptype == P_UNION) {
+        size = ctype->size;
+        if (size < 0) {
+            fatals("Incomplete type", format_str("%s %s", ptype == P_STRUCT ? "struct" : "union", ctype->name));
+        }
+    } else {
+        size = gen_type_size(ptype);
+    }
+    return size;
 }
 
 ASTnode *modify_type(ASTnode *left, ASTnode *right, int op) {
@@ -76,7 +85,7 @@ ASTnode *modify_type(ASTnode *left, ASTnode *right, int op) {
 
     if (op == A_ADD || op == A_SUBTRACT || op == A_ASPLUS || op == A_ASMINUS) {
         if (is_int(ltype) && is_ptr(rtype)) {
-            rsize = gen_type_size(value_at(rtype));
+            rsize = size_of_type(value_at(rtype), right->ctype);
             if (rsize > 1) {
                 return make_ast_unary(A_SCALE, rtype, right->ctype, left, NULL, rsize);
             }

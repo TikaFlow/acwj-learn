@@ -180,6 +180,9 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class, Sym
     Symbol *sym = NULL;
     int n_elem = -1;
 
+    if ((type == P_STRUCT || type == P_UNION) && ctype->size < 0) {
+        fatals("Incomplete type", format_str("%s %s", type == P_STRUCT ? "struct" : "union", ctype->name));
+    }
     // skip '['
     scan();
 
@@ -268,6 +271,9 @@ static int declare_param_list(Symbol *old_func, Symbol *new_func, Symbol **head,
         if (type == P_NONE) {
             fatal("Bad type in parameter list");
         }
+        if ((type == P_STRUCT || type == P_UNION) && ctype->size < 0) {
+            fatals("Incomplete type", format_str("%s %s", type == P_STRUCT ? "struct" : "union", ctype->name));
+        }
 
         if (proto_param) {
             if (type != proto_param->ptype) {
@@ -347,9 +353,6 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class, ASTn
             fatal("No return statement in function with non-void return type");
         }
     }
-
-    // optimize
-    *glue_tree = optimize(*glue_tree);
 
     *glue_tree = make_ast_unary(A_FUNCTION, type, ctype, *glue_tree, old_func, end_label);
 
@@ -793,5 +796,7 @@ void declare_global() {
         }
     }
 
+    // optimize
+    top = optimize(top);
     gen_ast(top, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
 }

@@ -73,7 +73,11 @@ static Symbol *new_sym(char *name, int ptype, Symbol *ctype, int stype, int clas
     sym->init_list = NULL;
 
     if (is_int(ptype) || is_ptr(ptype)) {
-        sym->size = n_elem * size_of_type(ptype, ctype);
+        if (stype == S_ARRAY) { // an array
+            sym->size = n_elem * size_of_type(value_at(ptype), ctype);
+        } else {
+            sym->size = size_of_type(ptype, ctype);
+        }
     }
 
     return sym;

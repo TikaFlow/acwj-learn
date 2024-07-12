@@ -41,7 +41,7 @@ char *OP_NAMES[] = {
         "PREINC", "PREDEC", "POSTINC", "POSTDEC", "NEGATE", "INVERT",
         "LOGNOT", "TOBOOL",
         "BREAK", "CONTINUE", "SWITCH", "CASE", "DEFAULT", "CAST",
-        "NOP",
+        "NOP", "DECLARE",
 };
 
 // ptpye name
@@ -50,8 +50,8 @@ char *PTYPE_NAMES[] = {
 };
 
 char *get_name(int value_type, int value) {
-    int div, mod, len = 0;
-    char *desc = "multiple pointers to STRUCT....";
+    int div, mod, len = 0, desc_len = 0x20;
+    char *desc = calloc(desc_len, sizeof(char));
     switch (value_type) {
         case V_TOKEN:
             return TOKEN_NAMES[value];
@@ -62,11 +62,11 @@ char *get_name(int value_type, int value) {
             mod = value % 0x10;
             if (mod) {
                 if (mod > 1) {
-                    len = snprintf(desc, 0x20 - len, "%s", "multiple ");
+                    len = snprintf(desc, desc_len - len, "%s", "multiple ");
                 }
-                len = snprintf(desc, 0x20 - len, "%s", "pointers to ");
+                len = snprintf(desc, desc_len - len, "%s", "pointers to ");
             }
-            snprintf(desc, 0x20 - len, "%s", PTYPE_NAMES[div]);
+            snprintf(desc, desc_len - len, "%s", PTYPE_NAMES[div]);
             return desc;
         default:
             return "UNKNOWN";
