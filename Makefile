@@ -19,7 +19,7 @@ inc:
 	rsync -a include/ $(INC_DIR)/
 
 $(EXEC): $(HEADER) $(SRCS)
-	gcc -o $@ -g -Wall -DDEBUG $^
+	gcc -o $@ -g -Wall $^
 
 new: $(NEW) $(EXEC) inc
 	cpp -o $(CPP) -nostdinc -isystem $(INC_DIR) $(NEW)

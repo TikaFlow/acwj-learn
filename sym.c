@@ -17,10 +17,12 @@ void reset_global_syms() {
     TYPEDEF_HEAD = TYPEDEF_TAIL = NULL;
 }
 
-void reset_local_syms() {
-    LOCAL_HEAD = LOCAL_TAIL = NULL;
-    PARAM_HEAD = PARAM_TAIL = NULL;
+void reset_func_ptr() {
     FUNC_PTR = NULL;
+}
+
+void set_func_ptr(Symbol *func) {
+    FUNC_PTR = func;
 }
 
 void reset_static_syms() {
@@ -46,11 +48,6 @@ void reset_static_syms() {
     }
 
     printf("\n");
-}
-
-void reset_sym_table() {
-    reset_global_syms();
-    reset_local_syms();
 }
 
 static Symbol *new_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int n_elem, int posn) {
@@ -92,21 +89,26 @@ Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int clas
     return sym;
 }
 
-Symbol *add_param_sym(char *name, int ptype, Symbol *ctype, int stype) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_PARAM, 1, 0);
-    add_sym(&PARAM_HEAD, &PARAM_TAIL, sym);
+static Symbol *add_param_local_sym(char *name, Symbol **head, Symbol **tail, int ptype, Symbol *ctype,
+                                   int stype, int class, int n_elem) {
+    Symbol *sym = new_sym(name, ptype, ctype, stype, class, n_elem, 0);
+    if (ptype == P_STRUCT || ptype == P_UNION) {
+        sym->size = ctype->size;
+    }
+    add_sym(head, tail, sym);
+    if (!FUNC_PTR->first) {
+        FUNC_PTR->first = *head;
+    }
 
     return sym;
 }
 
-Symbol *add_local_sym(char *name, int ptype, Symbol *ctype, int stype, int n_elem) {
-    Symbol *sym = new_sym(name, ptype, ctype, stype, C_LOCAL, n_elem, 0);
-    if (ptype == P_STRUCT || ptype == P_UNION) {
-        sym->size = ctype->size;
-    }
-    add_sym(&LOCAL_HEAD, &LOCAL_TAIL, sym);
+Symbol *add_param_sym(char *name, Symbol **head, Symbol **tail, int ptype, Symbol *ctype, int stype) {
+    return add_param_local_sym(name, head, tail, ptype, ctype, stype, C_PARAM, 1);
+}
 
-    return sym;
+Symbol *add_local_sym(char *name, Symbol **head, Symbol **tail, int ptype, Symbol *ctype, int stype, int n_elem) {
+    return add_param_local_sym(name, head, tail, ptype, ctype, stype, C_LOCAL, n_elem);
 }
 
 Symbol *add_struct_sym(char *name) {
@@ -179,18 +181,12 @@ Symbol *find_global_sym(char *s) {
     return find_sym_in_list(s, GLOBAL_HEAD);
 }
 
-static Symbol *find_param_sym(char *s) {
+Symbol *find_param_local_sym(char *s) {
     if (FUNC_PTR) {
         return find_sym_in_list(s, FUNC_PTR->first);
     }
 
     return NULL;
-}
-
-Symbol *find_local_sym(char *s) {
-    Symbol *sym;
-
-    return (sym = find_param_sym(s)) ? sym : find_sym_in_list(s, LOCAL_HEAD);
 }
 
 Symbol *find_struct_sym(char *s) {
@@ -239,7 +235,7 @@ Symbol *find_typedef_sym(char *s) {
 Symbol *find_sym(char *s) {
     Symbol *sym;
 
-    return (sym = find_local_sym(s)) ? sym : find_global_sym(s);
+    return (sym = find_param_local_sym(s)) ? sym : find_global_sym(s);
 }
 
 static void dump_sym(Symbol *sym, int indent) {

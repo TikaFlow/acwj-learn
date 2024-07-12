@@ -80,7 +80,7 @@ enum {
     A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC, A_NEGATE, A_INVERT, // 44
     A_LOGNOT, A_TOBOOL,
     A_BREAK, A_CONTINUE, A_SWITCH, A_CASE, A_DEFAULT, A_CAST, // 52
-    A_NOP,
+    A_NOP, A_DECLARE,
 };
 
 // primitive type
@@ -140,8 +140,8 @@ struct Symbol {
         int end_label; // function end label
         int posn; // for param, positive position from stack base pointer/RBP
     };
-    Symbol *next;
-    Symbol *first;
+    Symbol *next; // next symbol
+    Symbol *first; // for struct/union, pointer to first member, for function, pointer to first param/local
 };
 
 // AST node struct

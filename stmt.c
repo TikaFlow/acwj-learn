@@ -5,13 +5,13 @@
 #include "data.h"
 #include "decl.h"
 
-static ASTnode *single_stmt();
+static ASTnode *single_stmt(Symbol **head, Symbol **tail);
 
 static ASTnode *nop_stmt() {
     return make_ast_leaf(A_NOP, P_NONE, NULL, NULL, 0);
 }
 
-static ASTnode *if_stmt() {
+static ASTnode *if_stmt(Symbol **head, Symbol **tail) {
     ASTnode *cond_node, *true_node, *false_node = NULL;
 
     scan();
@@ -21,16 +21,16 @@ static ASTnode *if_stmt() {
         cond_node = make_ast_unary(A_TOBOOL, cond_node->type, cond_node->ctype, cond_node, NULL, 0);
     }
     match(T_RPAREN, ")");
-    true_node = compound_stmt(FALSE);
+    true_node = compound_stmt(FALSE, head, tail);
     if (TOKEN.token_type == T_ELSE) {
         scan();
-        false_node = compound_stmt(FALSE);
+        false_node = compound_stmt(FALSE, head, tail);
     }
 
     return make_ast_node(A_IF, P_NONE, NULL, cond_node, true_node, false_node, NULL, 0);
 }
 
-static ASTnode *while_stmt() {
+static ASTnode *while_stmt(Symbol **head, Symbol **tail) {
     ASTnode *cond_node, *body_node;
 
     scan();
@@ -43,13 +43,13 @@ static ASTnode *while_stmt() {
     match(T_RPAREN, ")");
 
     LOOP_LEVEL++;
-    body_node = compound_stmt(FALSE);
+    body_node = compound_stmt(FALSE, head, tail);
     LOOP_LEVEL--;
 
     return make_ast_node(A_WHILE, P_NONE, NULL, cond_node, NULL, body_node, NULL, 0);
 }
 
-static ASTnode *for_stmt() {
+static ASTnode *for_stmt(Symbol **head, Symbol **tail) {
     ASTnode *cond_node, *body_node, *pre_node, *post_node, *tree;
 
     scan();
@@ -68,7 +68,7 @@ static ASTnode *for_stmt() {
     scan();
 
     LOOP_LEVEL++;
-    body_node = compound_stmt(FALSE);
+    body_node = compound_stmt(FALSE, head, tail);
     LOOP_LEVEL--;
 
     tree = make_ast_node(A_GLUE, P_NONE, NULL, body_node, NULL, post_node, NULL, 0);
@@ -113,7 +113,7 @@ static ASTnode *goto_stmt(int goto_type) {
     return make_ast_leaf(goto_type, P_NONE, NULL, NULL, 0);
 }
 
-static ASTnode *switch_stmt() {
+static ASTnode *switch_stmt(Symbol **head, Symbol **tail) {
     ASTnode *tree, *case_node, *left, *case_tree = NULL, *case_tail;
     int in_loop = TRUE, seen_dft = FALSE, case_cnt = 0, op, case_val;
 
@@ -169,10 +169,10 @@ static ASTnode *switch_stmt() {
                         left = nop_stmt();
                         break;
                     case T_LBRACE:
-                        left = compound_stmt(FALSE);
+                        left = compound_stmt(FALSE, head, tail);
                         break;
                     default:
-                        left = compound_stmt(TRUE);
+                        left = compound_stmt(TRUE, head, tail);
                         break;
                 }
 
@@ -204,7 +204,7 @@ static ASTnode *switch_stmt() {
     return tree;
 }
 
-static ASTnode *single_stmt() {
+static ASTnode *single_stmt(Symbol **head, Symbol **tail) {
     Symbol *ctype;
     ASTnode *stmt = NULL;
     switch (TOKEN.token_type) {
@@ -224,20 +224,20 @@ static ASTnode *single_stmt() {
         case T_UNION:
         case T_ENUM:
         case T_TYPEDEF:
-            declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt, NULL, NULL);
+            declare_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt, head, tail);
             if (stmt && stmt->op == A_ASSIGN) { // A_ASSIGN will be handled behind
             } else {
                 match(T_SEMI, ";");
             }
             break;
         case T_IF:
-            stmt = if_stmt();
+            stmt = if_stmt(head, tail);
             break;
         case T_WHILE:
-            stmt = while_stmt();
+            stmt = while_stmt(head, tail);
             break;
         case T_FOR:
-            stmt = for_stmt();
+            stmt = for_stmt(head, tail);
             break;
         case T_RETURN:
             stmt = return_stmt();
@@ -249,7 +249,7 @@ static ASTnode *single_stmt() {
             stmt = goto_stmt(A_CONTINUE);
             break;
         case T_SWITCH:
-            stmt = switch_stmt();
+            stmt = switch_stmt(head, tail);
             break;
         default:
             stmt = bin_expr(0);
@@ -270,7 +270,7 @@ static ASTnode *single_stmt() {
  * - otherwise, case statement should call this
  * - function with is_switch == FALSE
  */
-ASTnode *compound_stmt(int is_switch) {
+ASTnode *compound_stmt(int is_switch, Symbol **head, Symbol **tail) {
     ASTnode *tree, *left = NULL;
     int single_mode = FALSE;
 
@@ -294,7 +294,7 @@ ASTnode *compound_stmt(int is_switch) {
             return left;
         }
 
-        tree = single_stmt();
+        tree = single_stmt(head, tail);
 
         if (tree) {
             switch (tree->op) {

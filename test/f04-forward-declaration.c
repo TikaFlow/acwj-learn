@@ -1,8 +1,9 @@
 typedef struct abc abc;
+struct abc foo;
 struct abc;
 
-// struct abc* ptr; // legal but not support now
-// struct abc createAbc(); // legal but not support now
+struct abc* ptr;
+struct abc createAbc();
 
 struct abc {
     int a;

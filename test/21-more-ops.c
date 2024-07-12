@@ -9,19 +9,19 @@ int   x;
 int main() {
     b= 5; c= 7; a= b + c++; printf("%d\n", a); printf("%d\n", c);
     e= 5; f= 7; d= e + f++; printf("%d\n", d); printf("%d\n", f);
-    h= 5; i= 7; g= h + i++; printf("%d\n", g); printf("%d\n", i);
+    h= 5; i= 7; g= h + i++; printf("%ld\n", g); printf("%ld\n", i);
     printf("%c", '\n');
     a= b-- + c; printf("%d\n", a); printf("%d\n", b);
     d= e-- + f; printf("%d\n", d); printf("%d\n", e);
-    g= h-- + i; printf("%d\n", g); printf("%d\n", h);
+    g= h-- + i; printf("%ld\n", g); printf("%ld\n", h);
     printf("%c", '\n');
     a= ++b + c; printf("%d\n", a); printf("%d\n", b);
     d= ++e + f; printf("%d\n", d); printf("%d\n", e);
-    g= ++h + i; printf("%d\n", g); printf("%d\n", h);
+    g= ++h + i; printf("%ld\n", g); printf("%ld\n", h);
     printf("%c", '\n');
     a= b * --c; printf("%d\n", a); printf("%d\n", c);
     d= e * --f; printf("%d\n", d); printf("%d\n", f);
-    g= h * --i; printf("%d\n", g); printf("%d\n", i);
+    g= h * --i; printf("%ld\n", g); printf("%ld\n", i);
     printf("%c", '\n');
 
     x= -66 + +23; printf("%d\n", x);

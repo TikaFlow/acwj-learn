@@ -5,8 +5,6 @@
 #include "data.h"
 #include "decl.h"
 
-static int not_typedef = TRUE;
-
 static Symbol *declare_composite(int ptype);
 
 static void declare_enum();
@@ -178,7 +176,7 @@ static int is_new_sym(Symbol *sym, int class, int type, Symbol *ctype) {
     return FALSE; // keep compiler happy
 }
 
-static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
+static Symbol *declare_array(char *name, int type, Symbol *ctype, int class, Symbol **head, Symbol **tail) {
     Symbol *sym = NULL;
     int n_elem = -1;
 
@@ -206,7 +204,7 @@ static Symbol *declare_array(char *name, int type, Symbol *ctype, int class) {
             }
             break;
         case C_LOCAL:
-            sym = add_local_sym(name, pointer_to(type), ctype, S_ARRAY, n_elem);
+            sym = add_local_sym(name, head, tail, pointer_to(type), ctype, S_ARRAY, n_elem);
             break;
         case C_PARAM:
         case C_MEMBER:
@@ -231,10 +229,10 @@ static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class, Sy
             }
             break;
         case C_LOCAL:
-            sym = add_local_sym(name, type, ctype, S_VARIABLE, 1);
+            sym = add_local_sym(name, head, tail, type, ctype, S_VARIABLE, 1);
             break;
         case C_PARAM:
-            sym = add_param_sym(name, type, ctype, S_VARIABLE);
+            sym = add_param_sym(name, head, tail, type, ctype, S_VARIABLE);
             break;
         case C_MEMBER:
             sym = add_member_sym(name, head, tail, type, ctype, S_VARIABLE, 1);
@@ -246,13 +244,14 @@ static Symbol *declare_scalar(char *name, int type, Symbol *ctype, int class, Sy
     return sym;
 }
 
-static int declare_param_list(Symbol *old_func, Symbol *new_func) {
+static int declare_param_list(Symbol *old_func, Symbol *new_func, Symbol **head, Symbol **tail) {
     int type, param_cnt = 0;
-    Symbol *ctype, *proto_ptr = NULL;
+    Symbol *ctype, *proto_param = NULL;
     ASTnode *unused;
 
     if (old_func) {
-        proto_ptr = old_func->first;
+        proto_param = old_func->first;
+        old_func->first = *head;
     }
 
     while (TOKEN.token_type != T_RPAREN) {
@@ -265,15 +264,16 @@ static int declare_param_list(Symbol *old_func, Symbol *new_func) {
             }
         }
 
-        type = declare_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, &unused, NULL, NULL);
+        type = declare_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, &unused, head, tail);
         if (type == P_NONE) {
             fatal("Bad type in parameter list");
         }
 
-        if (proto_ptr) {
-            if (type != proto_ptr->ptype) {
-                fatald("Type mismatch of parameter", param_cnt);
+        if (proto_param) {
+            if (type != proto_param->ptype) {
+                fatals("Conflicting types at function", old_func ? old_func->name : new_func->name);
             }
+            proto_param = proto_param->next;
         }
 
         param_cnt++;
@@ -291,9 +291,10 @@ static int declare_param_list(Symbol *old_func, Symbol *new_func) {
     return param_cnt;
 }
 
-static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
-    ASTnode *tree, *final_stmt;
+static Symbol *declare_func(char *name, int type, Symbol *ctype, int class, ASTnode **glue_tree) {
+    ASTnode *final_stmt;
     Symbol *old_func, *new_func = NULL;
+    Symbol *param_head = NULL, *param_tail = NULL;
     int end_label = 0, param_cnt;
 
     if ((old_func = find_global_sym(name)) && old_func->stype != S_FUNCTION) {
@@ -305,23 +306,26 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
         new_func = add_global_sym(name, type, ctype, S_FUNCTION, class, 0, end_label);
     }
 
+    if (old_func) {
+        set_func_ptr(old_func);
+    } else {
+        set_func_ptr(new_func);
+    }
     match(T_LPAREN, "(");
-    param_cnt = declare_param_list(old_func, new_func);
+    param_cnt = declare_param_list(old_func, new_func, &param_head, &param_tail);
     match(T_RPAREN, ")");
 
     if (new_func) {
         new_func->n_elem = param_cnt;
-        new_func->first = PARAM_HEAD;
+        new_func->first = param_head;
         old_func = new_func;
     }
-    PARAM_HEAD = PARAM_TAIL = NULL;
 
     // only a prototype
     if (TOKEN.token_type == T_SEMI) {
+        reset_func_ptr();
         return old_func;
     }
-
-    FUNC_PTR = old_func;
 
     SWITCH_LEVEL = 0;
     LOOP_LEVEL = 0;
@@ -330,27 +334,26 @@ static Symbol *declare_func(char *name, int type, Symbol *ctype, int class) {
     if (TOKEN.token_type != T_LBRACE) {
         fatal("No '{' in function body");
     }
-    tree = compound_stmt(FALSE);
+    *glue_tree = compound_stmt(FALSE, &param_head, &param_tail);
+    old_func->first = param_head; // in case there were no params
 
     if (type != P_VOID) {
-        if (!tree) {
+        if (!(*glue_tree)) {
             fatal("No statements in function with non-void type");
         }
 
-        final_stmt = tree->op == A_GLUE ? tree->right : tree;
+        final_stmt = (*glue_tree)->op == A_GLUE ? (*glue_tree)->right : *glue_tree;
         if (!final_stmt || final_stmt->op != A_RETURN) {
             fatal("No return statement in function with non-void return type");
         }
     }
 
     // optimize
-    tree = optimize(tree);
+    *glue_tree = optimize(*glue_tree);
 
-    tree = make_ast_unary(A_FUNCTION, type, ctype, tree, old_func, end_label);
+    *glue_tree = make_ast_unary(A_FUNCTION, type, ctype, *glue_tree, old_func, end_label);
 
-    gen_ast(tree, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
-    reset_local_syms();
-
+    reset_func_ptr();
     return old_func;
 }
 
@@ -396,14 +399,8 @@ static Symbol *declare_composite(int ptype) {
      * ident
      *      - variable/param/function name
      *      - typedef
-     *
-     * if not defining a new composite, and also not half definition, then must define
-     * something of this type which should have full definition
      */
     if (TOKEN.token_type != T_LBRACE) {
-        if (TOKEN.token_type != T_SEMI && ctype->size < 0 && not_typedef) {
-            fatals("Incomplete type declaration", name);
-        }
         return ctype;
     }
 
@@ -547,7 +544,6 @@ static void declare_enum() {
 static int declare_typedef(Symbol **ctype) {
     int type, class = C_NONE;
 
-    not_typedef = FALSE;
     // skip typedef keyword
     scan();
 
@@ -568,7 +564,6 @@ static int declare_typedef(Symbol **ctype) {
     add_typedef_sym(TEXT, type, *ctype);
     // skip alias name
     scan();
-    not_typedef = TRUE;
 
     return type;
 }
@@ -674,7 +669,7 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
 
     // if a function
     if (TOKEN.token_type == T_LPAREN) {
-        return declare_func(name, type, ctype, class);
+        return declare_func(name, type, ctype, class, glue_tree);
     }
 
     // check if has been declared
@@ -682,10 +677,10 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
         case C_STATIC:
         case C_EXTERN:
         case C_GLOBAL:
-        case C_LOCAL:
             break;
+        case C_LOCAL:
         case C_PARAM:
-            if (find_local_sym(name)) {
+            if (find_param_local_sym(name)) {
                 fatals("Local variable already defined", name);
             }
             break;
@@ -700,7 +695,7 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
 
     // add to symbol table
     if (TOKEN.token_type == T_LBRACKET) {
-        sym = declare_array(name, type, ctype, class);
+        sym = declare_array(name, type, ctype, class, head, tail);
         stype = S_ARRAY;
     } else {
         sym = declare_scalar(name, type, ctype, class, head, tail);
@@ -726,7 +721,9 @@ static Symbol *declare_sym(int type, Symbol *ctype, int class, ASTnode **glue_tr
 
     // generate space if is a GLOBAL symbol
     if (class == C_GLOBAL || class == C_STATIC) {
-        gen_new_sym(sym);
+        // gen_new_sym(sym);
+        ASTnode *left = make_ast_leaf(A_DECLARE, sym->ptype, sym->ctype, sym, 0);
+        *glue_tree = make_ast_node(A_GLUE, P_NONE, NULL, left, NULL, *glue_tree, NULL, 0);
     }
 
     return sym;
@@ -778,13 +775,23 @@ declare_list(Symbol **ctype, int class, int end_tk1, int end_tk2, ASTnode **glue
 
 void declare_global() {
     Symbol *ctype = NULL;
-    ASTnode *unused;
+    ASTnode *top = NULL, *tree = NULL;
 
     while (TOKEN.token_type != T_EOF) {
-        declare_list(&ctype, C_GLOBAL, T_SEMI, T_EOF, &unused, NULL, NULL);
+        declare_list(&ctype, C_GLOBAL, T_SEMI, T_EOF, &tree, NULL, NULL);
+
+        if (tree) {
+            if (top) {
+                top = make_ast_node(A_GLUE, P_NONE, NULL, top, NULL, tree, NULL, 0);
+            } else {
+                top = tree;
+            }
+        }
 
         if (TOKEN.token_type == T_SEMI) {
             scan();
         }
     }
+
+    gen_ast(top, NO_LABEL, NO_LABEL, NO_LABEL, A_NONE);
 }

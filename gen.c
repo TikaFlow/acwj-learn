@@ -157,6 +157,11 @@ static int gen_short_circuit(ASTnode *node, int is_and) {
     return reg;
 }
 
+static int gen_declare(ASTnode *node) {
+    gen_new_sym(node->sym);
+    return NO_REG;
+}
+
 int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int parent_op) {
     int leftreg = NO_REG, rightreg = NO_REG;
 
@@ -167,6 +172,8 @@ int gen_ast(ASTnode *node, int if_label, int start_label, int end_label, int par
     update_line(node);
 
     switch (node->op) {
+        case A_DECLARE:
+            return gen_declare(node);
         case A_IF:
             return gen_if_ast(node, start_label, end_label);
         case A_WHILE:

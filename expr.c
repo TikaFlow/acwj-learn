@@ -75,6 +75,11 @@ static ASTnode *access_array(ASTnode *left) {
 static Symbol *get_member(Symbol *ctype, char *name, long *base) {
     Symbol *member = NULL, *nested;
     long offset;
+
+    if (ctype->size < 0) {
+        fatal("Cannot access members of incomplete type");
+    }
+
     for (member = ctype->first; member; member = member->next) {
         if (member->name) {
             if (!strcmp(member->name, name)) {

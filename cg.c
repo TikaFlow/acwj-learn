@@ -14,7 +14,7 @@ enum {
     DATA_SECTION
 } cur_section = NO_SECTION;
 
-static int local_offset, stack_offset, align = 7, spill_reg = 0;
+static int local_offset, stack_offset, align = 8, spill_reg = 0;
 static int freereg[FREE_REG_NUM];
 static char *breglist[] = {"%r12b", "%r13b", "%r14b", "%r15b", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static char *wreglist[] = {"%r12w", "%r13w", "%r14w", "%r15w", "%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
@@ -62,7 +62,7 @@ static void cg_reset_local_offset() {
 }
 
 static int cg_get_local_offset(int size) {
-    local_offset += size > 4 ? size : 4;
+    local_offset += size > align ? size : align;
 
     return -local_offset;
 }
@@ -72,7 +72,8 @@ static void cg_set_stack_offset() {
 }
 
 int cg_align(int type, int offset, int direction) {
-    return (offset + align * direction) & ~align;
+    int align_cut = align - 1;
+    return (offset + align_cut * direction) & ~align_cut;
 }
 
 void cg_free_regs(int keep_reg) {
@@ -115,7 +116,6 @@ void cg_free_register(int reg) {
 
 void cg_pre_amble(char *file) {
     cg_free_regs(NO_REG);
-    cg_text_section();
 
     fprintf(OUT_FILE, "\t.file 1 \"%s\"\n", file);
 /*
@@ -144,10 +144,12 @@ no:
         jmp     *%rax           # and jump to the default case
  */
     fprintf(OUT_FILE,
+            "\n"
             "# internal switch(expr) routine\n"
             "# %%rsi = switch table, %%rax = expr\n"
-            "# from SubC: http://www.t3x.org/subc/\n"
-            "\n"
+            "# from SubC: http://www.t3x.org/subc/\n");
+    cg_text_section();
+    fprintf(OUT_FILE,
             "switch:\n"
             "\tpushq\t%%rsi\n"
             "\tmovq\t%%rdx, %%rsi\n"
@@ -175,8 +177,9 @@ void cg_post_amble() {
 }
 
 void cg_func_pre_amble(Symbol *sym) {
+    set_func_ptr(sym);
     char *name = sym->name;
-    Symbol *param, *local;
+    Symbol *local;
     int cnt = 1, param_offset = 0x10, param_reg = FREE_REG_NUM;
     cg_text_section();
     cg_reset_local_offset();
@@ -192,19 +195,20 @@ void cg_func_pre_amble(Symbol *sym) {
             "\tmovq\t%%rsp, %%rbp\n",
             name, name);
 
-    // copy all params to register
-    for (param = sym->first; param; cnt++, param = param->next) {
-        if (cnt <= 6) {
-            param->posn = cg_get_local_offset(param->size);
-            cg_store_local_sym(param_reg++, param);
+    for (local = sym->first; local; local = local->next) {
+        // copy all params to register
+        if (local->class == C_PARAM) {
+            if (cnt <= 6) {
+                local->posn = cg_get_local_offset(local->size);
+                cg_store_local_sym(param_reg++, local);
+            } else {
+                local->posn = param_offset;
+                param_offset += local->size > align ? local->size : align;
+            }
+            cnt++;
         } else {
-            param->posn = param_offset;
-            param_offset += 8;
+            local->posn = cg_get_local_offset(local->size);
         }
-    }
-
-    for (local = LOCAL_HEAD; local; local = local->next) {
-        local->posn = cg_get_local_offset(local->size);
     }
 
     cg_set_stack_offset();
@@ -220,6 +224,7 @@ void cg_func_post_amble(Symbol *sym) {
             "\tpopq\t%%rbp\n"
             "\tret\n",
             stack_offset);
+    reset_func_ptr();
 }
 
 int cg_load_int(long value) {
@@ -506,7 +511,7 @@ int cg_type_size(int type) {
 }
 
 void cg_new_sym(Symbol *sym) {
-    int size, type, i, j;
+    int size, type, i;
     long init_value;
 
     if (!sym || sym->stype == S_FUNCTION) {
@@ -523,7 +528,7 @@ void cg_new_sym(Symbol *sym) {
         size = size_of_type(value_at(sym->ptype), sym->ctype); // howto? if a struct array
         type = value_at(sym->ptype);
     } else {
-        size = sym->size;
+        size = size_of_type(sym->ptype, sym->ctype);
         type = sym->ptype;
     }
 
@@ -550,9 +555,7 @@ void cg_new_sym(Symbol *sym) {
                 fprintf(OUT_FILE, "\t.quad\t%ld\n", init_value);
                 break;
             default:
-                for (j = 0; j < size; j++) {
-                    fprintf(OUT_FILE, "\t.byte\t0\n");
-                }
+                fprintf(OUT_FILE, "\t.zero\t%d\n", size);
         }
     }
 }

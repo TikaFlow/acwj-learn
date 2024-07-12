@@ -147,7 +147,7 @@ ASTnode *func_call();
 ASTnode *bin_expr(int ptp);
 
 // stmt.c
-ASTnode *compound_stmt(int is_switch);
+ASTnode *compound_stmt(int is_switch, Symbol **head, Symbol **tail);
 
 // misc.c
 void match(int token_type, char *what);
@@ -171,15 +171,15 @@ char *format_str(char *fmt, ...);
 // sym.c
 void reset_global_syms();
 
-void reset_local_syms();
+void reset_func_ptr();
+
+void set_func_ptr(Symbol *func);
 
 void reset_static_syms();
 
-void reset_sym_table();
-
 Symbol *find_global_sym(char *s);
 
-Symbol *find_local_sym(char *s);
+Symbol *find_param_local_sym(char *s);
 
 Symbol *find_struct_sym(char *s);
 
@@ -197,9 +197,9 @@ Symbol *find_sym(char *s);
 
 Symbol *add_global_sym(char *name, int ptype, Symbol *ctype, int stype, int class, int n_elem, int posn);
 
-Symbol *add_local_sym(char *name, int ptype, Symbol *ctype, int stype, int n_elem);
+Symbol *add_local_sym(char *name, Symbol **head, Symbol **tail, int ptype, Symbol *ctype, int stype, int n_elem);
 
-Symbol *add_param_sym(char *name, int ptype, Symbol *ctype, int stype);
+Symbol *add_param_sym(char *name, Symbol **head, Symbol **tail, int ptype, Symbol *ctype, int stype);
 
 Symbol *add_struct_sym(char *name);
 
